@@ -1,6 +1,6 @@
 ## Ingest
 
-This script takes an existing image corpus and loads them into a database. The
+This script takes an existing image corpus and loads it into a database. The
 database schema can be found [here](). 
 
 The .csv files containing image information are organized as follows:
