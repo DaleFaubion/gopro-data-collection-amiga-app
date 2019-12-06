@@ -1,6 +1,4 @@
 
-
-
 CREATE TABLE bay
 (
   id				SERIAL PRIMARY KEY,
@@ -32,9 +30,9 @@ CREATE TABLE yield
 
 
 /*
-Creates a view combining bayes and images
+Creates a view combining bayes and image
 */
 CREATE VIEW bay_image AS
 SELECT bay_num, row_num, block_num, vineyard_id, image_binary, date
-FROM bays, images, yeild
-WHERE bays.bay_id = image.bay_id and bays.bay_id = yield.bay_id;
+FROM bay, image, yield
+WHERE bay.id = image.bay_id and bay.id = yield.bay_id;
