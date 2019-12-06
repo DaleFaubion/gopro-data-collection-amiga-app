@@ -229,7 +229,7 @@ def read_source(file_name):
 if __name__ == "__main__":
     parser = ArgumentParser()
 
-    parser.add_argument("-d", required=True, help="The data directory")
+    parser.add_argument("-d", default="/srv/projects/vinetech/labels/crawford-beck/", help="The data directory")
     parser.add_argument("-db", default="vinetech", help="The database name to connect to")
     parser.add_argument("-db_user", default="cmeade16", help="The database username")
     parser.add_argument("-password", default="fQcm3aPh", help="The user's password; SECRET: Don't steal... please")
