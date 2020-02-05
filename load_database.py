@@ -32,11 +32,12 @@ def main(data_dir, db_name, db_user, db_password):
     MAX_BAY_NUM = 21
     MAX_ROW_NUM = 21
 
-    # generate the bays
-    for i in range(1, MAX_ROW_NUM+1):
-        for j in range(1, MAX_BAY_NUM+1):
-            bay_id = next_bay_id()
-            insert_bay(db, bay_id, j, i, 9, "Crawford-Beck")
+    # generate the bays, has already been done, should only be done if bays need
+    #                   to be remade
+    #for i in range(1, MAX_ROW_NUM+1):
+    #    for j in range(1, MAX_BAY_NUM+1):
+    #        bay_id = next_bay_id()
+    #        insert_bay(db, bay_id, j, i, 9, "Crawford-Beck")
 
     # for each year, add all the images
     for root, dirs, files in walk(data_dir):
