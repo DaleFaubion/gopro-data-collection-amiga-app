@@ -36,7 +36,7 @@ def main(data_dir, db_name, db_user, db_password):
     #                   to be remade
     #for i in range(1, MAX_ROW_NUM+1):
     #    for j in range(1, MAX_BAY_NUM+1):
-    #        bay_id = next_bay_id()
+    #        bay_id = next_bay_id(db)
     #        insert_bay(db, bay_id, j, i, 9, "Crawford-Beck")
 
     # for each year, add all the images
@@ -68,7 +68,7 @@ def main(data_dir, db_name, db_user, db_password):
                         long = image_data[9]
                         image_file_name = image_data[4]
 
-                        image_id = next_image_id()
+                        image_id = next_image_id(db)
 
                         # determine the correct path
                         base_path = '/srv/projects/vinetech/images/crawford-beck/block09'
@@ -80,7 +80,7 @@ def main(data_dir, db_name, db_user, db_password):
                             image_binary = file.read()
 
                         # insert an image for the csv line
-                        insert_image(db, image_id, bay_id, date, lat, long, image_binary)
+                        insert_image(db, image_id, bay_id, date, lat, long, image_binary, image_file_name)
 
     # remove the directory
     rmdir(OUT_DIR)
@@ -108,17 +108,17 @@ def insert_bay(db, bay_id, bay_num, row_num, block_num, vineyard_id):
     cursor.execute(sql, [bay_id, bay_num, row_num, block_num, vineyard_id])
 
 
-def insert_image(db, image_id, bay_id, date, lat, long, image_binary):
+def insert_image(db, image_id, bay_id, date, lat, long, image_binary, image_name):
     """
     Inserts an image into the database
     """
     # create the cursor
     cursor = db.cursor()
 
-    sql = "insert into image (image_id, bay_id, date, lat, long, image_binary) values (%s, %s, %s, %s, %s, %s);"
+    sql = "insert into image (image_id, bay_id, date, lat, long, image_binary, image_name) values (%s, %s, %s, %s, %s, %s, %s);"
 
     # execute the statement
-    cursor.execute(sql, [image_id, bay_id, date, lat, long, image_binary])
+    cursor.execute(sql, [image_id, bay_id, date, lat, long, image_binary, image_name])
 
 
 def next_bay_id(db):
