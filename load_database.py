@@ -46,20 +46,20 @@ def main(data_dir, db_name, db_user, db_password):
         for csv_file in files:
 
             # make sure the file is a csv file
-            if csv_file.endswith("locations.csv"):
+            if csv_file == "locations.csv":
 
-                csv = read_csv_file(csv_file)
+                csv = read_csv_file(root + csv_file)
 
                 for image_data in csv:
 
-                    row_num = image_data[10]
-                    bay_num = image_data[11]
+                    row_num = int(float(image_data[10]))
+                    bay_num = int(float(image_data[11]))
 
                     # Only retain images that have bay/row numbers in range [1,21]
                     if (row_num > 0 and row_num < 22) and (bay_num > 0 and bay_num < 22):
 
                         vineyard_id = image_data[1]
-                        block_num = image_data[2]
+                        block_num = int(float(image_data[2]))
 
                         bay_id = get_bay_id(db, bay_num, row_num, block_num, vineyard_id)
 
@@ -69,6 +69,9 @@ def main(data_dir, db_name, db_user, db_password):
                         image_file_name = image_data[4]
 
                         image_id = next_image_id(db)
+                        
+                        # format the date correctly
+                        date = date.replace(":", "-")
 
                         # determine the correct path
                         base_path = '/srv/projects/vinetech/images/crawford-beck/block09'
@@ -166,7 +169,7 @@ def get_bay_id(db, bay_num, row_num, block_num, vineyard_id):
     # make cursor
     cursor = db.cursor()
 
-    sql = "select bay_id from bay where bay_num = ? and row_num = ? and block_num = ? and vineyard_id = ?;" # values (%s, %s, %s, %s);"
+    sql = "select bay_id from bay where bay_num = %s and row_num = %s and block_num = %s and vineyard_id = %s;" # values (%s, %s, %s, %s);"
 
     # execute the statement
     cursor.execute(sql, [bay_num, row_num, block_num, vineyard_id])
