@@ -200,6 +200,9 @@ def read_csv_file(csv_file):
         # 13: vine_r
         # 14: focal length
         # 15: exposure time
+        
+        #move past the first row in the csv, which only contains labels
+        read_csv.__next__()
 
         array = []
 
