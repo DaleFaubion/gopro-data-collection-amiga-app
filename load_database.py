@@ -66,6 +66,7 @@ def main(data_dir, db_name, db_user, db_password):
                         date = image_data[3]
                         lat = image_data[8]
                         long = image_data[9]
+                        angle = int(float(image_data[7]))
                         image_file_name = image_data[4]
 
                         image_id = next_image_id(db)
@@ -83,7 +84,7 @@ def main(data_dir, db_name, db_user, db_password):
                             image_binary = file.read()
 
                         # insert an image for the csv line
-                        insert_image(db, image_id, bay_id, date, lat, long, image_binary, image_file_name)
+                        insert_image(db, image_id, bay_id, date, lat, long, angle, image_binary, image_file_name)
 
     # remove the directory
     rmdir(OUT_DIR)
@@ -111,17 +112,17 @@ def insert_bay(db, bay_id, bay_num, row_num, block_num, vineyard_id):
     cursor.execute(sql, [bay_id, bay_num, row_num, block_num, vineyard_id])
 
 
-def insert_image(db, image_id, bay_id, date, lat, long, image_binary, image_name):
+def insert_image(db, image_id, bay_id, date, lat, long, angle, image_binary, image_name):
     """
     Inserts an image into the database
     """
     # create the cursor
     cursor = db.cursor()
 
-    sql = "insert into image (image_id, bay_id, date, lat, long, image_binary, image_name) values (%s, %s, %s, %s, %s, %s, %s);"
+    sql = "insert into image (image_id, bay_id, date, lat, long, angle, image_binary, image_name) values (%s, %s, %s, %s, %s, %s, %s, %s);"
 
     # execute the statement
-    cursor.execute(sql, [image_id, bay_id, date, lat, long, image_binary, image_name])
+    cursor.execute(sql, [image_id, bay_id, date, lat, long, angle, image_binary, image_name])
 
 
 def next_bay_id(db):
