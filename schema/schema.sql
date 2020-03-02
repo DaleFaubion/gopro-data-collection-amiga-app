@@ -1,7 +1,6 @@
-
 CREATE TABLE bay
 (
-  id				SERIAL PRIMARY KEY,
+  bay_id		SERIAL PRIMARY KEY,
   bay_num		INTEGER NOT NULL,
   row_num		INTEGER NOT NULL,
   block_num		INTEGER NOT NULL,
@@ -10,12 +9,15 @@ CREATE TABLE bay
 
 CREATE TABLE image
 (
-  id				SERIAL PRIMARY KEY,
-  bay_id			INTEGER NOT NULL,
+  image_id		SERIAL PRIMARY KEY,
+  bay_id		INTEGER NOT NULL,
   date			DATE NOT NULL,
-  lat				TEXT NOT NULL,
+  lat			TEXT NOT NULL,
   long			TEXT NOT NULL,
   image_binary	bytea NOT NULL,
+  hand_marked   bit(1),
+  image_name    text,
+  angle         int,
   foreign key (bay_id) references bay (id)
 );
 
@@ -34,5 +36,5 @@ Creates a view combining bayes and image
 */
 CREATE VIEW bay_image AS
 SELECT bay_num, row_num, block_num, vineyard_id, image_binary, date
-FROM bay, image, yield
-WHERE bay.id = image.bay_id and bay.id = yield.bay_id;
+FROM bay, image
+WHERE bay.id = image.bay_id;
