@@ -18,7 +18,7 @@ CREATE TABLE image
   hand_marked   bit(1),
   image_name    text,
   angle         int,
-  foreign key (bay_id) references bay (id)
+  foreign key (bay_id) references bay (bay_id)
 );
 
 CREATE TABLE yield
@@ -27,7 +27,7 @@ CREATE TABLE yield
   yield_date	DATE NOT NULL,
   yield_units	TEXT NOT NULL,
   yield_weight	TEXT NOT NULL,
-  foreign key (bay_id) references bay (id)
+  foreign key (bay_id) references bay (bay_id)
 );
 
 
@@ -37,4 +37,4 @@ Creates a view combining bayes and image
 CREATE VIEW bay_image AS
 SELECT bay_num, row_num, block_num, vineyard_id, image_binary, date
 FROM bay, image
-WHERE bay.id = image.bay_id;
+WHERE bay.bay_id = image.bay_id;
