@@ -11,7 +11,7 @@ import psycopg2 as pg
 
 def get_binary():
     
-    dbname = "vinetech"
+    db_name = "vinetech"
     username = "cmeade16"
     password = "fQcm3aPh"
     
