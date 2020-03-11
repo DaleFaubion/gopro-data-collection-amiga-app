@@ -16,7 +16,7 @@ def get_binary():
     password = "fQcm3aPh"
     
     db = pg.connect("host='localhost' dbname='%s' user='%s' password='%s'" % (db_name, username, password))
-    cursor = db.cursor
+    cursor = db.cursor()
     sql = "select image_binary from image where image_id = 1"
     cursor.execute(sql)
     image_binary = cursor.fetchone()[0]
