@@ -25,6 +25,7 @@ def get_binary():
 if __name__ == "__main__":
 
     image_binary = get_binary()
-    f = open("verifyFile.jpg", "w")
-    f.write(image_binary)
+    string = image_binary.tobytes()
+    f = open("verifyFile.jpg", "w+b")
+    f.write(string)
     f.close
