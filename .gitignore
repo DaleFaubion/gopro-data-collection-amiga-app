@@ -1,0 +1,6 @@
+*__pycache__
+.DS_Store
+raw_images/top_camera/*
+raw_images/middle_camera/*
+raw_images/bottom_camera/*
+*.JPG
