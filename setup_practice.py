@@ -5,6 +5,7 @@
 
 import os
 import pandas as pd
+import shutil
 
 import __init__
 from organization import file_org as f_org
@@ -23,7 +24,7 @@ labels = pd.read_csv(label_file)
 x = 0
 
 
-def make_symlinks(angle, dirname, x):
+def copy_images(angle, dirname, x):
 
     dirname = os.path.join(image_path, dirname)
     if not os.path.isdir(dirname):
@@ -35,11 +36,11 @@ def make_symlinks(angle, dirname, x):
         print(realfile, filename)
         if os.path.isfile(filename):
             os.remove(filename)
-        os.symlink(realfile, filename)
+        shutil.copyfile(realfile, filename)
 
         x += 1
 
 
-x = make_symlinks(0, "top_camera", x)
-x = make_symlinks(1, "bottom_camera", x)
-x = make_symlinks(2, "middle_camera", x)
+x = copy_images(0, "top_camera", x)
+x = copy_images(1, "bottom_camera", x)
+x = copy_images(2, "middle_camera", x)
