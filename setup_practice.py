@@ -4,6 +4,7 @@
 # Vinetech ingest practice setup
 
 import __init__
+import os
 from organization import file_org as f_org
 
 date = "2019-07-31"
