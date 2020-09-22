@@ -35,7 +35,7 @@ def make_symlinks(angle, dirname):
         print(realfile, filename)
         if os.path.isfile(filename):
             os.remove(filename)
-        os.symlink(realfile, filename)
+        os.symlink(filename, realfile)
 
         x += 1
 
