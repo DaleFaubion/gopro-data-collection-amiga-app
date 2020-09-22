@@ -207,6 +207,25 @@ def complete_df(df, img_path, backup_path=None, force_new=False, row_range=None)
     print("Predicting Bays")
     df = dfP.get_df()
     bp = Bay_Predictor()
+
+    if not bp.fit:
+
+        print("Training RandomForestClassifier for bay prediction")
+
+        vineyard = "crawford-beck"
+        block = 9
+        date = "2019-06-12"
+
+        bp.train_model(
+            dates=date, holdout_rows=list(range(15, 22)), vineyard=vineyard, block=block
+        )
+
+        score = bp.test_model(
+            dates=date, holdout_rows=list(range(15)), vineyard=vineyard, block=block
+        )
+
+        print("Model Scored:", score)
+
     df["pred_bay"] = bp.predict_bays(
         df.loc[0, "vineyard"], df.loc[0, "block"], df.loc[0, "date"].replace(":", "-")
     )
