@@ -528,10 +528,8 @@ def oscillation_centers(df, col_name, cols=None):
     Gets the oscillation centers of a column.
     """
 
-    df.copy()
-
     # Computation setup
-    centers = pd.astype(df[col_name], pd.bool)
+    centers = df[col_name].index.map(lambda x: False)
     i = df.index[0]
     avg = np.average(df[col_name])
     prev = df[col_name][i] < avg
