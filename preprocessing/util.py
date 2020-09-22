@@ -529,7 +529,7 @@ def oscillation_centers(df, col_name, cols=None):
     """
 
     # Computation setup
-    centers = df[col_name].index.map(lambda x: False)
+    centers = pd.Series(index=df[col_name].index)
     i = df.index[0]
     avg = np.average(df[col_name])
     prev = df[col_name][i] < avg
