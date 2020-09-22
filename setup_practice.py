@@ -40,6 +40,8 @@ def copy_images(angle, dirname, x):
 
         x += 1
 
+    return x
+
 
 x = copy_images(0, "top_camera", x)
 x = copy_images(1, "bottom_camera", x)
