@@ -25,6 +25,8 @@ x = 0
 
 def make_symlinks(angle, dirname):
 
+    nonlocal x
+
     for image in labels.loc[labels["angle"] == angle, "name"]:
         os.symlink(
             os.path.join(image_out_path, image),
