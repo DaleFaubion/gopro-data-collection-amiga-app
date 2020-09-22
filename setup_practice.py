@@ -31,7 +31,7 @@ def copy_images(angle, dirname, x):
         os.makedirs(dirname)
 
     for image in labels.loc[labels["angle"] == angle, "name"]:
-        filename = os.path.join(dirname, str(x) + ".jpg")
+        filename = os.path.join(dirname, str(x) + ".JPG")
         realfile = os.path.join(image_out_path, image)
         print(realfile, filename)
         if os.path.isfile(filename):
