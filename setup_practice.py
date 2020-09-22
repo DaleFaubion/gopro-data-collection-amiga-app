@@ -31,12 +31,11 @@ def make_symlinks(angle, dirname):
 
     for image in labels.loc[labels["angle"] == angle, "name"]:
         filename = os.path.join(dirname, str(x) + ".jpg")
-        print(filename)
+        realfile = os.path.join(image_out_path, image)
+        print(realfile, filename)
         if os.path.isfile(filename):
             os.remove(filename)
-        os.symlink(
-            os.path.join(image_out_path, image), filename,
-        )
+        os.symlink(realfile, filename)
 
         x += 1
 
