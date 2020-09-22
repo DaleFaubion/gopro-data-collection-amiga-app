@@ -18,7 +18,7 @@ image_out_path = f_org.get_image_path(vineyard, block, date)
 
 label_path = f_org.get_label_path(vineyard, block, date)
 label_file = os.path.join(label_path, "locations.csv")
-labels = pd.read_csv(label_file)
+labels = pd.read_csv(label_file[["name", "angle"]])
 
 print(image_path)
 print(image_out_path)
