@@ -23,6 +23,8 @@ from preprocessing.predict_bays import Bay_Predictor
 from PIL import Image, ImageTk
 from PIL.ExifTags import TAGS, GPSTAGS
 
+from organization import file_org as f_org
+
 columns = [
     "vineyard",
     "block",
@@ -274,7 +276,7 @@ def ingest_images(vineyard, block, date, row_range=None):
     image_path = os.path.join(f_org.home, "ingest", "raw_images")
     image_out_path = f_org.ensure_path(f_org.home, "ingest", "processed", date)
     label_path = f_org.get_label_path(vineyard, block, date)
-    label_file = os.path.join(label_path, "locations.csv")
+    label_file = f_org.ensure_path(f_org.home, "ingest", date, "locations.csv")
     backup_path = f_org.ensure_path(os.path.join(label_path, "backups"))
     backup_file = os.path.join(backup_path, "locations_copy.csv")
 
@@ -397,6 +399,5 @@ def main(args):
 
 
 if __name__ == "__main__":
-    os.chdir("..")
     args = arg_parse()
     main(args)
