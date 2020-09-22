@@ -618,7 +618,7 @@ class Data_Preprocessor:
             print("Generating Oscillation 'Centers'")
             centers = oscillation_centers(self.data[slice], osc_col, cols=X_cols)
 
-            print("Predicting", vineyard, block, angle, end="\r")
+            # print("Predicting", vineyard, block, angle, end="\r")
             if len(X[centers]) > rows and current_pics > min_pics:
                 # An initial fix if the centers algorithm returns too many
                 #  centers
@@ -650,7 +650,7 @@ class Data_Preprocessor:
                 init = pd.DataFrame(columns=X_cols)
                 for col in X_cols:
                     init[col] = ind.map(
-                        lambda x: np.average(self.data[col][x - av_ : x + av_]), ind
+                        lambda x: np.average(self.data.loc[x - av_ : x + av_, col])
                     )
 
                 # Standard KMeans implementation, row predictions

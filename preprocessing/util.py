@@ -540,6 +540,4 @@ def oscillation_centers(df, col_name, cols=None):
         centers[i] = (current != prev) and not np.isnan(df.loc[i, col_name])
         prev = current
 
-    print(centers)
-
     return centers
