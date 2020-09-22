@@ -397,5 +397,6 @@ def main(args):
 
 
 if __name__ == "__main__":
+    os.chdir("..")
     args = arg_parse()
     main(args)
