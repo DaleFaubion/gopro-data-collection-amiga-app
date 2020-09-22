@@ -271,8 +271,8 @@ def ingest_images(vineyard, block, date, row_range=None):
     """
 
     # Get paths
-    image_path = os.path.join("~/ingest", "raw_images")
-    image_out_path = f_org.get_image_path(vineyard, block, date)
+    image_path = os.path.join(f_org.home, "ingest", "raw_images")
+    image_out_path = f_org.ensure_path(f_org.home, "ingest", "processed", date)
     label_path = f_org.get_label_path(vineyard, block, date)
     label_file = os.path.join(label_path, "locations.csv")
     backup_path = f_org.ensure_path(os.path.join(label_path, "backups"))
