@@ -14,7 +14,7 @@ date = "2019-07-31"
 vineyard = "crawford-beck"
 block = 9
 
-image_path = f_org.ensure_path("~/ingest", "raw_images")
+image_path = f_org.ensure_path(f_org.home + "/ingest", "raw_images")
 image_out_path = f_org.get_image_path(vineyard, block, date)
 
 label_path = f_org.get_label_path(vineyard, block, date)
@@ -36,7 +36,7 @@ def copy_images(angle, dirname, x):
         print(realfile, filename)
         if os.path.isfile(filename):
             os.remove(filename)
-        shutil.copyfile(realfile, filename)
+        os.symlink(realfile, filename)
 
         x += 1
 
