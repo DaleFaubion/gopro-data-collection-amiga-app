@@ -25,12 +25,13 @@ x = 0
 
 def make_symlinks(angle, dirname):
 
+    dirname = f_org.ensure_path(image_path, dirname)
+
     global x
 
     for image in labels.loc[labels["angle"] == angle, "name"]:
         os.symlink(
-            os.path.join(image_out_path, image),
-            os.path.join(image_path, dirname, str(x) + ".jpg"),
+            os.path.join(image_out_path, image), os.path.join(dirname, str(x) + ".jpg"),
         )
 
         x += 1
