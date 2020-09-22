@@ -241,8 +241,8 @@ def patch(vineyard, block, date, force_new=False, row_range=None):
     """
 
     # Get paths
-    image_path = f_org.get_image_path(vineyard, block, date)
-    label_path = f_org.get_label_path(vineyard, block, date)
+    image_path = f_org.ensure_path(f_org.home, "ingest", "processed", date)
+    label_path = f_org.ensure_path(f_org.home, "ingest", date)
     label_file = os.path.join(label_path, "locations.csv")
     backup = os.path.join(label_path, "backups", "locations_copy.csv")
 
