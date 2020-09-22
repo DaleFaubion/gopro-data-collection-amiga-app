@@ -3,6 +3,9 @@
 # Fall 2020
 # Vinetech ingest practice setup
 
+import __init__
+from organization import file_org as f_org
+
 date = "2019-07-31"
 vineyard = "crawford-beck"
 block = 9
