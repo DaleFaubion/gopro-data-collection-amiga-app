@@ -532,12 +532,14 @@ def oscillation_centers(df, col_name, cols=None):
     centers = pd.Series(index=df[col_name].index)
     i = df.index[0]
     avg = np.average(df[col_name])
-    prev = df[col_name][i] < avg
+    prev = df.loc[i, col_name] < avg
+
+    print(prev)
 
     # Label when the data crosses the average
     for i in df.index:
-        current = df[col_name][i] < avg
-        centers[i] = (current != prev) and not np.isnan(df[col_name][i])
+        current = df.loc[i, col_name] < avg
+        centers[i] = (current != prev) and not np.isnan(df.loc[i, col_name])
         prev = current
 
     return centers
