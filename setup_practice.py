@@ -23,11 +23,11 @@ labels = pd.read_csv(label_file)
 x = 0
 
 
-def make_symlinks(angle, dirname):
+def make_symlinks(angle, dirname, x):
 
-    dirname = f_org.ensure_path(image_path, dirname)
-
-    global x
+    dirname = os.path.join(image_path, dirname)
+    if not os.isdir(dirname):
+        os.makedirs(dirname)
 
     for image in labels.loc[labels["angle"] == angle, "name"]:
         filename = os.path.join(dirname, str(x) + ".jpg")
@@ -40,6 +40,6 @@ def make_symlinks(angle, dirname):
         x += 1
 
 
-make_symlinks(0, "top_camera")
-make_symlinks(1, "bottom_camera")
-make_symlinks(2, "middle_camera")
+x = make_symlinks(0, "top_camera", x)
+x = make_symlinks(1, "bottom_camera", x)
+x = make_symlinks(2, "middle_camera", x)
