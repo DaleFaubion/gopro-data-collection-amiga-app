@@ -20,46 +20,53 @@ import random
 from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier
 
+
 def arg_parse():
     """
     Function to get arguments from the command line input.
     """
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("-dsp", "--display", action="store_true",
-        help="data to display")
-    ap.add_argument("-inf", "--info", action="store_true",
-        help="data to provide information of")
-    ap.add_argument("-v", "--vineyard", required=True,
-        help="vineyard of images to display")
-    ap.add_argument("-b", "--block", required=True, type=int,
-        help="block of images to display")
-    ap.add_argument("-d", "--dates", required=True, nargs="+",
-        help="dates of images to display")
-    ap.add_argument("-x", "--x", default="lat",
-        help="column to use for x values")
-    ap.add_argument("-y", "--y", default="lon",
-        help="column to use for y values")
-    ap.add_argument("-c", "--color",
-        help="column to use for color values")
-    ap.add_argument("-s", "--size",
-        help="column or float to use for size")
-    ap.add_argument("-cm", "--camera", type=int,
-        help="camera number to view")
-    ap.add_argument("-de", "--drop_endcaps", action="store_true",
-        help="whether to remove the endcaps from the data")
-    ap.add_argument("-rw", "--rows", type=int, nargs=2,
-        help="range of rows to display")
-    ap.add_argument("-by", "--bays", type=int, nargs=2,
-        help="range of bays to display")
-    ap.add_argument("-sc", "--scale", action="store_true",
-        help="whether to scale the axis data")
-    ap.add_argument("-ss", "--std_scale", action="store_true",
-        help="whether to scale using a standard scaler")
+    ap.add_argument("-dsp", "--display", action="store_true", help="data to display")
+    ap.add_argument(
+        "-inf", "--info", action="store_true", help="data to provide information of"
+    )
+    ap.add_argument(
+        "-v", "--vineyard", required=True, help="vineyard of images to display"
+    )
+    ap.add_argument(
+        "-b", "--block", required=True, type=int, help="block of images to display"
+    )
+    ap.add_argument(
+        "-d", "--dates", required=True, nargs="+", help="dates of images to display"
+    )
+    ap.add_argument("-x", "--x", default="lat", help="column to use for x values")
+    ap.add_argument("-y", "--y", default="lon", help="column to use for y values")
+    ap.add_argument("-c", "--color", help="column to use for color values")
+    ap.add_argument("-s", "--size", help="column or float to use for size")
+    ap.add_argument("-cm", "--camera", type=int, help="camera number to view")
+    ap.add_argument(
+        "-de",
+        "--drop_endcaps",
+        action="store_true",
+        help="whether to remove the endcaps from the data",
+    )
+    ap.add_argument("-rw", "--rows", type=int, nargs=2, help="range of rows to display")
+    ap.add_argument("-by", "--bays", type=int, nargs=2, help="range of bays to display")
+    ap.add_argument(
+        "-sc", "--scale", action="store_true", help="whether to scale the axis data"
+    )
+    ap.add_argument(
+        "-ss",
+        "--std_scale",
+        action="store_true",
+        help="whether to scale using a standard scaler",
+    )
 
     return vars(ap.parse_args())
 
-class Data_Preprocessor():
+
+class Data_Preprocessor:
     """
     A class used to manipulate and prepare dataframes for machine learning.
     """
@@ -121,7 +128,7 @@ class Data_Preprocessor():
         Copies the current Data_Preprocessor.
         """
 
-        data =  Data_Preprocessor(self.data)
+        data = Data_Preprocessor(self.data)
         data.path = self.path
         return data
 
@@ -187,24 +194,30 @@ class Data_Preprocessor():
 
         self.data = self.data_copy.copy()
 
-    def disp(self, x, y, size, color, alpha=1.0, title=None, save=True,
-            split_col=None):
+    def disp(self, x, y, size, color, alpha=1.0, title=None, save=True, split_col=None):
         """
         Displays the data using matplotlib.
         """
 
         if split_col is None:
             title = "locations" if title is None else title
-            scatter(self.data, title, x, y, s=size, c=color, alpha=alpha,
-                save=save)
+            scatter(self.data, title, x, y, s=size, c=color, alpha=alpha, save=save)
         else:
             # Split data to display
             for val in self.data[split_col].unique():
                 v = str(val)
                 title = "locations " + v if title is None else title + " " + v
                 slice = self.data[split_col] == val
-                scatter(self.data[slice], title, x, y, s=size, c=color,
-                    alpha=alpha, save=save)
+                scatter(
+                    self.data[slice],
+                    title,
+                    x,
+                    y,
+                    s=size,
+                    c=color,
+                    alpha=alpha,
+                    save=save,
+                )
 
     #####################
     # Column operations #
@@ -309,6 +322,7 @@ class Data_Preprocessor():
 
         def delta_func(slice, **kwargs):
             return delta(self.data[slice], col_name)
+
         self.recursive_splitting(delta_func, new_name, split_cols)
 
     def dist(self, new_name, col_name, x_col, y_col, split_cols=[]):
@@ -320,6 +334,7 @@ class Data_Preprocessor():
 
         def dist_func(slice, **kwargs):
             return dist(self.data, col_name, x_col, y_col)
+
         self.recursive_splitting(dist_func, new_name, split_cols)
 
     def slope(self, new_name, x_col, y_col):
@@ -339,6 +354,7 @@ class Data_Preprocessor():
 
         def angle_func(slice, **kwargs):
             return angle(self.data, x_col, y_col)
+
         self.recursive_splitting(angle_func, new_name, split_cols)
 
     def avg(df, new_name, cols, split_cols=[]):
@@ -350,6 +366,7 @@ class Data_Preprocessor():
 
         def avg_func(slice, **kwargs):
             return avg(df, cols)
+
         self.recursive_splitting(avg_func, new_name, split_cols)
 
     def round_cols(self, cols_to_round):
@@ -374,7 +391,7 @@ class Data_Preprocessor():
         self.recursive_splitting(ord_encode_func, cols_to_encode, split_cols)
         return self.data
 
-    def range_scale(self, cols_to_scale, range=(0,1), split_cols=[]):
+    def range_scale(self, cols_to_scale, range=(0, 1), split_cols=[]):
         """
         Scales the given columns to the given range.
 
@@ -414,8 +431,7 @@ class Data_Preprocessor():
         Returns an array containing the outliers of the given column.
         """
 
-        return get_std_outliers(self.data, col_name, cutoff=cutoff,
-            center=center)
+        return get_std_outliers(self.data, col_name, cutoff=cutoff, center=center)
 
     def remove_std_outliers(self, col_name, cutoff=5, split_cols=[]):
         """
@@ -426,8 +442,7 @@ class Data_Preprocessor():
         """
 
         def std_func(slice, **kwargs):
-            col = remove_std_outliers(self.data.loc[slice], col_name,
-                cutoff=cutoff)
+            col = remove_std_outliers(self.data.loc[slice], col_name, cutoff=cutoff)
             return col[col_name]
 
         self.recursive_splitting(std_func, col_name, split_cols)
@@ -465,8 +480,9 @@ class Data_Preprocessor():
     # Recursive splitting #
     #######################
 
-    def recursive_splitting(self, func, new_name, split_cols, vals=[],
-            current=0, filter=None):
+    def recursive_splitting(
+        self, func, new_name, split_cols, vals=[], current=0, filter=None
+    ):
         """
         Recursive Splitting function to allow other functions to be applied
         to sections of the underlying dataframe.
@@ -502,18 +518,26 @@ class Data_Preprocessor():
         else:
             # Split on column values
             for val in self.data.loc[filter, split_cols[current]].unique():
+
                 def filter_func(x):
                     is_val = self.data.loc[x, split_cols[current]] == val
                     prev_filter = filter.loc[x]
                     return is_val and prev_filter
+
                 # Get new filter and vals
                 c_filter = get_filter(self.data, func=filter_func)
                 c_vals = vals.copy()
                 c_vals.append(val)
 
                 # Recursive call
-                self.recursive_splitting(func, new_name, split_cols,
-                        vals=c_vals, current=current+1, filter=c_filter)
+                self.recursive_splitting(
+                    func,
+                    new_name,
+                    split_cols,
+                    vals=c_vals,
+                    current=current + 1,
+                    filter=c_filter,
+                )
 
     ##########################
     # Location Data Specific #
@@ -537,9 +561,16 @@ class Data_Preprocessor():
 
         self.recursive_splitting(func, None, split_cols)
 
-    def predict_rows(self, new_name="row", split_col="angle", osc_col="lat",
-            X_cols=["lon", "time", "d_lat"], iter=500, row_range=None,
-            fix_cols=["lon", "lat", "d_lat"]):
+    def predict_rows(
+        self,
+        new_name="row",
+        split_col="angle",
+        osc_col="lat",
+        X_cols=["lon", "time", "d_lat"],
+        iter=500,
+        row_range=None,
+        fix_cols=["lon", "lat", "d_lat"],
+    ):
         """
         Uses a KMeans algorithm to divide the data into rows by longitude,
         time, and the direction of change in the latitude.
@@ -584,48 +615,62 @@ class Data_Preprocessor():
             current_pics = len(self.data[slice])
 
             # Get the center of the rows
-            centers = oscillation_centers(self.data[slice], osc_col,
-                cols=X_cols)
+            centers = oscillation_centers(self.data[slice], osc_col, cols=X_cols)
 
-            #print("Predicting", vineyard, block, angle, end='\r')
+            print("Predicting", vineyard, block, angle, end="\r")
             if len(X[centers]) > rows and current_pics > min_pics:
                 # An initial fix if the centers algorithm returns too many
                 #  centers
-                print(vineyard, block, angle, "has", len(X[centers]),
-                    "centers not", rows, end='\n')
-                #print(X[centers].head(len(X[centers])))
-                #print(X[centers].info())
-                ids = [round((x+0.5) * current_pics/rows) for x in range(rows)]
+                print(
+                    vineyard,
+                    block,
+                    angle,
+                    "has",
+                    len(X[centers]),
+                    "centers not",
+                    rows,
+                    end="\n",
+                )
+                # print(X[centers].head(len(X[centers])))
+                # print(X[centers].info())
+                ids = [round((x + 0.5) * current_pics / rows) for x in range(rows)]
                 ids = list(map(lambda x: self.data[slice].index[x], ids))
                 centers = list(map(lambda x: x in ids, self.data[slice].index))
                 print("Fixed centers to have", len(X[centers]))
             if len(X[centers]) != rows:
                 # If there is still an incorrect number of centers, add to list
                 #  of data to fix
-                print(vineyard, block, angle, "has", len(centers),
-                    "centers not", rows)
+                print(vineyard, block, angle, "has", len(centers), "centers not", rows)
                 fix.append((vineyard, block, angle))
             else:
                 # Extend centers to include averages
-                av_ = 20 # range for averaging
+                av_ = 20  # range for averaging
                 ind = X[centers].index
                 init = pd.DataFrame(columns=X_cols)
                 for col in X_cols:
                     init[col] = ind.map(
-                        lambda x: np.average(self.data[col][x-av_:x+av_]), ind)
+                        lambda x: np.average(self.data[col][x - av_ : x + av_]), ind
+                    )
 
                 # Standard KMeans implementation, row predictions
-                alg = KMeans(n_clusters=rows, max_iter=iter, init=init,
-                    n_init=1, n_jobs=-1)
+                alg = KMeans(
+                    n_clusters=rows, max_iter=iter, init=init, n_init=1, n_jobs=-1
+                )
                 rows = alg.fit_predict(X)
                 self.data.loc[slice, [new_name]] = rows
 
                 # Renumber groups to be ascending
-                new_groups = list(range(row_range[0], row_range[1]+1))
-                renum = renumber_groups(self.data[slice], new_name, "time",
-                    descending=False, new_groups=new_groups)
-                new_col = transform_column(self.data[slice],
-                    new_name, lambda x: renum[x]+1)
+                new_groups = list(range(row_range[0], row_range[1] + 1))
+                renum = renumber_groups(
+                    self.data[slice],
+                    new_name,
+                    "time",
+                    descending=False,
+                    new_groups=new_groups,
+                )
+                new_col = transform_column(
+                    self.data[slice], new_name, lambda x: renum[x] + 1
+                )
                 self.data.loc[slice, [new_name]] = new_col
 
             return self.data.loc[slice][new_name]
@@ -638,8 +683,9 @@ class Data_Preprocessor():
 
             if (vineyard, block, angle) in fix:
                 # Fix only the vineyard, block, angle combinations needed
-                print("Estimating", vineyard, block, angle,
-                    "with RandomForestClassifier")
+                print(
+                    "Estimating", vineyard, block, angle, "with RandomForestClassifier"
+                )
 
                 # Data prep
                 prep_data()
@@ -671,10 +717,8 @@ class Data_Preprocessor():
         self.recursive_splitting(fix_func, new_name, split_cols)
 
         # Data cleanup: smooth outliers that pop up mid-row
-        self.data[new_name] = smooth_column(self.data, col_name=new_name,
-            dist=5)
-        self.data[new_name] = smooth_column(self.data, col_name=new_name,
-            dist=3)
+        self.data[new_name] = smooth_column(self.data, col_name=new_name, dist=5)
+        self.data[new_name] = smooth_column(self.data, col_name=new_name, dist=3)
         new_col = smooth_column(self.data, col_name=new_name, dist=1)
 
         # Restore data state and add the new column
@@ -714,6 +758,7 @@ class Data_Preprocessor():
 
         return self.subset(col_names=["row", "bay"], ranges=[rows, bays])
 
+
 def main(args):
     """
     Main Function for data visualization, or information display.
@@ -721,8 +766,9 @@ def main(args):
 
     # Data display / visualization mode
     if args["display"]:
-        dP = Data_Preprocessor.from_location_and_date(args["vineyard"],
-            args["block"], args["dates"][0])
+        dP = Data_Preprocessor.from_location_and_date(
+            args["vineyard"], args["block"], args["dates"][0]
+        )
 
         dP.ordinal_encode(["camera", "time"])
 
@@ -736,8 +782,9 @@ def main(args):
 
     # Information display mode
     if args["info"]:
-        dP = Data_Preprocessor.from_location_and_date(args["vineyard"],
-            args["block"], args["dates"][0])
+        dP = Data_Preprocessor.from_location_and_date(
+            args["vineyard"], args["block"], args["dates"][0]
+        )
         df = dP.get_df()
 
         print(df.info())
@@ -746,6 +793,7 @@ def main(args):
             print(df.head())
         else:
             print(df[args["rows"][0] : args["rows"][1]])
+
 
 if __name__ == "__main__":
     args = arg_parse()
