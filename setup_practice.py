@@ -23,7 +23,7 @@ labels = pd.read_csv(label_file)
 x = 0
 
 
-def make_symlinks(anlge, dirname):
+def make_symlinks(angle, dirname):
 
     for image in labels.loc[labels["angle"] == angle, "name"]:
         os.symlink(
