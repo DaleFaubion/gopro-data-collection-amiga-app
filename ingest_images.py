@@ -207,7 +207,9 @@ def complete_df(df, img_path, backup_path=None, force_new=False, row_range=None)
     print("Predicting Bays")
     df = dfP.get_df()
     bp = Bay_Predictor()
-    df["pred_bay"] = bp.predict_bays(df["vineyard"][0], df["block"][0], df["date"][0])
+    df["pred_bay"] = bp.predict_bays(
+        df.loc[0, "vineyard"], df.loc[0, "block"], df.loc[0, "date"](":", "-"),
+    )
 
     return df
 

@@ -615,7 +615,6 @@ class Data_Preprocessor:
             current_pics = len(self.data[slice])
 
             # Get the center of the rows
-            print("Generating Oscillation 'Centers'")
             centers = oscillation_centers(self.data[slice], osc_col, cols=X_cols)
 
             # print("Predicting", vineyard, block, angle, end="\r")
