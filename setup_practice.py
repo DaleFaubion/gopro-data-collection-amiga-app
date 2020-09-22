@@ -25,7 +25,7 @@ x = 0
 
 def make_symlinks(angle, dirname):
 
-    nonlocal x
+    global x
 
     for image in labels.loc[labels["angle"] == angle, "name"]:
         os.symlink(
