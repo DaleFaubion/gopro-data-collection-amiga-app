@@ -336,9 +336,8 @@ def ingest_images(vineyard, block, date, row_range=None):
                 old_name = os.path.join(image_path, angle_name, filename)
                 new_name = os.path.join(image_out_path, name)
 
-                if os.path.islink(old_name):
-                    old_name = os.readlink(old_name)
-                copyfile(old_name, new_name)
+                print(old_name, new_name)
+                copyfile(old_name, new_name, follow_symlinks=False)
                 # os.rename(old_name, new_name)
 
                 id += 1
