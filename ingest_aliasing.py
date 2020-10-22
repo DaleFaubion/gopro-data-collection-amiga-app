@@ -17,7 +17,7 @@ def create_aliases(image_dir, alias_dir):
     # Collect the image names
     for im_dir in image_dir:
         for root, dirs, files in os.walk(im_dir):
-            images.extend([os.path.join(root, f).replace(" ", "\\ ") for f in files])
+            images.extend([os.path.join(root, f).replace(" ", "\ ") for f in files])
 
     # Create aliases for each image
     for idx in range(len(images)):
