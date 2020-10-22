@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import __init__
 from organization import file_org as f_org
@@ -45,7 +46,10 @@ if __name__ == "__main__":
 
     for d in ["top", "middle", "bottom"]:
         image_dir = os.path.join(image_path, d)
-        if os.path.isdir(image_dir):
-            os.removedirs(image_dir)
+        if not os.path.isdir(image_dir):
             os.makedirs(image_dir)
+
+        for file in filter(lambda x: x[-4:] == ".JPG", os.listdir(image_dir)):
+            os.unlink(os.path.join(image_dir, file))
+
         create_aliases(args[d], os.path.join(image_path, d))
