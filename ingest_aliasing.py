@@ -14,12 +14,13 @@ def create_aliases(image_dir, alias_dir):
 
     images = []
 
+    # Collect the image names
     for im_dir in image_dir:
         for root, dirs, files in os.walk(im_dir):
             images.extend([os.path.join(root, f).replace(" ", "\\ ") for f in files])
 
+    # Create aliases for each image
     for idx in range(len(images)):
-        print(os.path.join(alias_dir, str(idx) + ".JPG"), images[idx])
         os.symlink(images[idx], os.path.join(alias_dir, str(idx) + ".JPG"))
 
 
@@ -44,8 +45,11 @@ if __name__ == "__main__":
     args = arg_parse()
     image_path = os.path.join(f_org.home, "ingest", "raw_images")
 
+    # Create symlinks for each camera angle
     for d in ["top", "middle", "bottom"]:
         alias_dir = os.path.join(image_path, d) + "_camera"
+
+        # Create the symlink directory if it doesn't exist
         if not os.path.isdir(alias_dir):
             os.makedirs(alias_dir)
 
@@ -53,4 +57,5 @@ if __name__ == "__main__":
         for file in filter(lambda x: x[-4:] == ".JPG", os.listdir(alias_dir)):
             os.unlink(os.path.join(alias_dir, file))
 
+        # Create symlinks to all the files
         create_aliases(args[d], alias_dir)
