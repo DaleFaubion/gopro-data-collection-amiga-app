@@ -201,7 +201,8 @@ def complete_df(df, img_path, backup_path=None, force_new=False, row_range=None)
 
     # Location predictions
     print("Predicting Blocks")
-    dfP.predict_blocks()
+    if np.isnan(dfP.data["block"]).any():
+        dfP.predict_blocks()
 
     print("Predicting Rows")
     dfP.predict_rows(row_range=row_range)
@@ -336,7 +337,6 @@ def ingest_images(vineyard, block, date, row_range=None):
                 old_name = os.path.join(image_path, angle_name, filename)
                 new_name = os.path.join(image_out_path, name)
 
-                print(old_name, new_name)
                 copyfile(old_name, new_name, follow_symlinks=False)
                 # os.rename(old_name, new_name)
 
