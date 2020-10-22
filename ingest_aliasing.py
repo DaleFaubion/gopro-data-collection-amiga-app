@@ -12,8 +12,10 @@ def create_aliases(image_dir, alias_dir):
     """
     idx = 0
 
-    for root, dirs, files in [os.walk(im_dir) for im_dir in image_dir]:
-        print(files)
+    for im_dir in image_dir:
+        print(im_dir)
+        for root, dirs, files in os.walk(im_dir):
+            print(files)
 
 
 def arg_parse():
