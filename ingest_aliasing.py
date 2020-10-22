@@ -20,6 +20,7 @@ def create_aliases(image_dir, alias_dir):
 
     for idx in range(len(images)):
         print(os.path.join(alias_dir, str(idx) + ".JPG"), images[idx])
+        os.symlink(images[idx], os.path.join(alias_dir, str(idx) + ".JPG"))
 
 
 def arg_parse():
