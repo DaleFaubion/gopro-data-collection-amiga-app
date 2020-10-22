@@ -10,7 +10,6 @@ def create_aliases(image_dir, alias_dir):
     """
     create_aliases creates symlinks to the correct images in the ingest directory
     """
-    idx = 0
 
     images = []
 
@@ -19,7 +18,8 @@ def create_aliases(image_dir, alias_dir):
         for root, dirs, files in os.walk(im_dir):
             images.extend([os.path.join(root, f) for f in files])
 
-    print(images)
+    for idx in range(len(images)):
+        print(os.path.join(alias_dir, str(idx) + ".JPG"), images[idx])
 
 
 def arg_parse():
