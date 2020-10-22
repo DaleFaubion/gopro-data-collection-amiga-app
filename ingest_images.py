@@ -304,6 +304,8 @@ def ingest_images(vineyard, block, date, row_range=None):
     # Create label file if it doesn't exist
     if os.path.isfile(label_file):
         label_file = os.path.join(label_path, "locations_1.csv")
+    if not os.path.isdir(image_out_path):
+        os.makedirs(image_out_path)
 
     # Setup
     id = 0
