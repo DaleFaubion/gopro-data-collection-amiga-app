@@ -45,7 +45,7 @@ if __name__ == "__main__":
     image_path = os.path.join(f_org.home, "ingest", "raw_images")
 
     for d in ["top", "middle", "bottom"]:
-        image_dir = os.path.join(image_path, d)
+        image_dir = os.path.join(image_path + "_camera", d)
         if not os.path.isdir(image_dir):
             os.makedirs(image_dir)
 
