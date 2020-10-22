@@ -15,6 +15,8 @@ import numpy as np
 import argparse
 import os
 
+from shutil import copyfile
+
 from sklearn.preprocessing import StandardScaler
 from preprocessing import Data_Preprocessor as dP
 from preprocessing import util as u
@@ -333,8 +335,8 @@ def ingest_images(vineyard, block, date, row_range=None):
                 # Move the file
                 old_name = os.path.join(image_path, angle_name, filename)
                 new_name = os.path.join(image_out_path, name)
-                # copyfile(old_name, new_name)
-                os.rename(old_name, new_name)
+                copyfile(old_name, new_name)
+                # os.rename(old_name, new_name)
 
                 id += 1
 
