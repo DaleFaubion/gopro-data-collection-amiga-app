@@ -40,5 +40,8 @@ if __name__ == "__main__":
     image_path = os.path.join(f_org.home, "ingest", "raw_images")
 
     for d in ["top", "middle", "bottom"]:
-        os.makedirs(os.path.join(image_path, d))
+        image_dir = os.path.join(image_path, d)
+        if os.path.isdir(image_dir):
+            os.removedirs(image_dir)
+            os.makedirs(image_dir)
         create_aliases(args[d], os.path.join(image_path, d))
