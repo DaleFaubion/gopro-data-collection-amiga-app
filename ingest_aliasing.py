@@ -45,11 +45,12 @@ if __name__ == "__main__":
     image_path = os.path.join(f_org.home, "ingest", "raw_images")
 
     for d in ["top", "middle", "bottom"]:
-        image_dir = os.path.join(image_path + "_camera", d)
-        if not os.path.isdir(image_dir):
-            os.makedirs(image_dir)
+        alias_dir = os.path.join(image_path, d) + "_camera"
+        if not os.path.isdir(alias_dir):
+            os.makedirs(alias_dir)
 
-        for file in filter(lambda x: x[-4:] == ".JPG", os.listdir(image_dir)):
-            os.unlink(os.path.join(image_dir, file))
+        # Clear out the alias directory before starting
+        for file in filter(lambda x: x[-4:] == ".JPG", os.listdir(alias_dir)):
+            os.unlink(os.path.join(alias_dir, file))
 
-        create_aliases(args[d], os.path.join(image_path, d))
+        create_aliases(args[d], alias_dir)
