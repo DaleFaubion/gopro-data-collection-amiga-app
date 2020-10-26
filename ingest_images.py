@@ -17,7 +17,6 @@ import os
 
 from shutil import copyfile
 
-from sklearn.preprocessing import StandardScaler
 from preprocessing import Data_Preprocessor as dP
 from preprocessing import util as u
 from preprocessing.predict_bays import Bay_Predictor
@@ -111,10 +110,17 @@ def extract(image, prnt=False):
 
 def filter_JPGS(folder):
     """
-    Returns a list containing all of the JPGs in the given folder.
+    Returns a list containing all of the JPGs in the given folder, and the
+    folder's subdirectories.
     """
 
-    return list(filter(lambda x: ".JPG" in x, os.listdir(folder)))
+    jpgs = []
+    for (root, dirs, files) in os.walk(folder):
+        for f in files:
+            if f[-4:] in [".JPG", ".jpg"]:
+                jpgs.append(os.path.join(root, f))
+
+    return jpgs
 
 
 def fill_gaps(df, path, prnt=True, force_new=False):
@@ -334,7 +340,7 @@ def ingest_images(vineyard, block, date, row_range=None):
                 df.loc[id, ["angle"]] = angle_num
 
                 # Move the file
-                old_name = os.path.join(image_path, angle_name, filename)
+                old_name = filename
                 new_name = os.path.join(image_out_path, name)
 
                 copyfile(old_name, new_name, follow_symlinks=False)
