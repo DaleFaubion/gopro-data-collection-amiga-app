@@ -68,6 +68,7 @@ class file_org:
         self.data_shape = data_shape
 
         self.data_path = "testdata"
+        self.home = self.data_path
         self.data_dir = os.path.join(
             self.data_path, "{}_{}_{}".format(rows, bays, images_per_bay)
         )
