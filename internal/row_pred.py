@@ -73,7 +73,7 @@ def main(f_org, args, df=None):
     if df is None:
         df = pd.read_csv(label_file, index_col=False)
 
-    # generate an ordinal row
+    # Generate an ordinal row
     df["ts"] = df["time"].apply(to_ord)
     df["ts"] /= np.max(df["ts"])
 

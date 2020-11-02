@@ -19,9 +19,11 @@ exif._app1_metadata.ATTRIBUTE_TYPE_MAP["body_serial_number"] = (
 )
 
 
-def mock_locations(rows, bays, img_per_bay=5, corner="SE", variance=0.8, delta=0.3):
+def mock_locations(
+    rows, bays, img_per_bay=5, corner="SE", x_var=0.8, dx=0.3, y_var=0.2, dy=0.05
+):
 
-    dx, dy = 0, 0
+    x, y = 0, 0
     idx = 0
 
     # Get the direction of motion based on starting corner
@@ -40,14 +42,14 @@ def mock_locations(rows, bays, img_per_bay=5, corner="SE", variance=0.8, delta=0
 
         # Enter the data to return
         df.loc[idx, ["row", "bay", "image"]] = (row, b, i)
-        df.loc[idx, "lat"] = xdir * (row + dx)
-        df.loc[idx, "lon"] = ydir * ((b * img_per_bay + i) / img_per_bay + dy)
+        df.loc[idx, "lat"] = xdir * (row + x)
+        df.loc[idx, "lon"] = ydir * ((b * img_per_bay + i) / img_per_bay + y)
 
         # Update the walking variables
-        dx += delta * (np.random.random() - 0.5)
-        dy += delta * (np.random.random() - 0.5)
-        dx = -variance if dx < -variance else variance if dx > variance else dx
-        dy = -variance if dy < -variance else variance if dy > variance else dy
+        x += dx * (np.random.random() - 0.5)
+        y += dy * (np.random.random() - 0.5)
+        x = -x_var if x < -x_var else x_var if dx > x_var else x
+        y = -y_var if y < -y_var else y_var if dy > y_var else y
         idx += 1
 
     df["lat"] -= np.min(df["lat"])
