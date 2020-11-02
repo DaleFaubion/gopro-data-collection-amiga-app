@@ -22,10 +22,10 @@ def parse_args():
 def main():
     args = parse_args()
 
-    gen_csv.main(f_org, args)
-    pad_csv.main(f_org, args)
-    row_pred.main(f_org, args)
-    bay_pred.main(f_org, args)
+    df = gen_csv.main(f_org, args)
+    df = pad_csv.main(f_org, args, df=df)
+    df = row_pred.main(f_org, args, df=df)
+    df = bay_pred.main(f_org, args, df=df)
 
 
 if __name__ == "__main__":
