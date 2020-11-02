@@ -23,9 +23,6 @@ class TestIngestScript(unittest.TestCase):
 
     def testGenCSV(self):
         gen_csv.main(self.f_org, self)
-
         pad_csv.main(self.f_org, self)
-
         row_pred.main(self.f_org, self)
-
         bay_pred.main(self.f_org, self)
