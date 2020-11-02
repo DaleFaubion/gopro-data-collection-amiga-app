@@ -77,7 +77,7 @@ def main(f_org, args):
 
     # Walk the directory of images
     raw_images = os.path.join(f_org.data_path, "ingest", "raw_images")
-    for root, dirs, files in os.walk(raw_images):
+    for root, dirs, files in os.walk(raw_images, followlinks=True):
         for f in files:
             print("\r", f, end=" ")
 
