@@ -6,3 +6,6 @@ dependencies:
  - scikit-learn
  - pillow
  - matplotlib
+ - pip
+ - pip:
+    - exif
