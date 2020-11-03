@@ -15,12 +15,18 @@ def parse_args():
     ap.add_argument("-d", "--date", required=True, help="date to ingest (yyyy-mm-dd)")
 
     ap.add_argument("-r", "--rows", default=21, help="number of rows in block")
+    ap.add_argument("-raw_dir", help="directory of unprocessed images")
 
     return ap.parse_args()
 
 
 def main():
     args = parse_args()
+
+    if args.raw_dir:
+        linkname = os.path.join(f_org.home, "ingest", "raw_images")
+        os.unlink(linkname)
+        os.symlink(args.raw_dir, linkname)
 
     df = gen_csv.main(f_org, args)
     df = pad_csv.main(f_org, args, df=df)

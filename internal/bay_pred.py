@@ -58,7 +58,7 @@ def prep_data(df):
     return df[["p_bay", "lon", "rel_ts", "dir"]], df["bay"]
 
 
-def train_model(f_org, model, vineyard="crawford-beck", block=9):
+def train_model(f_org, model, vineyard="crawford-beck", block=9, **kwargs):
 
     # Train a random forest on the hand labeled data
     training_data = f_org.get_label_file(vineyard, block, labeled_date)
@@ -87,12 +87,7 @@ def main(f_org, args, df=None):
 
     print("Predicting Bays")
 
-    model, _ = train_model(
-        f_org,
-        ensemble.RandomForestClassifier(),
-        vineyard=args.vineyard,
-        block=args.block,
-    )
+    model, _ = train_model(f_org, ensemble.RandomForestClassifier(), **vars(args))
 
     # Use the trained forest to predict bays
     X, _ = prep_data(df)
