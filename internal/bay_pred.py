@@ -22,7 +22,7 @@ labeled_date = "2019-06-12"
 def pred_bay(x):
     if x < first_bay:
         return 1
-    if x > num_vines or np.isnan(x):
+    if x > num_vines:
         x = num_vines
 
     return 2 + int((x - first_bay) / vines_per_bay)
@@ -43,9 +43,7 @@ def prep_data(df):
         # Scale the latitude into an approximate vine number
         lats = df.loc[idx, "lon"]
         lats -= np.min(lats)
-        print(lats)
         lats *= num_vines / np.max(lats)
-        print(lats)
         df.loc[idx, "p_bay"] = lats.apply(lambda x: pred_bay(x))
 
         # Scale to the relative time spent walking that row
