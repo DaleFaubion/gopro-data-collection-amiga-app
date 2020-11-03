@@ -9,7 +9,7 @@ import os
 
 import time
 
-from sklearn import neighbors as nbr
+from sklearn import linear_model as lin
 
 from internal.common import *
 
@@ -70,7 +70,7 @@ def main(f_org, args, df=None):
             continue
 
         # Fit the latitude predictor model
-        lat_model = nbr.KNeighborsRegressor(n_neighbors=3)
+        lat_model = lin.LinearRegression()
         X, y = df.loc[valid, ["ts"]], df.loc[valid, ["lat"]]
         lat_model.fit(X, y)
 
@@ -78,7 +78,7 @@ def main(f_org, args, df=None):
         df.loc[corrupt, ["lat"]] = lat_model.predict(df.loc[corrupt, ["ts"]])
 
         # Fit the longitude predictor model
-        lon_model = nbr.KNeighborsRegressor(n_neighbors=3)
+        lon_model = lin.LinearRegression()
         X, y = df.loc[valid, ["ts"]], df.loc[valid, ["lon"]]
         lat_model.fit(X, y)
 
