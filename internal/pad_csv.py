@@ -91,12 +91,11 @@ def main(f_org, args, df=None):
         valid = np.logical_and(df["camera"] == c, np.invert(corrupt_gps))
         corrupt = np.logical_and(df["camera"] == c, corrupt_gps)
 
+        print(len(df), len(df[df["camera"] == c]), len(df[valid]), len(df[corrupt]))
+        print(np.min(df.loc[corrupt, ["lat"]]), np.min(df.loc[corrupt, ["lon"]]))
+
         if len(df[corrupt]) == 0:
             continue
-
-        print(len(df), len(df[df["camera"] == c]), len(df[valid]), len(df[corrupt]))
-
-        print(np.min(df.loc[corrupt, ["lat"]]), np.min(df.loc[corrupt, ["lon"]]))
 
         # Fit the latitude predictor model
         model, _ = train_model(df, valid, "lat", en.RandomForestRegressor())
