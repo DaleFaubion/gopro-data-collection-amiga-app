@@ -48,12 +48,36 @@ def prep_data(df):
 
         # Scale to the relative time spent walking that row
         ts = df.loc[idx, "ts"]
-        # ts = -ts if (row % 2) == 0 else ts
+        ts = -ts if (row % 2) == 0 else ts
         ts -= np.min(ts)
         ts /= np.max(ts)
         df.loc[idx, "rel_ts"] = ts
 
-    return df[["row", "p_bay", "lon", "rel_ts"]], df["bay"]
+        df.loc[idx, "dir"] = row % 2
+
+    return df[["p_bay", "lon", "rel_ts", "dir"]], df["bay"]
+
+
+def train_model(f_org, model, vineyard="crawford-beck", block=9):
+
+    # Train a random forest on the hand labeled data
+    training_data = f_org.get_label_file(vineyard, block, labeled_date)
+    training = pd.read_csv(training_data, index_col=False)
+    X, y = prep_data(training)
+
+    print("Training model on hand-labeled date: %s" % labeled_date)
+
+    # Train on 80% of the data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    model = ensemble.RandomForestClassifier()
+
+    model.fit(X_train, y_train)
+
+    # Evaluate the model on the test data
+    score = model.score(X_test, y_test)
+    print("Trained model with accuracy: %02.3f" % (100 * score))
+
+    return model, score
 
 
 def main(f_org, args, df=None):
@@ -65,21 +89,12 @@ def main(f_org, args, df=None):
 
     print("Predicting Bays")
 
-    # Train a random forest on the hand labeled data
-    training_data = f_org.get_label_file(args.vineyard, args.block, labeled_date)
-    training = pd.read_csv(training_data, index_col=False)
-    X, y = prep_data(training)
-
-    print("Training model on hand-labeled date: %s" % labeled_date)
-
-    # Train on 80% of the data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-    model = ensemble.RandomForestClassifier(n_estimators=100, max_depth=9)
-
-    model.fit(X_train, y_train)
-
-    # Evaluate the model on the test data
-    print("Trained model with accuracy: %02.3f" % (100 * model.score(X_test, y_test)))
+    model, _ = train_model(
+        f_org,
+        ensemble.RandomForestClassifier(),
+        vineyard=args.vineyard,
+        block=args.block,
+    )
 
     # Use the trained forest to predict bays
     X, _ = prep_data(df)

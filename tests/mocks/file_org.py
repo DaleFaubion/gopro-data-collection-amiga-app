@@ -2,6 +2,7 @@
 # Vinetech mock file org
 
 import os
+import shutil
 import tempfile
 import itertools as it
 
@@ -67,6 +68,9 @@ class file_org:
         self.date = date
         self.data_shape = data_shape
 
+        self.rows, self.bays = rows, bays
+        self.images_per_bay = images_per_bay
+
         self.data_path = "testdata"
         self.home = self.data_path
         self.data_dir = os.path.join(
@@ -80,18 +84,16 @@ class file_org:
         if not os.path.isdir(self.image_path):
             os.makedirs(self.image_path)
 
-        self.__gen_images(rows, bays, images_per_bay, images_per_directory=100)
         self.__gen_labels("2019-06-12", rows, bays, images_per_bay)
 
     def get_image_path(self, vineyard, block, date, norm=None):
         return self.image_path
 
     def get_label_file(self, vineyard, block, date):
+
         return os.path.join(self.data_dir, date, "labels.csv")
 
-    def __gen_images(
-        self, rows, bays, images_per_bay, images_per_directory, dropout=0.05
-    ):
+    def gen_images(self, images_per_directory=100, dropout=0.05):
         """
         Creates a directory full of unprocessed images
         """
@@ -108,11 +110,13 @@ class file_org:
             if not os.path.isdir(os.path.join(base_path, str(cam), str(subdir))):
                 os.makedirs(os.path.join(base_path, str(cam), str(subdir)))
 
-            locs = mock_locations(rows, bays, images_per_bay, "SE" if cam % 2 else "NE")
+            locs = mock_locations(
+                self.rows, self.bays, self.images_per_bay, "SE" if cam % 2 else "NE"
+            )
             idx = 0
 
             for row, bay, img, in it.product(
-                range(rows), range(bays), range(images_per_bay)
+                range(self.rows), range(self.bays), range(self.images_per_bay)
             ):
 
                 # Mock clock time (inc by 1 second)
@@ -176,13 +180,9 @@ class file_org:
 
     def __gen_labels(self, date, rows, bays, images_per_bay):
         label_file = self.get_label_file(self.vineyard, self.block, date)
-        df = mock_locations(rows, bays, images_per_bay).reset_index()
-        df["time"] = df.index.map(
-            lambda x: "%02d:%02d:%02d" % (int(x / 3600) % 24, int(x / 60) % 60, x % 60)
-        )
-
-        df["camera"] = 10
+        real_file = "tests/examples/locations.csv"
 
         if not os.path.isdir(os.path.dirname(label_file)):
             os.makedirs(os.path.dirname(label_file))
-        df.to_csv(label_file, index=False)
+
+        shutil.copyfile(real_file, label_file)

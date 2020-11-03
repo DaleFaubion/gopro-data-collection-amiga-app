@@ -21,6 +21,8 @@ class TestIngestScript(unittest.TestCase):
             images_per_bay=cls.num_images,
         )
 
+        cls.f_org.gen_images()
+
     def testGenCSV(self):
         gen_csv.main(self.f_org, self)
         pad_csv.main(self.f_org, self)
