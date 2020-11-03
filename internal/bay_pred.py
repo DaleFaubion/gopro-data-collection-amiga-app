@@ -16,7 +16,7 @@ vines_per_bay = 4
 first_bay = 4.5
 
 # I hand labeled this date's bays
-labeled_date = "2019-07-31"
+labeled_date = "2019-06-12"
 
 
 def pred_bay(x):

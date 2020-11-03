@@ -81,7 +81,7 @@ class file_org:
             os.makedirs(self.image_path)
 
         self.__gen_images(rows, bays, images_per_bay, images_per_directory=100)
-        self.__gen_labels("2019-07-31", rows, bays, images_per_bay)
+        self.__gen_labels("2019-06-12", rows, bays, images_per_bay)
 
     def get_image_path(self, vineyard, block, date, norm=None):
         return self.image_path
