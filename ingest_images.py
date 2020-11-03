@@ -26,6 +26,7 @@ def main():
     if args.raw_dir:
         linkname = os.path.join(f_org.home, "ingest", "raw_images")
         os.unlink(linkname)
+        args.raw_dir = args.raw_dir.replace("~", f_org.home)
         os.symlink(args.raw_dir, linkname)
 
     df = gen_csv.main(f_org, args)
