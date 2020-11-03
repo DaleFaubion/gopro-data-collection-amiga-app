@@ -69,8 +69,6 @@ def train_model(f_org, model, vineyard="crawford-beck", block=9):
 
     # Train on 80% of the data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-    model = ensemble.RandomForestClassifier()
-
     model.fit(X_train, y_train)
 
     # Evaluate the model on the test data
