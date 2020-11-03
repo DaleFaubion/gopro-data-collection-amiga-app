@@ -76,9 +76,6 @@ def main(f_org, args, df=None):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
     model = ensemble.RandomForestClassifier(n_estimators=100, max_depth=9)
 
-    print(X_train.info())
-    print(y_train.info())
-
     model.fit(X_train, y_train)
 
     # Evaluate the model on the test data
