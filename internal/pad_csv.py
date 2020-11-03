@@ -33,7 +33,7 @@ def gps_outliers(df):
 
     # GPS data for a given block should be within +- 1 degree of the mean,
     #  blocks are very small in terms of coordinates
-    return np.abs(lat - np.median(lat)) > 1
+    return np.logical_or(np.abs(lat - np.median(lat)) > 1, np.isnan(lat))
 
 
 def train_model(df, idx, col, model):
@@ -91,7 +91,7 @@ def main(f_org, args, df=None):
         valid = np.logical_and(df["camera"] == c, np.invert(corrupt_gps))
         corrupt = np.logical_and(df["camera"] == c, corrupt_gps)
 
-        if len(corrupt) == 0:
+        if len(df[corrupt]) == 0:
             continue
 
         print(len(df), len(df[df["camera"] == c]), len(df[valid]), len(df[corrupt]))
