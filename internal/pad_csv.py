@@ -10,6 +10,9 @@ import os
 import time
 
 from sklearn import linear_model as lin
+from sklearn import ensemble as en
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
 
 from internal.common import *
 
@@ -31,6 +34,18 @@ def gps_outliers(df):
     # GPS data for a given block should be within +- 1 degree of the mean,
     #  blocks are very small in terms of coordinates
     return np.abs(lat - np.median(lat)) > 1
+
+
+def train_model(df, idx, col, model):
+    X, y = (df.loc[idx, ["ts"]], df.loc[idx, col]) if idx else (df[["ts"]], df[col])
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    model.fit(X_train, y_train)
+
+    # Evaluate the model on the test data
+    score = model.score(X_test, y_test)
+    print("Trained %s model with accuracy: %02.3f" % (col, 100 * score))
+
+    return model, score
 
 
 def main(f_org, args, df=None):
@@ -70,20 +85,16 @@ def main(f_org, args, df=None):
             continue
 
         # Fit the latitude predictor model
-        lat_model = lin.LinearRegression()
-        X, y = df.loc[valid, ["ts"]], df.loc[valid, ["lat"]]
-        lat_model.fit(X, y)
+        model, _ = train_model(df, valid, "lat", en.RandomForestRegressor())
 
         # Predict corrupted latitude data
-        df.loc[corrupt, ["lat"]] = lat_model.predict(df.loc[corrupt, ["ts"]])
+        df.loc[corrupt, ["lat"]] = model.predict(df.loc[corrupt, ["ts"]])
 
         # Fit the longitude predictor model
-        lon_model = lin.LinearRegression()
-        X, y = df.loc[valid, ["ts"]], df.loc[valid, ["lon"]]
-        lat_model.fit(X, y)
+        model, _ = train_model(df, valid, "lon", en.RandomForestRegressor())
 
         # Predict corrupted longitude data
-        df.loc[corrupt, ["lon"]] = lat_model.predict(df.loc[corrupt, ["ts"]])
+        df.loc[corrupt, ["lon"]] = model.predict(df.loc[corrupt, ["ts"]])
 
     # Sort the dataframe again
     df = df.sort_values(["camera", "time"], ignore_index=True)
