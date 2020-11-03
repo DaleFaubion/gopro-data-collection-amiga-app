@@ -99,6 +99,7 @@ def main(f_org, args, df=None):
 
         if len(df[corrupt]) == 0:
             print("Skipping")
+            print(df[corrupt].head())
             continue
 
         # Fit the latitude predictor model
