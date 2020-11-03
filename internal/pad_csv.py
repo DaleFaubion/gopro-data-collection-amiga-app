@@ -37,12 +37,22 @@ def gps_outliers(df):
 
 
 def train_model(df, idx, col, model):
-    X, y = (df.loc[idx, ["ts"]], df.loc[idx, col]) if idx else (df[["ts"]], df[col])
+    if idx is None:
+        X, y = df[["ts"]], df[col]
+    else:
+        X, y = df.loc[idx, ["ts"]], df.loc[idx, col]
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
     model.fit(X_train, y_train)
 
     # Evaluate the model on the test data
-    score = model.score(X_test, y_test)
+    y_pred = model.predict(X_test)
+
+    # Scale both predictions and true data to [0:1] range
+    y_pred, y_test = y_pred - np.min(y_test), y_test - np.min(y_test)
+    y_pred, y_test = y_pred / np.max(y_test), y_test / np.max(y_test)
+
+    score = 1 - metrics.mean_squared_error(y_test, y_pred)
     print("Trained %s model with accuracy: %02.3f" % (col, 100 * score))
 
     return model, score
