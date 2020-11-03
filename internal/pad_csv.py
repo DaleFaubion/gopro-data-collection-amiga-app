@@ -96,7 +96,7 @@ def main(f_org, args, df=None):
 
         print(len(df), len(df["camera"] == c), len(valid.index), len(corrupt.index))
 
-        print(np.min(df.loc[corrupt, ["lat"]]), np, min(df.loc[corrupt, ["lon"]]))
+        print(np.min(df.loc[corrupt, ["lat"]]), np.min(df.loc[corrupt, ["lon"]]))
 
         # Fit the latitude predictor model
         model, _ = train_model(df, valid, "lat", en.RandomForestRegressor())
@@ -110,7 +110,7 @@ def main(f_org, args, df=None):
         # Predict corrupted longitude data
         df.loc[corrupt, ["lon"]] = model.predict(df.loc[corrupt, ["ts"]])
 
-        print(np.min(df.loc[corrupt, ["lat"]]), np, min(df.loc[corrupt, ["lon"]]))
+        print(np.min(df.loc[corrupt, ["lat"]]), np.min(df.loc[corrupt, ["lon"]]))
 
     # Sort the dataframe again
     df = df.sort_values(["camera", "time"], ignore_index=True)
