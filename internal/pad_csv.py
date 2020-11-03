@@ -33,7 +33,9 @@ def gps_outliers(df):
 
     # GPS data for a given block should be within +- 1 degree of the mean,
     #  blocks are very small in terms of coordinates
-    return np.logical_or(np.abs(lat - np.median(lat)) > 1, np.isnan(lat))
+    return np.logical_or(
+        np.abs(lat - np.median(lat)) > 1, np.isnan(df["lat"]), np.isnan(df["lon"])
+    )
 
 
 def train_model(df, idx, col, model):
