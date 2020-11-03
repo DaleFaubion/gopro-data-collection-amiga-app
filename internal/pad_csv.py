@@ -33,9 +33,7 @@ def gps_outliers(df):
 
     # GPS data for a given block should be within +- 1 degree of the mean,
     #  blocks are very small in terms of coordinates
-    return np.logical_or(
-        np.abs(lat - np.median(lat)) > 1, np.isnan(df["lat"]), np.isnan(df["lon"])
-    )
+    return np.logical_or(np.abs(lat - np.median(lat)) > 1, pd.isnull(lat))
 
 
 def train_model(df, idx, col, model):
@@ -94,7 +92,10 @@ def main(f_org, args, df=None):
         corrupt = np.logical_and(df["camera"] == c, corrupt_gps)
 
         print(len(df), len(df[df["camera"] == c]), len(df[valid]), len(df[corrupt]))
-        print(np.min(df.loc[corrupt, ["lat"]]), np.min(df.loc[corrupt, ["lon"]]))
+        print(
+            float(np.min(df.loc[corrupt, ["lat"]])),
+            float(np.min(df.loc[corrupt, ["lon"]])),
+        )
 
         if len(df[corrupt]) == 0:
             continue
@@ -111,7 +112,10 @@ def main(f_org, args, df=None):
         # Predict corrupted longitude data
         df.loc[corrupt, ["lon"]] = model.predict(df.loc[corrupt, ["ts"]])
 
-        print(np.min(df.loc[corrupt, ["lat"]]), np.min(df.loc[corrupt, ["lon"]]))
+        print(
+            float(np.min(df.loc[corrupt, ["lat"]])),
+            float(np.min(df.loc[corrupt, ["lon"]])),
+        )
 
     # Sort the dataframe again
     df = df.sort_values(["camera", "time"], ignore_index=True)
