@@ -11,5 +11,5 @@ from sklearn import ensemble
 if __name__ == "__main__":
     f_org = f.file_org("v", "b", "2020-01-01", 21, 21, 4)
 
-    Print("RandomForestClassifier")
+    print("RandomForestClassifier")
     model, score = bay_pred.train_model(f_org, ensemble.RandomForestClassifier())
