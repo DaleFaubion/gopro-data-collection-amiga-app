@@ -94,7 +94,7 @@ def main(f_org, args, df=None):
         if len(corrupt) == 0:
             continue
 
-        print(len(df["camera"] == c), len(valid), len(corrupt))
+        print(len(df), len(df["camera"] == c), len(valid.index), len(corrupt.index))
 
         print(np.min(df.loc[corrupt, ["lat"]]), np, min(df.loc[corrupt, ["lon"]]))
 
