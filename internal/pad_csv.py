@@ -91,7 +91,7 @@ def main(f_org, args, df=None):
         valid = np.logical_and(df["camera"] == c, np.invert(corrupt_gps))
         corrupt = np.logical_and(df["camera"] == c, corrupt_gps)
 
-        if not any(corrupt):
+        if len(corrupt) == 0:
             continue
 
         print(np.min(df.loc[corrupt, ["lat"]]), np, min(df.loc[corrupt, ["lon"]]))
