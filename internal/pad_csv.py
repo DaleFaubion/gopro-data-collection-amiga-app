@@ -94,6 +94,8 @@ def main(f_org, args, df=None):
         if len(corrupt) == 0:
             continue
 
+        print(len(df["camera"] == c), len(valid), len(corrupt))
+
         print(np.min(df.loc[corrupt, ["lat"]]), np, min(df.loc[corrupt, ["lon"]]))
 
         # Fit the latitude predictor model
