@@ -50,6 +50,7 @@ def parse_gps(info):
 
         return lat, lon
     except:
+        print(info)
         return 0, 0
 
 
