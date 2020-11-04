@@ -62,7 +62,7 @@ def parse_time(info):
         return None
 
 
-def main(f_org, args):
+def main(f_org, args, df=None):
 
     # Get the label file
     label_file = f_org.get_label_file(args.vineyard, args.block, args.date)
