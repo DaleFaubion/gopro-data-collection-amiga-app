@@ -93,10 +93,6 @@ def main(f_org, args):
                 df.loc[idx, "focal_length"] = get_exif(info, "FocalLengthIn35mmFilm")
                 df.loc[idx, "exposure_time"] = get_exif(info, "ExposureTime")
 
-                if abs(df.loc[idx, "lat"]) < 1:
-                    for tag, _ in info.items():
-                        print(tag, TAGS.get(tag))
-
             idx += 1
 
     print("\rGenerating CSV")
