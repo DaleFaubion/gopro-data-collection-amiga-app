@@ -31,9 +31,15 @@ def pad_cameras(df):
 def gps_outliers(df):
     lat = df["lat"] + df["lon"]
 
+    def l(x):
+        x = x if x >= 0 else x + len(df)
+        return df.loc[x, "lat"]
+
+    repeat = np.array([l(x) == l(x - 1) for x in df.index])
+
     # GPS data for a given block should be within +- 1 degree of the mean,
     #  blocks are very small in terms of coordinates
-    return np.logical_or(np.abs(lat - np.median(lat)) > 1, pd.isnull(lat))
+    return np.logical_or(np.abs(lat - np.median(lat)) > 1, pd.isnull(lat), repeat)
 
 
 def train_model(df, idx, col, model):
