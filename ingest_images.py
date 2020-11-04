@@ -17,6 +17,8 @@ def parse_args():
     ap.add_argument("-r", "--rows", default=21, help="number of rows in block")
     ap.add_argument("-raw_dir", help="directory of unprocessed images")
 
+    ap.add_argument("-s", "--step", type=int, help="step to run")
+
     return ap.parse_args()
 
 
@@ -29,10 +31,15 @@ def main():
         args.raw_dir = args.raw_dir.replace("~", f_org.home)
         os.symlink(args.raw_dir, linkname)
 
-    df = gen_csv.main(f_org, args)
-    df = pad_csv.main(f_org, args, df=df)
-    df = row_pred.main(f_org, args, df=df)
-    df = bay_pred.main(f_org, args, df=df)
+    steps = [gen_csv.main, pad_csv.main, row_pred.main, bay_pred.main]
+
+    if args.step is not None:
+        steps[args.step](f_org, args)
+        return
+
+    df = None
+    for s in steps:
+        df = s(f_org, args, df=df)
 
 
 if __name__ == "__main__":
