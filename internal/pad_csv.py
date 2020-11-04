@@ -93,16 +93,7 @@ def main(f_org, args, df=None):
         valid = np.logical_and(df["camera"] == c, np.invert(corrupt_gps))
         corrupt = np.logical_and(df["camera"] == c, corrupt_gps)
 
-        print(len(df), len(df[df["camera"] == c]), len(df[valid]), len(df[corrupt]))
-        print(
-            float(np.min(df.loc[corrupt, ["lat"]])),
-            float(np.min(df.loc[corrupt, ["lon"]])),
-        )
-
         if len(df[corrupt]) == 0:
-            print("Skipping")
-            print(df.loc[corrupt, ["lat", "lon"]].head())
-            print(df.loc[valid, ["lat", "lon"]].head())
             continue
 
         # Fit the latitude predictor model
@@ -116,11 +107,6 @@ def main(f_org, args, df=None):
 
         # Predict corrupted longitude data
         df.loc[corrupt, ["lon"]] = model.predict(df.loc[corrupt, ["ts"]])
-
-        print(
-            float(np.min(df.loc[corrupt, ["lat"]])),
-            float(np.min(df.loc[corrupt, ["lon"]])),
-        )
 
     # Sort the dataframe again
     df = df.sort_values(["camera", "time"], ignore_index=True)

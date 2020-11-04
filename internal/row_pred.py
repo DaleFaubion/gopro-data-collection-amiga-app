@@ -93,13 +93,17 @@ def main(f_org, args, df=None):
         # This is a hacky approximation of clusters
         df.loc[idx, "row"] = rough_clusers(df, idx, "dlon", "row")
 
-        # Kmeans clustering!
-        km = KMeans(n_clusters=args.rows)
-        df.loc[idx, "row"] = km.fit_predict(df.loc[idx, ["ts", "dlon", "row"]])
+        try:
+            # Kmeans clustering!
+            km = KMeans(n_clusters=args.rows)
+            df.loc[idx, "row"] = km.fit_predict(df.loc[idx, ["ts", "dlon", "row"]])
 
-        # This reorders the randomly assigned clusters into rows
-        #  assumes images are taken in order by row
-        df.loc[idx, "row"] = adjust_clusers(df, idx, "row")
+            # This reorders the randomly assigned clusters into rows
+            #  assumes images are taken in order by row
+            df.loc[idx, "row"] = adjust_clusers(df, idx, "row")
+
+        except:
+            print("GPS Data on camera %s corrupt to predict bays" % cam)
 
     df[columns].to_csv(label_file)
     return df[columns]

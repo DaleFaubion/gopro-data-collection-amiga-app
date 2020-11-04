@@ -90,10 +90,12 @@ def main(f_org, args, df=None):
     model, _ = train_model(f_org, ensemble.RandomForestClassifier(), **vars(args))
 
     # Use the trained forest to predict bays
-    X, _ = prep_data(df)
-    df["bay"] = model.predict(X)
-
-    print("Writing bay predictions")
+    try:
+        X, _ = prep_data(df)
+        df["pred_bay"] = model.predict(X)
+        print("Writing bay predictions")
+    except:
+        print("GPS Data too corrupt to predict bays")
 
     df[columns].to_csv(label_file)
     return df[columns]
