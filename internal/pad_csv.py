@@ -31,7 +31,7 @@ def pad_cameras(df):
 def gps_outliers(df):
     lat = df["lat"] + df["lon"]
 
-    repeat = np.gradient(lat) == 0
+    repeat = np.gradient(lat) < 0.00001
 
     # GPS data for a given block should be within +- 1 degree of the mean,
     #  blocks are very small in terms of coordinates
