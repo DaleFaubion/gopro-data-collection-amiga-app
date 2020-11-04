@@ -50,7 +50,7 @@ def parse_gps(info):
 
         return lat, lon
     except:
-        return 0, 0
+        return np.nan, np.nan
 
 
 def parse_time(info):
