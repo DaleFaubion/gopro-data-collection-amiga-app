@@ -50,7 +50,6 @@ def parse_gps(info):
 
         return lat, lon
     except:
-        print(info)
         return 0, 0
 
 
@@ -93,6 +92,10 @@ def main(f_org, args):
                 df.loc[idx, ["lat", "lon"]] = parse_gps(info)
                 df.loc[idx, "focal_length"] = get_exif(info, "FocalLengthIn35mmFilm")
                 df.loc[idx, "exposure_time"] = get_exif(info, "ExposureTime")
+
+                if df.loc[idx, ["lat", "lon"]] == (0, 0):
+                    for tag, _ in info.items():
+                        print(tag, TAGS.get(tag))
 
             idx += 1
 
