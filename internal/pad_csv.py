@@ -14,7 +14,7 @@ from sklearn import ensemble as en
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 
-from internal.common import *
+from .common import *
 
 
 def pad_cameras(df):

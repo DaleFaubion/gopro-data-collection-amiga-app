@@ -2,7 +2,7 @@
 
 #
 
-from internal.common import *
+from .common import *
 import pandas as pd
 
 

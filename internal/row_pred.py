@@ -5,7 +5,7 @@
 import pandas as pd
 import numpy as np
 
-from internal.common import *
+from .common import *
 
 from sklearn.cluster import KMeans, SpectralClustering
 

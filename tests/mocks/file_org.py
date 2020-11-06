@@ -182,6 +182,9 @@ class file_org:
         label_file = self.get_label_file(self.vineyard, self.block, date)
         real_file = "tests/examples/locations.csv"
 
+        if not os.path.isfile(real_file):
+            real_file = os.path.join("ingest", real_file)
+
         if not os.path.isdir(os.path.dirname(label_file)):
             os.makedirs(os.path.dirname(label_file))
 

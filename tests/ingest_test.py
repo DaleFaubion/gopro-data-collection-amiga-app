@@ -4,7 +4,7 @@ import unittest
 import __init__
 from tests.mocks import file_org as f
 
-from internal import gen_csv, pad_csv, row_pred, bay_pred, rename_files
+from ingest.internal import gen_csv, pad_csv, row_pred, bay_pred, rename_files
 
 
 class TestIngestScript(unittest.TestCase):

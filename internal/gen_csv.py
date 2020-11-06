@@ -8,7 +8,7 @@ import pandas as pd
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 
-from internal.common import *
+from .common import *
 
 tag_keys = {}
 
