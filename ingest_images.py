@@ -4,7 +4,7 @@ import argparse
 
 import __init__
 from organization import file_org as f_org
-from internal import gen_csv, pad_csv, row_pred, bay_pred
+from internal import gen_csv, pad_csv, row_pred, bay_pred, rename_files
 
 
 def parse_args():
@@ -31,7 +31,13 @@ def main():
         args.raw_dir = args.raw_dir.replace("~", f_org.home)
         os.symlink(args.raw_dir, linkname)
 
-    steps = [gen_csv.main, pad_csv.main, row_pred.main, bay_pred.main]
+    steps = [
+        gen_csv.main,
+        pad_csv.main,
+        row_pred.main,
+        bay_pred.main,
+        rename_files.main,
+    ]
 
     if args.step is not None:
         steps[args.step](f_org, args)
