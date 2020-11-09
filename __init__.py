@@ -1,10 +1,18 @@
-import os, sys
+# Fall 2020
+# Vinetech generators imports
 
-# Append root directory to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+"""
+Gives external access to appropriate internals.
 
-# Change directory to root
-from organization import file_org as f_org
+Classes needing access to externals should be in the /ingest level.
+"""
 
-# Add local path back to paths variables
-sys.path.append(os.path.join(f_org.root, "ingest"))
+import os.path as p
+import sys
+
+# Add the package directory to the path variables
+ingest = p.dirname(p.abspath(__file__))
+sys.path.append(ingest)
+
+root = p.dirname(ingest)
+sys.path.append(root)
