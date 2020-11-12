@@ -26,6 +26,16 @@ def deg_to_float(value):
     """
     Converts the given latitude or longitude in degrees into a float.
     """
+
+    try:
+        value = (
+            float(value[0][0]) / float(value[0][1]),
+            float(value[1][0]) / float(value[1][1]),
+            float(value[2][0]) / float(value[2][1]),
+        )
+    except:
+        pass
+
     return value[0] + (value[1] / 60.0) + (value[2] / 3600.0)
 
 
@@ -98,7 +108,7 @@ def main(f_org, args, df=None):
     print("\rGenerating CSV")
     df["vineyard"] = args.vineyard
     df["block"] = args.block
-    df["date"] = args.date
+    df["date"] = args.date.replace("-", ":")
     df.to_csv(label_file, index=False)
 
     return df

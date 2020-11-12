@@ -98,12 +98,13 @@ def main(f_org, args, df=None):
             km = KMeans(n_clusters=args.rows)
             df.loc[idx, "row"] = km.fit_predict(df.loc[idx, ["ts", "dlon", "row"]])
 
-            # This reorders the randomly assigned clusters into rows
-            #  assumes images are taken in order by row
-            df.loc[idx, "row"] = adjust_clusers(df, idx, "row")
-
         except:
-            print("GPS Data on camera %s corrupt to predict bays" % cam)
+            print("GPS Data on camera %s too corrupt to predict rows" % cam)
+            continue
+
+        # This reorders the randomly assigned clusters into rows
+        #  assumes images are taken in order by row
+        df.loc[idx, "row"] = adjust_clusers(df, idx, "row")
 
     df[columns].to_csv(label_file)
     return df[columns]

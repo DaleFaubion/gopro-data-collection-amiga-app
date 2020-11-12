@@ -31,11 +31,11 @@ def pad_cameras(df):
 def gps_outliers(df):
     lat = df["lat"] + df["lon"]
 
-    repeat = np.abs(np.gradient(lat)) < 0.00001
+    # repeat = np.abs(np.gradient(lat)) < 0.00001
 
     # GPS data for a given block should be within +- 1 degree of the mean,
     #  blocks are very small in terms of coordinates
-    return np.logical_or(np.abs(lat - np.median(lat)) > 1, pd.isnull(lat), repeat)
+    return np.logical_or(np.abs(lat - np.median(lat)) > 1, pd.isnull(lat))  # , repeat)
 
 
 def train_model(df, idx, col, model):
@@ -95,6 +95,8 @@ def main(f_org, args, df=None):
 
         if len(df[corrupt]) == 0:
             continue
+
+        print("Padding %s" % c)
 
         # Fit the latitude predictor model
         model, _ = train_model(df, valid, "lat", en.RandomForestRegressor())
