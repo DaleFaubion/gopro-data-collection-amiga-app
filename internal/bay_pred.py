@@ -37,14 +37,21 @@ def prep_data(df):
     df["camera"] = df["camera"].interpolate()
     df["row"] = df["row"].interpolate()
 
+    df["rel_lat"] = df["lat"] - np.min(df["lat"])
+    df["rel_lat"] = df["rel_lat"] / np.max(df["rel_lat"])
+    df["dir"] = False
+
     for cam, row in it.product(df["camera"].unique(), df["row"].unique()):
         idx = np.logical_and(df["camera"] == cam, df["row"] == row)
 
         # Scale the latitude into an approximate vine number
-        lats = df.loc[idx, "lon"]
+        lats = df.loc[idx, "lat"]
         lats -= np.min(lats)
         lats *= num_vines / np.max(lats)
         df.loc[idx, "p_bay"] = lats.apply(lambda x: pred_bay(x))
+
+        df.loc[idx, "rel_lat"] -= np.min(df.loc[idx, "rel_lat"])
+        df.loc[idx, "rel_lat"] /= np.max(df.loc[idx, "rel_lat"])
 
         # Scale to the relative time spent walking that row
         ts = df.loc[idx, "ts"]
@@ -53,9 +60,9 @@ def prep_data(df):
         ts /= np.max(ts)
         df.loc[idx, "rel_ts"] = ts
 
-        df.loc[idx, "dir"] = row % 2
+        df.loc[idx, "dir"] = np.median(np.gradient(df.loc[idx, "lat"])) > 0
 
-    return df[["p_bay", "lon", "rel_ts", "dir"]], df["bay"]
+    return df[["p_bay", "lon", "rel_ts", "dir", "rel_lat"]], df["bay"]
 
 
 def train_model(f_org, model, vineyard="crawford-beck", block=9, **kwargs):

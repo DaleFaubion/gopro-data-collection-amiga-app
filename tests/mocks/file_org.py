@@ -76,7 +76,7 @@ class file_org:
         self.data_dir = os.path.join(
             self.data_path, "{}_{}_{}".format(rows, bays, images_per_bay)
         )
-        self.image_path = os.path.join(self.data_dir, "images")
+        self.image_path = os.path.join(self.data_dir, "images", date)
 
         if not os.path.isdir(self.data_dir):
             os.makedirs(self.data_dir)
@@ -90,7 +90,6 @@ class file_org:
         return self.image_path
 
     def get_label_file(self, vineyard, block, date):
-
         return os.path.join(self.data_dir, date, "labels.csv")
 
     def gen_images(self, images_per_directory=100, dropout=0.05):
@@ -104,6 +103,11 @@ class file_org:
         subdir = 0
 
         base_path = os.path.join("testdata", "ingest", "raw_images")
+        base_path = os.path.abspath(base_path)
+        image_path = os.path.abspath(self.image_path)
+        shutil.rmtree(os.path.dirname(base_path))
+        os.makedirs(os.path.dirname(base_path))
+        os.symlink(image_path, base_path, target_is_directory=True)
 
         for cam in range(3):
 
