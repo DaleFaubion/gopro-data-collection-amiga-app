@@ -43,14 +43,14 @@ def mock_locations(
 
         # Enter the data to return
         df.loc[idx, ["row", "bay", "image"]] = (row, b, i)
-        df.loc[idx, "lat"] = xdir * (row + x)
-        df.loc[idx, "lon"] = ydir * ((b * img_per_bay + i) / img_per_bay + y)
+        df.loc[idx, "lon"] = xdir * (row + x)
+        df.loc[idx, "lat"] = ydir * ((b * img_per_bay + i) / img_per_bay + y)
 
         # Update the walking variables
         x += dx * (np.random.random() - 0.5)
         y += dy * (np.random.random() - 0.5)
-        x = -x_var if x < -x_var else x_var if dx > x_var else x
-        y = -y_var if y < -y_var else y_var if dy > y_var else y
+        x = -x_var if x < -x_var else x_var if x > x_var else x
+        y = -y_var if y < -y_var else y_var if y > y_var else y
         idx += 1
 
     df["lat"] -= np.min(df["lat"])
@@ -105,7 +105,8 @@ class file_org:
         base_path = os.path.join("testdata", "ingest", "raw_images")
         base_path = os.path.abspath(base_path)
         image_path = os.path.abspath(self.image_path)
-        shutil.rmtree(os.path.dirname(base_path))
+        if os.path.isdir(base_path):
+            shutil.rmtree(os.path.dirname(base_path))
         os.makedirs(os.path.dirname(base_path))
         os.symlink(image_path, base_path, target_is_directory=True)
 
@@ -133,7 +134,7 @@ class file_org:
                 file_path = os.path.join(base_path, str(cam), str(subdir), file_name)
 
                 # Create the image
-                if not os.path.isfile(file_path):
+                if np.random.random() > dropout and not os.path.isfile(file_path):
 
                     # Create an image with no metadata
                     data = np.random.randint(
@@ -147,9 +148,9 @@ class file_org:
                         image = exif.Image(f)
 
                     # Write gps metadata
-                    image.gps_latitude = (123.0, 8.0, locs.loc[idx, "lat"])
+                    image.gps_latitude = (45.0, 6.0, locs.loc[idx, "lat"])
                     image.gps_latitude_ref = "N"
-                    image.gps_longitude = (45.0, 6.0, locs.loc[idx, "lon"])
+                    image.gps_longitude = (123.0, 8.0, locs.loc[idx, "lon"])
                     image.gps_longitude_ref = "W"
                     image.gps_altitude = 2000
                     image.gps_altitude_ref = exif.GpsAltitudeRef.ABOVE_SEA_LEVEL

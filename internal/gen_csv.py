@@ -1,6 +1,6 @@
-#
-
-# Script to generate a csv and read image metadata before moving any images
+# Fall 2020
+# Vinetech Metadata Ingest
+# Ingest Step 0
 
 import os
 import pandas as pd
@@ -14,6 +14,10 @@ tag_keys = {}
 
 
 def get_exif(info, tag):
+    """
+    get_exif pulls the value from the exif info, caching the correct key for the tag.
+    """
+
     if not tag in tag_keys:
         for (k, v) in info.items():
             tag_keys[TAGS[k] if k in TAGS else GPSTAGS[k]] = k
@@ -24,7 +28,10 @@ def get_exif(info, tag):
 
 def deg_to_float(value):
     """
-    Converts the given latitude or longitude in degrees into a float.
+    deg_to_float converts the given latitude or longitude in degrees into a float.
+
+    This function needs to handle datain the format ((d, x), (m, x), (s, x)) or
+    (d, m, s).  This is hacky
     """
 
     try:
@@ -40,6 +47,10 @@ def deg_to_float(value):
 
 
 def parse_camera(info):
+    """
+    parse_camera returns the camera id number from the image metadata.
+    """
+
     cam = get_exif(info, "BodySerialNumber")
 
     try:
@@ -49,6 +60,10 @@ def parse_camera(info):
 
 
 def parse_gps(info):
+    """
+    parse_gps parses gps info from the image metadata.
+    """
+
     info = get_exif(info, "GPSInfo")
 
     try:
@@ -64,6 +79,10 @@ def parse_gps(info):
 
 
 def parse_time(info):
+    """
+    parse_time parses the timestamp from gps metadata.
+    """
+
     time = get_exif(info, "DateTimeDigitized")
 
     try:
@@ -73,6 +92,10 @@ def parse_time(info):
 
 
 def main(f_org, args, df=None):
+    """
+    main creates a pandas dataframe and fills it with the metadata that can be parsed
+    from the images.
+    """
 
     # Get the label file
     label_file = f_org.get_label_file(args.vineyard, args.block, args.date)
@@ -105,7 +128,7 @@ def main(f_org, args, df=None):
 
             idx += 1
 
-    print("\rGenerating CSV")
+    print("\rGenerating CSV                ")
     df["vineyard"] = args.vineyard
     df["block"] = args.block
     df["date"] = args.date.replace("-", ":")

@@ -1,6 +1,8 @@
-#
+# Fall 2020
+# Vinetech Metadata Correction
+# Ingest Step 1
 
-# Script to sort the image entries in a csv before making row predictions
+# Script to sort the image entries and interpolate corrupted data
 
 import pandas as pd
 import numpy as np
@@ -18,27 +20,56 @@ from .common import *
 
 
 def pad_cameras(df):
-    camera_dirs = {}
-    for idx in range(len(df)):
-        cam = df.loc[idx, "camera"]
-        dir_name = os.path.dirname(df.loc[idx, "raw_dir"])
-        if cam and dir_name not in camera_dirs:
-            camera_dirs[dir_name] = cam
+    """
+    pad_cameras fills corrupted camera data with a camera id pulled from another image
+    in the same directory.  This could be done better / take into account more than
+    just the first image found.
+    """
 
-    return df["raw_dir"].apply(lambda x: camera_dirs[os.path.dirname(x)])
+    camera_dirs = {}
+    for idx in df.index:
+        dir_name = os.path.dirname(df.loc[idx, "raw_dir"])
+        if dir_name not in camera_dirs:
+            camera_dirs[dir_name] = []
+
+        if os.path.dirname(dir_name) not in camera_dirs:
+            camera_dirs[os.path.dirname(dir_name)] = []
+
+        if np.isnan(df.loc[idx, "camera"]):
+            continue
+
+        camera_dirs[dir_name].append(df.loc[idx, "camera"])
+        camera_dirs[os.path.dirname(dir_name)].append(df.loc[idx, "camera"])
+
+    for dr in camera_dirs:
+        camera_dirs[dr] = max(set(camera_dirs[dr]), key=camera_dirs[dr].count)
+
+    return df["raw_dir"].apply(
+        lambda x: camera_dirs[os.path.dirname(x)]
+        if os.path.dirname(x) in camera_dirs
+        else camera_dirs[os.path.dirname(os.path.dirname(x))]
+    )
 
 
 def gps_outliers(df):
+    """
+    gps_outliers returns a pandas index of the gps data that is corrupted in the
+    dataframe.
+    """
+
     lat = df["lat"] + df["lon"]
 
-    # repeat = np.abs(np.gradient(lat)) < 0.00001
-
-    # GPS data for a given block should be within +- 1 degree of the mean,
+    # GPS data for a given block should be within +- 1 degree of the median,
     #  blocks are very small in terms of coordinates
-    return np.logical_or(np.abs(lat - np.median(lat)) > 1, pd.isnull(lat))  # , repeat)
+    return np.logical_or(np.abs(lat - np.median(lat)) > 1, pd.isnull(lat))
 
 
 def train_model(df, idx, col, model):
+    """
+    train_model trains a latitude or longitude prediction model on the non-corrupted
+    data.
+    """
+
     if idx is None:
         X, y = df[["ts"]], df[col]
     else:
@@ -61,6 +92,10 @@ def train_model(df, idx, col, model):
 
 
 def main(f_org, args, df=None):
+    """
+    main interpolates corrupted image metadata in the given date's csv file.
+    """
+
     # Open the current csv
     label_file = f_org.get_label_file(args.vineyard, args.block, args.date)
     if df is None:

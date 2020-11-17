@@ -1,6 +1,6 @@
-#
-
-#
+# Fall 2020
+# Vinetech Bay Prediction
+# Ingest Step 3
 
 from .common import *
 
@@ -11,6 +11,7 @@ from sklearn import ensemble
 from sklearn.model_selection import train_test_split
 
 # These ideally would be derived : )
+# TODO: pull these values from a csv or somewhere
 num_vines = 84
 vines_per_bay = 4
 first_bay = 4.5
@@ -20,6 +21,11 @@ labeled_date = "2019-06-12"
 
 
 def pred_bay(x):
+    """
+    pred_bay does a rough estimate of the bay number based on latitude only and the
+    known bay spacing.
+    """
+
     if x < first_bay:
         return 1
     if x > num_vines:
@@ -29,14 +35,20 @@ def pred_bay(x):
 
 
 def prep_data(df):
+    """
+    prep_data returns the training and prediction columns derived from the dataframe.
+    """
+
     # Generate an ordinal row
     df["ts"] = df["time"].apply(to_ord)
     df["ts"] /= np.max(df["ts"])
 
+    # Fill in some values
     df = df.sort_values(["camera", "ts"])
     df["camera"] = df["camera"].interpolate()
     df["row"] = df["row"].interpolate()
 
+    # Calculate relative latitude in [0, 1] range for block
     df["rel_lat"] = df["lat"] - np.min(df["lat"])
     df["rel_lat"] = df["rel_lat"] / np.max(df["rel_lat"])
     df["dir"] = False
@@ -50,6 +62,7 @@ def prep_data(df):
         lats *= num_vines / np.max(lats)
         df.loc[idx, "p_bay"] = lats.apply(lambda x: pred_bay(x))
 
+        # Calculate relative latitude in [0, 1] range for row
         df.loc[idx, "rel_lat"] -= np.min(df.loc[idx, "rel_lat"])
         df.loc[idx, "rel_lat"] /= np.max(df.loc[idx, "rel_lat"])
 
@@ -60,12 +73,17 @@ def prep_data(df):
         ts /= np.max(ts)
         df.loc[idx, "rel_ts"] = ts
 
+        # Calculate the direction of travel for the row
         df.loc[idx, "dir"] = np.median(np.gradient(df.loc[idx, "lat"])) > 0
 
     return df[["p_bay", "lon", "rel_ts", "dir", "rel_lat"]], df["bay"]
 
 
 def train_model(f_org, model, vineyard="crawford-beck", block=9, **kwargs):
+    """
+    train_model opens the labeled date of images and trains the given model to predict
+    bays.
+    """
 
     # Train a random forest on the hand labeled data
     training_data = f_org.get_label_file(vineyard, block, labeled_date)
@@ -86,6 +104,10 @@ def train_model(f_org, model, vineyard="crawford-beck", block=9, **kwargs):
 
 
 def main(f_org, args, df=None):
+    """
+    main trains a bay predictor model on the hand-labeled data and predics the bays of
+    the data being ingested.
+    """
 
     # Open the current csv
     label_file = f_org.get_label_file(args.vineyard, args.block, args.date)
@@ -94,6 +116,7 @@ def main(f_org, args, df=None):
 
     print("Predicting Bays")
 
+    # Train a bay predictor on hand-labeled data from 2019
     model, _ = train_model(f_org, ensemble.RandomForestClassifier(), **vars(args))
 
     # Use the trained forest to predict bays
@@ -103,6 +126,7 @@ def main(f_org, args, df=None):
         print("Writing bay predictions")
     except:
         print("GPS Data too corrupt to predict bays")
+        print("rerun with -s param to walk through ingest steps and view csv file")
 
     df[columns].to_csv(label_file)
     return df[columns]

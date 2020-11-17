@@ -1,6 +1,5 @@
-#
-
-#
+# Fall 2020
+# Vinetech GPS correction model selection
 
 import __init__
 from internal import pad_csv

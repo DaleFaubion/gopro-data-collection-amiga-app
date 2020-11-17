@@ -1,6 +1,6 @@
-#
-
-#
+# Fall 2020
+# Vinetech Row Prediction
+# Ingest Step 3
 
 import pandas as pd
 import numpy as np
@@ -13,6 +13,10 @@ import matplotlib.pyplot as plt
 
 
 def delta(df, idx, col):
+    """
+    delta returns a smoothed gradient of the column.
+    """
+
     dcol = np.gradient(df.loc[idx, col])
     dcol -= np.median(dcol)
 
@@ -21,6 +25,11 @@ def delta(df, idx, col):
 
 
 def rough_clusers(df, idx, dcol, col):
+    """
+    rough_clusers returns a column with approximate cluster groupings.
+    This will generally return way more clusters than needed which will be corrected
+    in subsequent steps
+    """
 
     corrections = {}
     row = 1
@@ -46,27 +55,36 @@ def rough_clusers(df, idx, dcol, col):
 
 
 def adjust_clusers(df, idx, col):
+    """
+    adjust_clusers reorders the predicted clusters to be in chronological order.
+    Assumes that the block is recorded from row 1 onward.
+    """
 
     clusters = {}
+    order = []
     r = 1
 
     dest = df.loc[idx, col].copy()
 
-    for i, row in df.loc[idx, [col]].iterrows():
-        pred = row[col]
+    for i in df.loc[idx, col].unique():
+        ix = np.logical_and(idx, df[col] == i)
+        clusters[i] = np.median(df.loc[ix, ["ts"]])
+        order.append(clusters[i])
+        dest[ix] = clusters[i]
 
-        # Add the prediction to the cluster mapping
-        if pred not in clusters:
-            clusters[pred] = r
-            r += 1
+    order.sort()
 
-        # Map the predicted cluster id to a real row number
-        dest[i] = clusters[pred]
+    for i in dest.unique():
+        ix = np.logical_and(idx, dest == i)
+        dest[ix] = order.index(i) + 1
 
     return dest
 
 
 def main(f_org, args, df=None):
+    """
+    main predicts the row numbers from the ingested gps data.
+    """
 
     # Open the current csv
     label_file = f_org.get_label_file(args.vineyard, args.block, args.date)
@@ -85,18 +103,18 @@ def main(f_org, args, df=None):
         idx = df["camera"] == cam
 
         # Have the weight the direction of change proportionally to the ts col
-        dx = delta(df, idx, "lon")
+        dx = delta(df, idx, "lat")
         dx -= np.min(dx)
         dx /= np.max(dx)
-        df.loc[idx, "dlon"] = (dx - 0.5) / 10
+        df.loc[idx, "dlat"] = (dx - 0.5) / 10
 
         # This is a hacky approximation of clusters
-        df.loc[idx, "row"] = rough_clusers(df, idx, "dlon", "row")
+        df.loc[idx, "row"] = rough_clusers(df, idx, "dlat", "row")
 
         try:
             # Kmeans clustering!
             km = KMeans(n_clusters=args.rows)
-            df.loc[idx, "row"] = km.fit_predict(df.loc[idx, ["ts", "dlon", "row"]])
+            df.loc[idx, "row"] = km.fit_predict(df.loc[idx, ["ts", "dlat", "row"]])
 
         except:
             print("GPS Data on camera %s too corrupt to predict rows" % cam)
