@@ -1,6 +1,5 @@
-#
-
-#
+# Fall 2020
+# Vinetech Bay Prediction model selection
 
 import __init__
 from internal import bay_pred

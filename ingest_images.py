@@ -1,3 +1,6 @@
+# Fall 2020
+# Vinetech Image Ingest Script
+
 import os
 import argparse
 
@@ -8,6 +11,10 @@ from internal import gen_csv, pad_csv, row_pred, bay_pred, rename_files
 
 
 def parse_args():
+    """
+    parse_args returns the command line arguments.
+    """
+
     ap = argparse.ArgumentParser()
 
     ap.add_argument("-v", "--vineyard", default="crawford-beck", help="vineyard name")
@@ -22,15 +29,19 @@ def parse_args():
     return ap.parse_args()
 
 
-def main():
-    args = parse_args()
+def main(args):
+    """
+    main ingests the images indicated by the passed args object.
+    """
 
+    # Create a symlink to the directory to ingest
     if args.raw_dir:
         linkname = os.path.join(f_org.home, "ingest", "raw_images")
         os.unlink(linkname)
         args.raw_dir = args.raw_dir.replace("~", f_org.home)
         os.symlink(args.raw_dir, linkname)
 
+    # Ingest steps that can be run individually with -s / --step argument
     steps = [
         gen_csv.main,
         pad_csv.main,
@@ -39,14 +50,16 @@ def main():
         rename_files.main,
     ]
 
+    # Run a single ingest step for debugging
     if args.step is not None:
         steps[args.step](f_org, args)
         return
 
+    # Run all the ingest steps
     df = None
     for s in steps:
         df = s(f_org, args, df=df)
 
 
 if __name__ == "__main__":
-    main()
+    main(parse_args())

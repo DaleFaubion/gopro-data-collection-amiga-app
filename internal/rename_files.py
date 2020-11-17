@@ -1,6 +1,6 @@
-#
-
-#
+# Fall 2020
+# Vinetech Image Renaming
+# Ingest Step 4
 
 from .common import *
 import pandas as pd
@@ -8,6 +8,9 @@ import os
 
 
 def main(f_org, args, df=None):
+    """
+    main adds the relative path to the image from images directory.
+    """
 
     # Open the current csv
     label_file = f_org.get_label_file(args.vineyard, args.block, args.date)
