@@ -88,6 +88,7 @@ def train_model(f_org, model, vineyard="crawford-beck", block=9, **kwargs):
     # Train a random forest on the hand labeled data
     training_data = f_org.get_label_file(vineyard, block, labeled_date)
     training = pd.read_csv(training_data, index_col=False)
+    training = training[training["bay"].notna()]
     X, y = prep_data(training)
 
     print("Training model on hand-labeled date: %s" % labeled_date)
