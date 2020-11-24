@@ -37,9 +37,21 @@ def main(args):
     # Create a symlink to the directory to ingest
     if args.raw_dir:
         linkname = os.path.join(f_org.home, "ingest", "raw_images")
-        os.unlink(linkname)
+        if os.path.isdir(linkname) or os.path.islink(linkname):
+            os.unlink(linkname)
         args.raw_dir = args.raw_dir.replace("~", f_org.home)
         os.symlink(args.raw_dir, linkname)
+
+        if not len(os.listdir(args.raw_dir)):
+            print("Chosen path does not contain files")
+            print("Make sure to run setup.sh from the root repo")
+            return
+
+    elif os.listdir(f_org.get_image_path(args.vineyard, args.block, args.date)):
+        args.raw_dir = f_org.get_image_path(args.vineyard, args.block, args.date)
+    else:
+        print("Default path is empty, select the correct path with -raw_dir argument")
+        return
 
     # Ingest steps that can be run individually with -s / --step argument
     steps = [
