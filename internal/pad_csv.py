@@ -44,11 +44,17 @@ def pad_cameras(df):
     for dr in camera_dirs:
         camera_dirs[dr] = max(set(camera_dirs[dr]), key=camera_dirs[dr].count)
 
-    return df["raw_dir"].apply(
-        lambda x: camera_dirs[os.path.dirname(x)]
-        if os.path.dirname(x) in camera_dirs
-        else camera_dirs[os.path.dirname(os.path.dirname(x))]
-    )
+    def get_camera(idx):
+        if df.loc[idx, "camera"]:
+            return df.loc[idx, "camera"]
+
+        x = df.loc[idx, "raw_dir"]
+        if os.path.dirname(x) in camera_dirs:
+            return camera_dirs[os.path.dirname(x)]
+
+        return camera_dirs[os.path.dirname(os.path.dirname(x))]
+
+    return df.index.map(get_camera)
 
 
 def gps_outliers(df):
