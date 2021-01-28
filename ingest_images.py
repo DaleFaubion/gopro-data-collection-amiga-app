@@ -44,13 +44,6 @@ def main(args):
         print("Selected path is empty, select the correct path with -raw_dir argument")
         return
 
-    # Create a symlink to the directory to ingest
-    linkname = os.path.join(f_org.home, "ingest", "raw_images")
-    if os.path.isdir(linkname) or os.path.islink(linkname):
-        os.unlink(linkname)
-    args.raw_dir = args.raw_dir.replace("~", f_org.home)
-    os.symlink(args.raw_dir, linkname)
-
     if not len(os.listdir(args.raw_dir)):
         print("Chosen path does not contain files")
         print("Make sure to run setup.sh from the root repo")
