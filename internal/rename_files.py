@@ -23,7 +23,7 @@ def main(f_org, args, df=None):
         lambda x: x[x.find(args.date) + len(args.date) + 1 :]
     )
 
-    link_name = os.path.join(f_org.home, "images")
+    link_name = os.path.join(f_org.home, "vinetech_data")
     df["raw_dir"] = df["raw_dir"].apply(
         lambda x: x.replace(link_name, os.readlink(link_name))
     )
