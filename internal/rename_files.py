@@ -23,11 +23,7 @@ def main(f_org, args, df=None):
         lambda x: x[x.find(args.date) + len(args.date) + 1 :]
     )
 
-    link_name = os.path.join(f_org.home, "vinetech_data")
-    real_path = os.readlink(link_name)
-    df["raw_dir"] = df["raw_dir"].apply(
-        lambda x: os.path.join(real_path, x[len(link_name) :])
-    )
+    df["raw_dir"] = df["raw_dir"].apply(os.path.abspath)
 
     df[columns].to_csv(label_file)
     return df[columns]
