@@ -25,7 +25,7 @@ def main(f_org, args, df=None):
 
     link_name = os.path.join(f_org.home, "vinetech_data")
     df["raw_dir"] = df["raw_dir"].apply(
-        lambda x: x.replace(link_name, os.readlink(link_name))
+        lambda x: x.replace(link_name + "/", os.readlink(link_name))
     )
 
     df[columns].to_csv(label_file)
