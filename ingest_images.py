@@ -66,7 +66,7 @@ def main(args):
     # Run all the ingest steps
     df = None
     for s in steps:
-        print("Running step", s)
+        print("Running step", steps.index(s))
         df = s(f_org, args, df=df)
 
 
