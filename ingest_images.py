@@ -34,6 +34,9 @@ def main(args):
     main ingests the images indicated by the passed args object.
     """
 
+    if not os.path.isdir(os.path.join(f_org.home, "ingest")):
+        os.makedirs(os.path.join(f_org.home, "ingest"))
+
     # Create a symlink to the directory to ingest
     if args.raw_dir:
         linkname = os.path.join(f_org.home, "ingest", "raw_images")
