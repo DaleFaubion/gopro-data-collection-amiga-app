@@ -102,13 +102,7 @@ class file_org:
         dir_idx = 0
         subdir = 0
 
-        base_path = os.path.join("testdata", "ingest", "raw_images")
-        base_path = os.path.abspath(base_path)
-        image_path = os.path.abspath(self.image_path)
-        if os.path.isdir(base_path):
-            shutil.rmtree(os.path.dirname(base_path))
-        os.makedirs(os.path.dirname(base_path))
-        os.symlink(image_path, base_path, target_is_directory=True)
+        base_path = self.image_path
 
         for cam in range(3):
 
