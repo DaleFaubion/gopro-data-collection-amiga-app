@@ -23,7 +23,7 @@ def main(f_org, args, df=None):
         lambda x: x[x.find(args.date) + len(args.date) + 1 :]
     )
 
-    df["raw_dir"] = df["raw_dir"].apply(os.readlink)
+    df["raw_dir"] = df["raw_dir"].apply(lambda x: str(os.readlink(x)))
 
     df[columns].to_csv(label_file)
     return df[columns]
