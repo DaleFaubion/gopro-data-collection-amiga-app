@@ -19,7 +19,9 @@ def main(f_org, args, df=None):
 
     print("Renaming column instead of moving files for now")
     img_dir = f_org.get_image_path(args.vineyard, args.block, args.date)
-    df["name"] = df["raw_dir"].apply(lambda x: x[x.find(args.date) + len(args.date) :])
+    df["name"] = df["raw_dir"].apply(
+        lambda x: x[x.find(args.date) + len(args.date) + 1 :]
+    )
 
     df[columns].to_csv(label_file)
     return df[columns]
