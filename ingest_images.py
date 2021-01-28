@@ -34,12 +34,6 @@ def main(args):
     main ingests the images indicated by the passed args object.
     """
 
-    for linkname in ["vinetech_data", "images", "labels"]:
-        if not os.path.islink(os.path.join(f_org.home, linkname)):
-            print("symlinks haven't been set up in this environment yet")
-            print("from the root repo run source setup.sh")
-            return
-
     if not os.path.isdir(os.path.join(f_org.home, "ingest")):
         os.makedirs(os.path.join(f_org.home, "ingest"))
 

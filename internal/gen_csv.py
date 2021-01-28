@@ -109,8 +109,7 @@ def main(f_org, args, df=None):
     print("Reading Image Metadata")
 
     # Walk the directory of images
-    raw_images = os.path.join(f_org.home, "ingest", "raw_images")
-    for root, dirs, files in os.walk(raw_images, followlinks=True):
+    for root, dirs, files in os.walk(args.raw_dir, followlinks=True):
         for f in files:
             print("\r", f, end=" ")
 
