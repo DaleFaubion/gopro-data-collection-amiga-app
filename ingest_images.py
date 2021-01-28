@@ -34,15 +34,8 @@ def main(args):
     main ingests the images indicated by the passed args object.
     """
 
-    if not os.path.isdir(os.path.join(f_org.home, "ingest")):
-        os.makedirs(os.path.join(f_org.home, "ingest"))
-
     if not args.raw_dir:
         args.raw_dir = f_org.get_image_path(args.vineyard, args.block, args.date)
-
-    if not os.listdir(f_org.get_image_path(args.vineyard, args.block, args.date)):
-        print("Selected path is empty, select the correct path with -raw_dir argument")
-        return
 
     if not len(os.listdir(args.raw_dir)):
         print("Chosen path does not contain files")
