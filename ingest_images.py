@@ -55,11 +55,12 @@ def main(args):
     # Optionally override the steps with the db loading steps
     if args.database:
         from database import Database as D
+        from database import Schema
         from internal.ingest_db import DB_Ingester
 
         # Connect to the database
         db = D.Database(D.connect())
-        db.create_schema(D.Schema)
+        db.create_schema(Schema)
         db_loader = DB_Ingester(db)
 
         # Override the steps with the db loading steps
