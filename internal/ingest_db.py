@@ -21,10 +21,10 @@ class DB_Ingester:
             df = pd.read_csv(label_file, index_col=False)
 
         # Ensure all the database bays exist
-        bays = df["bay"].notna().unique()
-        pred_bays = df["pred_bay"].notna().unique()
+        bays = df["bay"].dropna().unique()
+        pred_bays = df["pred_bay"].dropna().unique()
         bays = set((*set(bays), *set(pred_bays)))
-        rows = df["row"].notna().unique()
+        rows = df["row"].dropna().unique()
         all_bays = list(it.product(rows, bays))
 
         # Add the row/bay pairs to the db
