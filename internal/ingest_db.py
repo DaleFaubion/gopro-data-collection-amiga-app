@@ -109,7 +109,9 @@ class DB_Ingester:
                 return f.read()
 
         # Stride through the dataframe
-        for _, chunk in df.groupby(np.arange(len(df)) // batch_size):
+        for n, chunk in df.groupby(np.arange(len(df)) // batch_size):
+            print("chunk %d of %d" % (n, len(df) // batch_size), end="\r")
+
             # Get the file names
             if "raw_dir" in chunk.columns:
                 file_names = chunk["raw_dir"]
@@ -122,7 +124,7 @@ class DB_Ingester:
             entries = list(chunk[["image_id", "binary"]].to_records(index=False))
 
             # Store the binaries
-            db.add_image_encodings("jpg", entries)
+            self.db.add_image_encodings("jpg", entries)
 
         # Save and return
         df.to_csv(label_file, index=False)
