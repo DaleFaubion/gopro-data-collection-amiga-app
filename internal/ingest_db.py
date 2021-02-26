@@ -25,7 +25,7 @@ class DB_Ingester:
         pred_bays = df["pred_bay"].unique()
         bays = set((*set(bays), *set(pred_bays)))
         rows = df["row"].unique()
-        all_bays = it.product(rows, bays)
+        all_bays = list(it.product(rows, bays))
 
         # Add the row/bay pairs to the db
         self.db.add_bays(args.vineyard, args.block, all_bays)
