@@ -130,3 +130,14 @@ class DB_Ingester:
         df.to_csv(label_file, index=False)
         return df
 
+    def add_harvest_data(self, f_org, args, df=None):
+        # Step 5
+
+        # Ignore the passed dataframe, use harvest data instead
+        harvest_file = f_org.get_harvest_file(args.vineyard, args.block, args.date)
+        h_df = pd.read_csv(harvest_file)
+        entries = list(h_df[["row", "bay", "bay_net_kg"]].to_records(index=False))
+        self.db.add_weights(args.vineyard, args.block, args.date[:4], entries)
+
+        # Return the passed df to prevent interfering with other steps
+        return df
