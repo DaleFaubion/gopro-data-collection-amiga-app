@@ -74,6 +74,7 @@ def main(args):
 
     # Run a single ingest step for debugging
     if args.step is not None:
+        print("Running step", args.step)
         steps[args.step](f_org, args)
         return
 
