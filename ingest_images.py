@@ -59,6 +59,7 @@ def main(args):
 
         # Connect to the database
         db = D.Database(D.connect())
+        db.create_schema(D.Schema)
         db_loader = DB_Ingester(db)
 
         # Override the steps with the db loading steps
