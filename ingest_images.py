@@ -70,6 +70,7 @@ def main(args):
             db_loader.add_metadata,
             db_loader.add_images_to_bays,
             db_loader.add_image_bytes,
+            db_loader.add_harvest_data,
         ]
 
     # Run a single ingest step for debugging
