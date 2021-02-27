@@ -84,13 +84,21 @@ class DB_Ingester:
 
         # Add the predicted bays
         valid = df[df["pred_bay"].notna()]
-        entries = list(valid[["row", "pred_bay", "image_id"]].to_records(index=False))
-        self.db.add_images_to_bays(args.vineyard, args.block, "true", "pred", entries)
+        if len(valid) > 0:
+            entries = list(
+                valid[["row", "pred_bay", "image_id"]].to_records(index=False)
+            )
+            self.db.add_images_to_bays(
+                args.vineyard, args.block, "true", "pred", entries
+            )
 
         # Add the real bays (if they exist...)
         valid = df[df["bay"].notna()]
-        entries = list(valid[["row", "bay", "image_id"]].to_records(index=False))
-        self.db.add_images_to_bays(args.vineyard, args.block, "true", "true", entries)
+        if len(valid) > 0:
+            entries = list(valid[["row", "bay", "image_id"]].to_records(index=False))
+            self.db.add_images_to_bays(
+                args.vineyard, args.block, "true", "true", entries
+            )
 
         # Save and return
         df.to_csv(label_file, index=False)
