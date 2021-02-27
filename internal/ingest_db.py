@@ -143,10 +143,9 @@ class DB_Ingester:
 
         # Ignore the passed dataframe, use harvest data instead
         harvest_file = f_org.get_harvest_file(args.vineyard, args.block, args.date)
-        h_df = pd.read_csv(harvest_file)
-        entries = list(
-            h_df[["row_num", "bay_num", "bay_net_kg"]].to_records(index=False)
-        )
+        columns = ["row_num", "bay_num", "bay_net_kg"]
+        h_df = pd.read_csv(harvest_file).dropna(subset=columns)
+        entries = list(h_df[columns].to_records(index=False))
         self.db.add_weights(args.vineyard, args.block, args.date[:4], entries)
 
         # Return the passed df to prevent interfering with other steps
