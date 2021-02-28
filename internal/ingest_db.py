@@ -24,8 +24,10 @@ class DB_Ingester:
 
         # Fill in any missing image column data
         if not "image_id" in df.columns:
+            print("Adding a uuid to each image")
             df["image_id"] = [str(uuid.uuid4()) for _ in df.index]
         else:
+            print("Filling in any missing uuids")
             missing = df[df["image_id"].isnull()].index
             df.loc[missing, "image_id"] = [str(uuid.uuid4()) for _ in missing]
 
@@ -49,6 +51,7 @@ class DB_Ingester:
         all_bays = list(it.product(rows, bays))
 
         # Add the row/bay pairs to the db
+        print("Adding all row/bay pairs to the database")
         self.db.add_bays(args.vineyard, args.block, all_bays)
 
         # Save and return
@@ -68,6 +71,7 @@ class DB_Ingester:
         entries = list(df[entries].to_records(index=False))
 
         # Add the image metadata to the database
+        print("Adding image metadata to the database")
         self.db.add_images(entries)
 
         # Save and return
@@ -85,6 +89,7 @@ class DB_Ingester:
         # Add the predicted bays
         valid = df[df["pred_bay"].notna()]
         if len(valid) > 0:
+            print("Adding predicted bay labels to the database")
             entries = list(
                 valid[["row", "pred_bay", "image_id"]].to_records(index=False)
             )
@@ -95,6 +100,7 @@ class DB_Ingester:
         # Add the real bays (if they exist...)
         valid = df[df["bay"].notna()]
         if len(valid) > 0:
+            print("Adding hand-labeled bays to the database")
             entries = list(valid[["row", "bay", "image_id"]].to_records(index=False))
             self.db.add_images_to_bays(
                 args.vineyard, args.block, "true", "true", entries
@@ -115,6 +121,8 @@ class DB_Ingester:
         def loader(image_path):
             with open(image_path, "rb") as f:
                 return f.read()
+
+        print("Adding image binaries to the database")
 
         # Stride through the dataframe
         for n, chunk in df.groupby(np.arange(len(df)) // batch_size):
@@ -140,6 +148,8 @@ class DB_Ingester:
 
     def add_harvest_data(self, f_org, args, df=None):
         # Step 5
+
+        print("Adding harvest weights to the database")
 
         # Ignore the passed dataframe, use harvest data instead
         harvest_file = f_org.get_harvest_file(args.vineyard, args.block, args.date)
