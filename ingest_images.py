@@ -25,6 +25,8 @@ def parse_args():
     ap.add_argument("-raw_dir", help="directory of unprocessed images")
 
     ap.add_argument("-s", "--step", type=int, help="step to run")
+    ap.add_argument("-db", "--database", action="store_true", help="run db steps")
+    ap.add_argument("-reset", action="store_true", help="restart the ingest")
 
     return ap.parse_args()
 
@@ -51,8 +53,36 @@ def main(args):
         rename_files.main,
     ]
 
+    # Optionally override the steps with the db loading steps
+    if args.database:
+        import pandas as pd
+        from database import Database as D
+        from database import Schema
+        from internal.ingest_db import DB_Ingester
+
+        # Connect to the database
+        db = D.Database(D.connect())
+        db.create_schema(Schema)
+        db_loader = DB_Ingester(db)
+
+        if args.reset:
+            label_file = f_org.get_label_file(args.vineyard, args.block, args.date)
+            df = pd.read_csv(label_file)
+            db.drop_images(list(df["image_id"]))
+
+        # Override the steps with the db loading steps
+        steps = [
+            db_loader.add_uuids,
+            db_loader.add_bays,
+            db_loader.add_metadata,
+            db_loader.add_images_to_bays,
+            db_loader.add_image_bytes,
+            db_loader.add_harvest_data,
+        ]
+
     # Run a single ingest step for debugging
     if args.step is not None:
+        print("Running step", args.step)
         steps[args.step](f_org, args)
         return
 
