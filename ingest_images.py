@@ -62,13 +62,15 @@ def main(args):
 
         # Connect to the database
         db = D.Database(D.connect())
-        db.create_schema(Schema)
-        db_loader = DB_Ingester(db)
 
         if args.reset == "date":
             db.drop_images(args.date)
         elif args.reset == "all":
             db.drop_tables(*D.table_names.values())
+
+        # Ensure the schema is up to date
+        db.create_schema(Schema)
+        db_loader = DB_Ingester(db)
 
         # Override the steps with the db loading steps
         steps = [
