@@ -26,7 +26,7 @@ def parse_args():
 
     ap.add_argument("-s", "--step", type=int, help="step to run")
     ap.add_argument("-db", "--database", action="store_true", help="run db steps")
-    ap.add_argument("-reset", action="store_true", help="restart the ingest")
+    ap.add_argument("-reset", help="reset the database, either 'date' or 'all'")
 
     return ap.parse_args()
 
@@ -62,13 +62,15 @@ def main(args):
 
         # Connect to the database
         db = D.Database(D.connect())
+
+        if args.reset == "date":
+            db.drop_images(args.date)
+        elif args.reset == "all":
+            db.drop_tables(*D.table_names.values())
+
+        # Ensure the schema is up to date
         db.create_schema(Schema)
         db_loader = DB_Ingester(db)
-
-        if args.reset:
-            label_file = f_org.get_label_file(args.vineyard, args.block, args.date)
-            df = pd.read_csv(label_file)
-            db.drop_images(list(df["image_id"]))
 
         # Override the steps with the db loading steps
         steps = [
