@@ -5,7 +5,7 @@
 import os
 import pandas as pd
 
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from PIL.ExifTags import TAGS, GPSTAGS
 
 from .common import *
@@ -114,18 +114,28 @@ def main(f_org, args, df=None):
             print("\r", f, end=" ")
 
             # Open the image
-            with Image.open(os.path.join(root, f)) as img:
-                info = img.getexif()
+            try:
+                with Image.open(os.path.join(root, f)) as img:
+                    info = img.getexif()
 
-                # Extract the metadata
-                df.loc[idx, "raw_dir"] = os.path.join(root, f)
-                df.loc[idx, "time"] = parse_time(info)
-                df.loc[idx, "camera"] = parse_camera(info)
-                df.loc[idx, ["lat", "lon"]] = parse_gps(info)
-                df.loc[idx, "focal_length"] = get_exif(info, "FocalLengthIn35mmFilm")
-                df.loc[idx, "exposure_time"] = get_exif(info, "ExposureTime")
+                    # Extract the metadata
+                    df.loc[idx, "raw_dir"] = os.path.join(root, f)
+                    df.loc[idx, "time"] = parse_time(info)
+                    df.loc[idx, "camera"] = parse_camera(info)
+                    df.loc[idx, ["lat", "lon"]] = parse_gps(info)
+                    df.loc[idx, "focal_length"] = get_exif(
+                        info, "FocalLengthIn35mmFilm"
+                    )
+                    df.loc[idx, "exposure_time"] = get_exif(info, "ExposureTime")
 
-            idx += 1
+                idx += 1
+
+            except UnidentifiedImageError:
+                print("\rSkipping corrupted file:", os.path.join(root, f))
+                pass
+
+            except Exception as e:
+                print("\rFailed to open", os.path.join(root, f), "with", e)
 
     print("\rGenerating CSV                ")
     df["vineyard"] = args.vineyard
