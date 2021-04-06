@@ -28,7 +28,6 @@ def pad_cameras(df):
 
     camera_dirs = {}
     for idx in df.index:
-
         dir_name = os.path.dirname(df.loc[idx, "raw_dir"])
         if dir_name not in camera_dirs:
             camera_dirs[dir_name] = []
