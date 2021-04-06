@@ -22,12 +22,26 @@ class TestIngestScript(unittest.TestCase):
             images_per_bay=cls.num_images,
         )
 
-        cls.raw_dir = cls.f_org.get_image_path(cls.vineyard, cls.block, cls.date)
+        cls.raw_dir = cls.f_org.get_image_path(
+            cls.vineyard, cls.block, cls.date)
         cls.f_org.gen_images()
 
-    def testGenCSV(self):
+    def testGenCSV_BySteps(self):
         gen_csv.main(self.f_org, self)
         pad_csv.main(self.f_org, self)
         row_pred.main(self.f_org, self)
         bay_pred.main(self.f_org, self)
         rename_files.main(self.f_org, self)
+
+    def testGenCSV_Sequentially(self):
+        steps = [
+            gen_csv.main,
+            pad_csv.main,
+            row_pred.main,
+            bay_pred.main,
+            rename_files.main,
+        ]
+
+        df = None
+        for s in steps:
+            df = s(self.f_org, self, df=df)

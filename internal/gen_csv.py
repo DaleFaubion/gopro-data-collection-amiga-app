@@ -116,7 +116,10 @@ def main(f_org, args, df=None):
             # Open the image
             try:
                 with Image.open(os.path.join(root, f)) as img:
-                    info = img.getexif()
+                    # Do not use the getexif() function instead unless you
+                    # feel like figuring out the differences and why it happens
+                    # to cause all the unit tests to fail.
+                    info = img._getexif()
 
                     # Extract the metadata
                     df.loc[idx, "raw_dir"] = os.path.join(root, f)
@@ -126,7 +129,8 @@ def main(f_org, args, df=None):
                     df.loc[idx, "focal_length"] = get_exif(
                         info, "FocalLengthIn35mmFilm"
                     )
-                    df.loc[idx, "exposure_time"] = get_exif(info, "ExposureTime")
+                    df.loc[idx, "exposure_time"] = get_exif(
+                        info, "ExposureTime")
 
                 idx += 1
 

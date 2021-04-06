@@ -1,4 +1,4 @@
-# Spring 2020
+# 2021 Spring
 # Vinetech Database Ingest
 # Ingest steps for loading the database
 
@@ -101,7 +101,8 @@ class DB_Ingester:
         valid = df[df["bay"].notna()]
         if len(valid) > 0:
             print("Adding hand-labeled bays to the database")
-            entries = list(valid[["row", "bay", "image_id"]].to_records(index=False))
+            entries = list(
+                valid[["row", "bay", "image_id"]].to_records(index=False))
             self.db.add_images_to_bays(
                 args.vineyard, args.block, "true", "true", entries
             )
@@ -132,12 +133,15 @@ class DB_Ingester:
             if "raw_dir" in chunk.columns:
                 file_names = chunk["raw_dir"]
             else:
-                image_path = f_org.get_image_path(args.vineyard, args.block, args.date)
-                file_names = chunk["name"].apply(lambda x: os.path.join(image_path, x))
+                image_path = f_org.get_image_path(
+                    args.vineyard, args.block, args.date)
+                file_names = chunk["name"].apply(
+                    lambda x: os.path.join(image_path, x))
 
             # Load the files in the chunk
             chunk["binary"] = [loader(x) for x in file_names]
-            entries = list(chunk[["image_id", "binary"]].to_records(index=False))
+            entries = list(chunk[["image_id", "binary"]
+                                 ].to_records(index=False))
 
             # Store the binaries
             self.db.add_image_encodings("jpg", entries)
@@ -152,7 +156,8 @@ class DB_Ingester:
         print("Adding harvest weights to the database")
 
         # Ignore the passed dataframe, use harvest data instead
-        harvest_file = f_org.get_harvest_file(args.vineyard, args.block, args.date)
+        harvest_file = f_org.get_harvest_file(
+            args.vineyard, args.block, args.date)
         columns = ["row_num", "bay_num", "bay_net_kg"]
         h_df = pd.read_csv(harvest_file).dropna(subset=columns)
         entries = list(h_df[columns].to_records(index=False))
