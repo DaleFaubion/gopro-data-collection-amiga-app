@@ -35,7 +35,7 @@ def pad_cameras(df):
         if os.path.dirname(dir_name) not in camera_dirs:
             camera_dirs[os.path.dirname(dir_name)] = []
 
-        if np.isnan(df.loc[idx, "camera"]):
+        if df.loc[idx, "camera"] is None or np.isnan(df.loc[idx, "camera"]):
             continue
 
         camera_dirs[dir_name].append(df.loc[idx, "camera"])
