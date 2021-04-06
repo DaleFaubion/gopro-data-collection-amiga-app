@@ -42,6 +42,7 @@ def pad_cameras(df):
         camera_dirs[os.path.dirname(dir_name)].append(df.loc[idx, "camera"])
 
     for dr in camera_dirs:
+        print(dr, camera_dirs[dr])
         camera_dirs[dr] = max(set(camera_dirs[dr]), key=camera_dirs[dr].count)
 
     def get_camera(idx):
