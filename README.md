@@ -27,8 +27,8 @@ If the ingest fails or should be restarted, the `-reset` command can be passed, 
 
 There are ci and unit tests that run with `sh test.sh` (using the conda environment specified in `environment.yml` or the general `vinetech` environment defined in the root repo). Additionally, the `gps_model_selection` and `bay_model_selection` scripts can be used to test new bay prediction and gps data correction models.
 
-While writing up this documentataaion I ran into a problem where after months of passing tests, they now fail. It had to do with a package dependency update: the CI runner was using pillow 8.2.0 and I had 8.0.0 installed. In the release notes they noted a change to `getexif()` and that `_getexif()` behaved as before. ... check your dependencies if things start breaking!!
+While writing up this documentation I ran into a problem where after months of passing tests, they now fail. It had to do with a package dependency update: the CI runner was using pillow 8.2.0 and I had 8.0.0 installed. In the release notes they noted a change to `getexif()` and that `_getexif()` behaved as before. ... check your dependencies if things start breaking!!
 
 ### Database Schema Development
 
-The original schema can be found in the relics directory, the one developed in 2020 can be found in the 2020_Schema directory, and the one currrently being used in the POC can be found [here](https://gitlab.com/georgefox/engr/senior-design/vinetech-data-processing/database/-/blob/master/schema.sql).
+The original schema can be found in the relics directory, the one developed in 2020 can be found in the 2020_Schema directory, and the one currently being used in the POC can be found [here](https://gitlab.com/georgefox/engr/senior-design/vinetech-data-processing/database/-/blob/master/schema.sql).
