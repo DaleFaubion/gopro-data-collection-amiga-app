@@ -1,99 +1,64 @@
-# Fall 2020
-# Vinetech Image Ingest Script
+"""
+Ingest images along with meta-data into the database
+"""
 
-import os
-import argparse
+from argparse import ArgumentParser
 
+import pandas as pd
 
-import __init__
-from organization import file_org as f_org
-from internal import gen_csv, pad_csv, row_pred, bay_pred, rename_files
-
-
-def parse_args():
-    """
-    parse_args returns the command line arguments.
-    """
-
-    ap = argparse.ArgumentParser()
-
-    ap.add_argument("-v", "--vineyard", default="crawford-beck", help="vineyard name")
-    ap.add_argument("-b", "--block", default=9, type=int, help="block number")
-    ap.add_argument("-d", "--date", required=True, help="date to ingest (yyyy-mm-dd)")
-
-    ap.add_argument("-r", "--rows", default=21, help="number of rows in block")
-    ap.add_argument("-raw_dir", help="directory of unprocessed images")
-
-    ap.add_argument("-s", "--step", type=int, help="step to run")
-    ap.add_argument("-db", "--database", action="store_true", help="run db steps")
-    ap.add_argument("-reset", help="reset the database, either 'date' or 'all'")
-
-    return ap.parse_args()
+import database as d
+from database import Schema
+from internal.ingestdb import Ingester
 
 
-def main(args):
-    """
-    main ingests the images indicated by the passed args object.
-    """
+def main(location_file, harvest_file, db_conf, image_dir, vineyard, block, date):
+	"""
+	Ingests the images indicated by the passed args object.
+	"""
+	# load the image location data
+	images = pd.read_csv(location_file)
 
-    if not args.raw_dir:
-        args.raw_dir = f_org.get_image_path(args.vineyard, args.block, args.date)
+	# load the harvest data
+	harvest = pd.read_csv(harvest_file)
 
-    if not len(os.listdir(args.raw_dir)):
-        print("Chosen path does not contain files")
-        print("Make sure to run setup.sh from the root repo")
-        return
+	# Connect to the database
+	db_conn = d.Database(d.connect(db_conf))
 
-    # Ingest steps that can be run individually with -s / --step argument
-    steps = [
-        gen_csv.main,
-        pad_csv.main,
-        row_pred.main,
-        bay_pred.main,
-        rename_files.main,
-    ]
+	# Ensure the schema is up to date
+	# db.create_schema(Schema)
+	db_loader = Ingester(db_conn)
 
-    # Optionally override the steps with the db loading steps
-    if args.database:
-        import pandas as pd
-        from database import Database as D
-        from database import Schema
-        from internal.ingest_db import DB_Ingester
+	# add a UUID to the images
+	db_loader.add_uuids(images)
 
-        # Connect to the database
-        db = D.Database(D.connect())
+	# ingest the bay info
+	db_loader.add_bays(images, vineyard, block)
 
-        if args.reset == "date":
-            db.drop_images(args.date)
-        elif args.reset == "all":
-            db.drop_tables(*D.table_names.values())
+	# add the image meta-data
+	db_loader.add_metadata(images)
 
-        # Ensure the schema is up to date
-        db.create_schema(Schema)
-        db_loader = DB_Ingester(db)
+	# add image info to each bay
+	db_loader.add_images_to_bays(images, vineyard, block)
 
-        # Override the steps with the db loading steps
-        steps = [
-            db_loader.add_uuids,
-            db_loader.add_bays,
-            db_loader.add_metadata,
-            db_loader.add_images_to_bays,
-            db_loader.add_image_bytes,
-            db_loader.add_harvest_data,
-        ]
+	# add image binaries
+	db_loader.add_image_bytes(images, image_dir)
 
-    # Run a single ingest step for debugging
-    if args.step is not None:
-        print("Running step", args.step)
-        steps[args.step](f_org, args)
-        return
-
-    # Run all the ingest steps
-    df = None
-    for s in steps:
-        print("Running step", steps.index(s))
-        df = s(f_org, args, df=df)
+	# add harvest (yield weight) data
+	db_loader.add_harvest_data(harvest, vineyard, block, date)
 
 
 if __name__ == "__main__":
-    main(parse_args())
+
+	ap = ArgumentParser()
+
+	ap.add_argument("harvest_file", help="The CSV file with harvest weights")
+	ap.add_argument("location_file", help="The location CSV file with image meta-data")
+	ap.add_argument("-v", "--vineyard", default="crawford-beck", help="vineyard name")
+	ap.add_argument("-b", "--block", default=9, type=int, help="block number")
+	ap.add_argument("-d", "--date", required=True, help="date to ingest (yyyy-mm-dd)")
+	ap.add_argument("-i", "--image_dir", help="directory of unprocessed images")
+	ap.add_argument("-db", "--db_conf", default="db.conf", help="Database config files")
+
+	args = ap.parse_args()
+
+	main(**vars(args))
