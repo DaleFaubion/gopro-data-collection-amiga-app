@@ -13,6 +13,7 @@ python ingest_images.py -v <vineyard> -b <block> -d <date>
 ```
 
 If the ingest indicates that the gps data is corrupted, you can perform individual steps of the ingest by passing the `-s` flag with the step number to run.
+The date with hand-labeled data with row/bay labels is '2019-06-12'.
 
 ## Database Ingest (CSV -> DB)
 

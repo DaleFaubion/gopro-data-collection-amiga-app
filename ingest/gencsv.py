@@ -4,7 +4,7 @@ meta-data about the images along with their path
 """
 
 import os
-from os.path import dirname, join, isdir
+from os.path import join 
 import pandas as pd
 import numpy as np
 
@@ -104,26 +104,19 @@ def parse_time(info):
 		return None
 
 
-def create_csv(f_org, vineyard, block, date, raw_dir):
+def create_csv(vineyard, block, date, image_dir):
 	"""
 	Creates a pandas dataframe and fills it with the metadata that can be parsed
 	from the images.
 	"""
-
-	# Get the label file
-	label_file = f_org.get_label_file(vineyard, block, date)
-	
-	if not isdir(dirname(label_file)):
-		os.makedirs(dirname(label_file))
-
 	# Create the initial dataframe
-	df = pd.DataFrame(columns=COLUMNS)
+	data = pd.DataFrame(columns=COLUMNS)
 	idx = 0
 
 	print("Reading Image Metadata")
 
 	# Walk the directory of images
-	for root, _, files in os.walk(raw_dir, followlinks=True):
+	for root, _, files in os.walk(image_dir, followlinks=True):
 		for image_file in files:
 			print("\r", image_file, end=" ")
 
@@ -138,12 +131,12 @@ def create_csv(f_org, vineyard, block, date, raw_dir):
 					info = img._getexif()
 
 					# Extract the metadata
-					df.loc[idx, "raw_dir"] = full_path
-					df.loc[idx, "time"] = parse_time(info)
-					df.loc[idx, "camera"] = parse_camera(info)
-					df.loc[idx, ["lat", "lon"]] = parse_gps(info)
-					df.loc[idx, "focal_length"] = get_exif(info, "FocalLengthIn35mmFilm")
-					df.loc[idx, "exposure_time"] = get_exif(info, "ExposureTime")
+					data.loc[idx, "raw_dir"] = full_path
+					data.loc[idx, "time"] = parse_time(info)
+					data.loc[idx, "camera"] = parse_camera(info)
+					data.loc[idx, ["lat", "lon"]] = parse_gps(info)
+					data.loc[idx, "focal_length"] = get_exif(info, "FocalLengthIn35mmFilm")
+					data.loc[idx, "exposure_time"] = get_exif(info, "ExposureTime")
 
 				idx += 1
 
@@ -155,10 +148,10 @@ def create_csv(f_org, vineyard, block, date, raw_dir):
 				print("\rFailed to open", full_path, "with", exc)
 
 	print("\rGenerating CSV				")
-	df["vineyard"] = vineyard
-	df["block"] = block
-	df["date"] = date.replace("-", ":")
+	data["vineyard"] = vineyard
+	data["block"] = block
+	data["date"] = date.replace("-", ":")
 
-	df.to_csv(label_file, index=False)
+	#data.to_csv(label_file, index=False)
 
-	return df
+	return data

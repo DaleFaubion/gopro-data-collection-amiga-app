@@ -14,7 +14,7 @@ from common import COLUMNS, to_ord, from_ord
 
 #TODO needs a lot more comments
 
-def pad_cameras(df):
+def pad_cameras(data):
 	"""
 	pad_cameras fills corrupted camera data with a camera id pulled from another image
 	in the same directory.  This could be done better / take into account more than
@@ -24,9 +24,9 @@ def pad_cameras(df):
 	camera_dirs = {}
 
 	#TODO lookup what this means (index)
-	for idx in df.index:
+	for idx in data.index:
 
-		dir_name = dirname(df.loc[idx, "raw_dir"])
+		dir_name = dirname(data.loc[idx, "raw_dir"])
 
 		if dir_name not in camera_dirs:
 			camera_dirs[dir_name] = []
@@ -34,54 +34,54 @@ def pad_cameras(df):
 		if dirname(dir_name) not in camera_dirs:
 			camera_dirs[dirname(dir_name)] = []
 
-		if df.loc[idx, "camera"] is None or np.isnan(df.loc[idx, "camera"]):
+		if data.loc[idx, "camera"] is None or np.isnan(data.loc[idx, "camera"]):
 			#TODO fix
 			continue
 
-		camera_dirs[dir_name].append(df.loc[idx, "camera"])
-		camera_dirs[dirname(dir_name)].append(df.loc[idx, "camera"])
+		camera_dirs[dir_name].append(data.loc[idx, "camera"])
+		camera_dirs[dirname(dir_name)].append(data.loc[idx, "camera"])
 
 	for dr in camera_dirs:
 		camera_dirs[dr] = max(set(camera_dirs[dr]), key=camera_dirs[dr].count)
 	
 	def get_camera(idx):
-		if df.loc[idx, "camera"]:
+		if data.loc[idx, "camera"]:
 			#TODO fix multiple returns
-			return df.loc[idx, "camera"]
+			return data.loc[idx, "camera"]
 
-		image_dir = df.loc[idx, "raw_dir"]
+		image_dir = data.loc[idx, "raw_dir"]
 		if dirname(image_dir) in camera_dirs:
 			#TODO fix multiple returns
 			return camera_dirs[dirname(image_dir)]
 
 		return camera_dirs[dirname(dirname(image_dir))]
 
-	return df.index.map(get_camera)
+	return data.index.map(get_camera)
 
 
-def gps_outliers(df):
+def gps_outliers(data):
 	"""
 	gps_outliers returns a pandas index of the gps data that is corrupted in the
 	dataframe.
 	"""
 
-	lat = df["lat"] + df["lon"]
+	lat = data["lat"] + data["lon"]
 
 	# GPS data for a given block should be within +- 1 degree of the median,
 	#  blocks are very small in terms of coordinates
 	return np.logical_or(np.abs(lat - np.median(lat)) > 1, pd.isnull(lat))
 
 
-def train_model(df, idx, col, model):
+def train_model(data, idx, col, model):
 	"""
 	train_model trains a latitude or longitude prediction model on the non-corrupted
 	data.
 	"""
 
 	if idx is None:
-		features, labels = df[["ts"]], df[col]
+		features, labels = data[["ts"]], data[col]
 	else:
-		features, labels = df.loc[idx, ["ts"]], df.loc[idx, col]
+		features, labels = data.loc[idx, ["ts"]], data.loc[idx, col]
 
 	# split into training/testing sets
 	x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2)
@@ -103,69 +103,60 @@ def train_model(df, idx, col, model):
 	return model, score
 
 
-def predict(f_org, vineyard, block, date, df=None):
+def predict(data):
 	"""
-	main interpolates corrupted image metadata in the given date's csv file.
+	Interpolates corrupted image metadata in the given date's csv file.
 	"""
-
-	# Open the current csv
-	label_file = f_org.get_label_file(vineyard, block, date)
-
-	if df is None:
-		df = pd.read_csv(label_file, index_col=False)
 
 	print("Padding Camera Metadata")
 
 	# Pads corrupted camera names, assumes that images in a directory will be from
 	#  the same camera
-	df["camera"] = pad_cameras(df)
+	data["camera"] = pad_cameras(data)
 
 	# Pad corrupted time stamps, assumes that images are named chronologically
-	df = df.sort_values(["camera", "raw_dir"], ignore_index=True)
+	data = data.sort_values(["camera", "raw_dir"], ignore_index=True)
 
 	print("Padding Timestamp Metadata")
 
 	# Create time column for k-neighbors
-	df["ts"] = df["time"].apply(to_ord)
-	df["ts"] = df["ts"].interpolate()
-	df["time"] = df["ts"].apply(from_ord)
+	data["ts"] = data["time"].apply(to_ord)
+	data["ts"] = data["ts"].interpolate()
+	data["time"] = data["ts"].apply(from_ord)
 
 	print("Padding GPS Metadata")
 
 	# Get the corrupted gps data indices
-	corrupt_gps = gps_outliers(df)
+	corrupt_gps = gps_outliers(data)
 
 	#TODO fix this
 	# Correct corrputed latitude / longitude
-	for camera in df["camera"].dropna().unique():
+	for camera in data["camera"].dropna().unique():
 		
 		# Get the index of valid gps data
-		valid = np.logical_and(df["camera"] == camera, np.invert(corrupt_gps))
-		corrupt = np.logical_and(df["camera"] == camera, corrupt_gps)
+		valid = np.logical_and(data["camera"] == camera, np.invert(corrupt_gps))
+		corrupt = np.logical_and(data["camera"] == camera, corrupt_gps)
 
-		if len(df[corrupt]) == 0:
+		if len(data[corrupt]) == 0:
 			#TODO fix
 			continue
 
 		print("Padding %s" % camera)
 
 		# Fit the latitude predictor model
-		model, _ = train_model(df, valid, "lat", en.RandomForestRegressor())
+		model, _ = train_model(data, valid, "lat", en.RandomForestRegressor())
 
 		# Predict corrupted latitude data
-		df.loc[corrupt, ["lat"]] = model.predict(df.loc[corrupt, ["ts"]])
+		data.loc[corrupt, ["lat"]] = model.predict(data.loc[corrupt, ["ts"]])
 
 		# Fit the longitude predictor model
-		model, _ = train_model(df, valid, "lon", en.RandomForestRegressor())
+		model, _ = train_model(data, valid, "lon", en.RandomForestRegressor())
 
 		# Predict corrupted longitude data
-		df.loc[corrupt, ["lon"]] = model.predict(df.loc[corrupt, ["ts"]])
+		data.loc[corrupt, ["lon"]] = model.predict(data.loc[corrupt, ["ts"]])
 
 	# Sort the dataframe again
-	df = df.sort_values(["camera", "time"], ignore_index=True)
+	data = data.sort_values(["camera", "time"], ignore_index=True)
 
 	# Shave off computation columns and save
-	df = df[COLUMNS]
-	df.to_csv(label_file, index=False)
-
-	return df
+	return data[COLUMNS]
