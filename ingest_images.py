@@ -1,5 +1,7 @@
 """
 Ingest images along with meta-data into the database
+
+Uses the 'locations.csv' file to determine what to ingest
 """
 
 from argparse import ArgumentParser
@@ -7,7 +9,7 @@ from argparse import ArgumentParser
 import pandas as pd
 
 import database as d
-from database import Schema
+#from database import Schema
 from internal.ingestdb import Ingester
 
 
