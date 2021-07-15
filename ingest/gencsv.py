@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image, UnidentifiedImageError
 from PIL.ExifTags import TAGS, GPSTAGS
 
-from common import COLUMNS
+from ingest.common import COLUMNS
 
 #TODO fix
 tag_keys = {}
