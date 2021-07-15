@@ -10,7 +10,7 @@ import pandas as pd
 
 import database as d
 #from database import Schema
-from internal.ingestdb import Ingester
+from ingest.ingestdb import Ingester
 
 
 def main(location_file, harvest_file, db_conf, image_dir, vineyard, block, date):

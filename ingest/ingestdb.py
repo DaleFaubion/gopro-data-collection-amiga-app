@@ -3,6 +3,7 @@ A module for providing a class to ingest images and meta-data
 into the database
 """
 
+import numpy as np
 import pandas as pd
 import itertools as it
 import uuid
