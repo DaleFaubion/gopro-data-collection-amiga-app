@@ -7,5 +7,7 @@ testdata
 *.swp
 *.txt
 *.csv
+*.csv#
 *.sh
 *.conf
+*.png

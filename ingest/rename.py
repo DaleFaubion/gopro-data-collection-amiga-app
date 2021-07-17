@@ -5,7 +5,7 @@ A module to 'rename' the image file names in the locations CSV file
 
 from os.path import realpath
 
-from common import COLUMNS
+from ingest.common import COLUMNS
 
 def rename(data, date):
 	"""

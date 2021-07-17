@@ -9,7 +9,7 @@ import numpy as np
 from sklearn import ensemble
 from sklearn.model_selection import train_test_split
 
-from common import COLUMNS, to_ord
+from ingest.common import COLUMNS, to_ord
 
 # These ideally would be derived : )
 # TODO: pull these values from a csv or somewhere
@@ -37,7 +37,7 @@ def pred_bay(latitude):
 	
 	return result
 
-
+#TODO what does this do?
 def prep_data(data):
 	"""
 	prep_data returns the training and prediction columns derived from the dataframe.
@@ -128,6 +128,5 @@ def predict(data, labeled_data):
 	#TODO fix this
 	except:
 		print("GPS Data too corrupt to predict bays")
-		print("rerun with -s param to walk through ingest steps and view csv file")
 
 	return data[COLUMNS]

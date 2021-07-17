@@ -6,14 +6,28 @@ from os.path import dirname
 import pandas as pd
 import numpy as np
 
-from sklearn import ensemble as en
+from sklearn.neighbors import KDTree
+from sklearn.linear_model import LinearRegression
+#from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
+import matplotlib.pyplot as plt
 
-from common import COLUMNS, to_ord, from_ord
+from ingest.common import COLUMNS, to_ord, from_ord
+
+
+def plot_images(data, filename):
+	"""
+	Makes a plot of the images based on lat/long
+	"""
+	plt.figure(figsize=(10,10))
+	plt.scatter(data["lat"], data["lon"], s=5)
+	plt.title("Lat/Long of Images")
+	plt.savefig(filename)
+	plt.close()
+
 
 #TODO needs a lot more comments
-
 def pad_cameras(data):
 	"""
 	pad_cameras fills corrupted camera data with a camera id pulled from another image
@@ -23,7 +37,6 @@ def pad_cameras(data):
 
 	camera_dirs = {}
 
-	#TODO lookup what this means (index)
 	for idx in data.index:
 
 		dir_name = dirname(data.loc[idx, "raw_dir"])
@@ -64,24 +77,47 @@ def gps_outliers(data):
 	gps_outliers returns a pandas index of the gps data that is corrupted in the
 	dataframe.
 	"""
+	THRES = 3.0
+	points = pd.DataFrame()
 
-	lat = data["lat"] + data["lon"]
+	# normalize the lat and lon dimensions for the sake of numeric
+	# stability
+	points["lat"] = normalize(data["lat"])
+	points["lon"] = normalize(data["lon"])
 
-	# GPS data for a given block should be within +- 1 degree of the median,
-	#  blocks are very small in terms of coordinates
-	return np.logical_or(np.abs(lat - np.median(lat)) > 1, pd.isnull(lat))
+	# remove the NAN values
+	points = points.fillna(0)
+
+	# make the tree
+	tree = KDTree(points)
+
+	# check the kernel density (average distance)
+	density = tree.kernel_density(points, 1)
+	
+	# calculate the standard dev
+	dev = np.std(np.nan_to_num(density))
+
+	# remove the mean
+	density = density - np.mean(density)
+
+	# mark the points more than 3 standard deviations away
+	return np.logical_or(np.abs(density) > (dev * THRES), pd.isnull(data["lat"]))
 
 
-def train_model(data, idx, col, model):
+def normalize(array):
+	"""
+	Normalize the numpy/pandas array
+	"""
+	return (array - array.mean(skipna=True)) / array.std(skipna=True)
+
+
+def train_model(data, col, model):
 	"""
 	train_model trains a latitude or longitude prediction model on the non-corrupted
 	data.
 	"""
-
-	if idx is None:
-		features, labels = data[["ts"]], data[col]
-	else:
-		features, labels = data.loc[idx, ["ts"]], data.loc[idx, col]
+	features = data[["ts"]]
+	labels = data[[col]]
 
 	# split into training/testing sets
 	x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2)
@@ -92,12 +128,8 @@ def train_model(data, idx, col, model):
 	# Evaluate the model on the test data
 	y_pred = model.predict(x_test)
 
-	# Scale both predictions and true data to [0:1] range
-	y_pred, y_test = y_pred - np.min(y_test), y_test - np.min(y_test)
-	y_pred, y_test = y_pred / np.max(y_test), y_test / np.max(y_test)
+	score = 1 - metrics.mean_absolute_error(y_test, y_pred)
 
-	# TODO fix this metric
-	score = 1 - metrics.mean_squared_error(y_test, y_pred)
 	print("Trained %s model with accuracy: %02.3f" % (col, 100 * score))
 
 	return model, score
@@ -119,7 +151,7 @@ def predict(data):
 
 	print("Padding Timestamp Metadata")
 
-	# Create time column for k-neighbors
+	# Create time column for predicting lat and long
 	data["ts"] = data["time"].apply(to_ord)
 	data["ts"] = data["ts"].interpolate()
 	data["time"] = data["ts"].apply(from_ord)
@@ -127,36 +159,34 @@ def predict(data):
 	print("Padding GPS Metadata")
 
 	# Get the corrupted gps data indices
-	corrupt_gps = gps_outliers(data)
+	corrupt = gps_outliers(data)
+	valid =  np.invert(corrupt)
 
-	#TODO fix this
-	# Correct corrputed latitude / longitude
-	for camera in data["camera"].dropna().unique():
-		
-		# Get the index of valid gps data
-		valid = np.logical_and(data["camera"] == camera, np.invert(corrupt_gps))
-		corrupt = np.logical_and(data["camera"] == camera, corrupt_gps)
+	plot_images(data, "image_loc.png")
 
-		if len(data[corrupt]) == 0:
-			#TODO fix
-			continue
+	if corrupt.sum() > 0:
 
-		print("Padding %s" % camera)
+		training = data.loc[valid]
+
+		plot_images(data.loc[corrupt], "image_outliers.png")
+		plot_images(training, "normal_images.png")
 
 		# Fit the latitude predictor model
-		model, _ = train_model(data, valid, "lat", en.RandomForestRegressor())
+		model, _ = train_model(training, "lat", LinearRegression())
 
 		# Predict corrupted latitude data
 		data.loc[corrupt, ["lat"]] = model.predict(data.loc[corrupt, ["ts"]])
 
 		# Fit the longitude predictor model
-		model, _ = train_model(data, valid, "lon", en.RandomForestRegressor())
+		model, _ = train_model(training, "lon", LinearRegression())
 
 		# Predict corrupted longitude data
 		data.loc[corrupt, ["lon"]] = model.predict(data.loc[corrupt, ["ts"]])
 
-	# Sort the dataframe again
-	data = data.sort_values(["camera", "time"], ignore_index=True)
+		# Sort the dataframe again
+		data = data.sort_values(["camera", "time"], ignore_index=True)
+
+		plot_images(data, "image_loc_fixed.png")
 
 	# Shave off computation columns and save
 	return data[COLUMNS]

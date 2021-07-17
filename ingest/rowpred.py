@@ -4,8 +4,23 @@ A module for predicting the row each image
 
 import numpy as np
 from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
 
-from common import to_ord, COLUMNS
+from ingest.common import to_ord, COLUMNS
+
+
+def plot_rows(data, include_row=False):
+	"""
+	Plot the data according to lat/lon
+	"""
+	if include_row:
+		filename = "image_locations_rows.png"
+	else:
+		filename = "image_locations.png"
+
+	plt.scatter(data["lat"], data["lon"])
+	plt.title("Rows")
+	plt.savefig(filename)
 
 
 def delta(data, idx, col):
@@ -92,6 +107,7 @@ def predict(data, num_rows):
 	for cam in data["camera"].dropna().unique():
 		idx = data["camera"] == cam
 
+		#TODO why is this?
 		# Have the weight the direction of change proportionally to the ts col
 		dx = delta(data, idx, "lat")
 		dx -= np.min(dx)
@@ -108,8 +124,10 @@ def predict(data, num_rows):
 			data.loc[idx, "row"] = clusters.fit_predict(data.loc[idx, ["ts", "dlat", "row"]])
 
 		#TODO fix
-		except:
+		except Exception as exc:
+
 			print("GPS Data on camera %s too corrupt to predict rows" % cam)
+			print(exc)
 
 			#TODO fix this
 			continue
