@@ -132,7 +132,7 @@ def train_model(data, col, model):
 
 	print("Trained %s model with accuracy: %02.3f" % (col, 100 * score))
 
-	return model, score
+	return model
 
 
 def predict(data):
@@ -172,13 +172,13 @@ def predict(data):
 		plot_images(training, "normal_images.png")
 
 		# Fit the latitude predictor model
-		model, _ = train_model(training, "lat", LinearRegression())
+		model = train_model(training, "lat", LinearRegression())
 
 		# Predict corrupted latitude data
 		data.loc[corrupt, ["lat"]] = model.predict(data.loc[corrupt, ["ts"]])
 
 		# Fit the longitude predictor model
-		model, _ = train_model(training, "lon", LinearRegression())
+		model = train_model(training, "lon", LinearRegression())
 
 		# Predict corrupted longitude data
 		data.loc[corrupt, ["lon"]] = model.predict(data.loc[corrupt, ["ts"]])
