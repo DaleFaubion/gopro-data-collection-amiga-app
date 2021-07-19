@@ -7,20 +7,7 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 
 from ingest.common import to_ord, COLUMNS
-
-
-def plot_rows(data, include_row=False):
-	"""
-	Plot the data according to lat/lon
-	"""
-	if include_row:
-		filename = "image_locations_rows.png"
-	else:
-		filename = "image_locations.png"
-
-	plt.scatter(data["lat"], data["lon"])
-	plt.title("Rows")
-	plt.savefig(filename)
+from ingest.pred import plot_images
 
 
 def delta(data, idx, col):
@@ -135,5 +122,8 @@ def predict(data, num_rows):
 		# This reorders the randomly assigned clusters into rows
 		#  assumes images are taken in order by row
 		data.loc[idx, "row"] = adjust_clusers(data, idx, "row")
+
+	# plot the images by row
+	plot_images(data, "predicted_row.png", "row")
 
 	return data[COLUMNS]

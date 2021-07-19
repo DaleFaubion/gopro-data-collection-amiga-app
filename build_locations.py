@@ -10,10 +10,10 @@ from argparse import ArgumentParser
 import numpy as np
 import pandas as pd
 
-from ingest import gencsv, fix, pred, rename
+from ingest import gencsv, fix, pred, rename, rowpred
 
 
-def main(image_dir, file_path, vineyard, block, date, labeled_data, dry_run):
+def main(image_dir, file_path, vineyard, block, date, num_rows, labeled_data):
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
@@ -27,28 +27,20 @@ def main(image_dir, file_path, vineyard, block, date, labeled_data, dry_run):
 		print("Creating the CSV")
 		data = gencsv.create_csv(vineyard, block, date, image_dir)
 
-		#TODO remove
-		data.to_csv("pre_fix.csv")
-
 		print("Fill in the missing GPS data")
 		data = fix.predict(data)
 
-		#TODO remove
-		data.to_csv("post_fix.csv")
-		
-		if not dry_run:
-			
-			print("Predicting the row")
-			data = pred.predict(data, labeled, "row")
+		print("Predicting the row")
+		data = rowpred.predict(data, num_rows)
 
-			print("Predicting the bay")
-			data = pred.predict(data, labeled, "bay")
+		print("Predicting the bay")
+		data = pred.predict(data, labeled, "bay")
 
-			print("Renaming")
-			data = rename.rename(data, date)
+		print("Renaming")
+		data = rename.rename(data, date)
 
-			# write out the CSV file
-			data.to_csv(file_path)
+		# write out the CSV file
+		data.to_csv(file_path)
 		
 	else:
 		print("Chosen path does not contain files")
@@ -61,8 +53,6 @@ def load_labeled_data(label_file):
 	meta-data
 	"""
 	training = pd.read_csv(label_file, index_col=False)
-	#training = training[training["bay"].notna()]
-	#training = training[np.logical_and(training["row"].notna(), training["bay"].notna())]
 	
 	return training
 
@@ -78,8 +68,7 @@ if __name__ == "__main__":
 	ap.add_argument("-f", "--file_path", default="locations.csv", help="The path of the CSV file to create")
 	ap.add_argument("-v", "--vineyard", default="crawford-beck", help="vineyard name")
 	ap.add_argument("-b", "--block", default=9, type=int, help="block number")
-
-	ap.add_argument("-s", "--dry_run", action="store_true", help="Do not save the results")
+	ap.add_argument("-r", "--num_rows", default=21, type=int, help="The number of rows")
 
 	args = ap.parse_args()
 
