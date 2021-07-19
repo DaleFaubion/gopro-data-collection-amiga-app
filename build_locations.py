@@ -7,12 +7,13 @@ meta-data
 import os
 from argparse import ArgumentParser
 
+import numpy as np
 import pandas as pd
 
-from ingest import gencsv, fix, rowpred, baypred, rename
+from ingest import gencsv, fix, pred, rename
 
 
-def main(image_dir, file_path, vineyard, block, date, num_rows, labeled_data, dry_run):
+def main(image_dir, file_path, vineyard, block, date, labeled_data, dry_run):
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
@@ -30,7 +31,7 @@ def main(image_dir, file_path, vineyard, block, date, num_rows, labeled_data, dr
 		data.to_csv("pre_fix.csv")
 
 		print("Fill in the missing GPS data")
-		fix.predict(data)
+		data = fix.predict(data)
 
 		#TODO remove
 		data.to_csv("post_fix.csv")
@@ -38,13 +39,13 @@ def main(image_dir, file_path, vineyard, block, date, num_rows, labeled_data, dr
 		if not dry_run:
 			
 			print("Predicting the row")
-			rowpred.predict(data, num_rows)
+			data = pred.predict(data, labeled, "row")
 
 			print("Predicting the bay")
-			baypred.predict(data, labeled)
+			data = pred.predict(data, labeled, "bay")
 
 			print("Renaming")
-			rename.rename(data, date)
+			data = rename.rename(data, date)
 
 			# write out the CSV file
 			data.to_csv(file_path)
@@ -60,7 +61,8 @@ def load_labeled_data(label_file):
 	meta-data
 	"""
 	training = pd.read_csv(label_file, index_col=False)
-	training = training[training["bay"].notna()]
+	#training = training[training["bay"].notna()]
+	#training = training[np.logical_and(training["row"].notna(), training["bay"].notna())]
 	
 	return training
 
@@ -77,7 +79,6 @@ if __name__ == "__main__":
 	ap.add_argument("-v", "--vineyard", default="crawford-beck", help="vineyard name")
 	ap.add_argument("-b", "--block", default=9, type=int, help="block number")
 
-	ap.add_argument("-r", "--num_rows", default=21, help="number of rows in block")
 	ap.add_argument("-s", "--dry_run", action="store_true", help="Do not save the results")
 
 	args = ap.parse_args()

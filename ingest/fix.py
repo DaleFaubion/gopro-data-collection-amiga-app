@@ -154,6 +154,8 @@ def predict(data):
 	# Create time column for predicting lat and long
 	data["ts"] = data["time"].apply(to_ord)
 	data["ts"] = data["ts"].interpolate()
+
+	# fill in any missing times
 	data["time"] = data["ts"].apply(from_ord)
 
 	print("Padding GPS Metadata")
