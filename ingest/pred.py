@@ -102,7 +102,7 @@ def predict(data, labeled_data, col):
 	data = prep_data(data)
 
 	# predict the rows/bays on the data
-	data[col] = model.predict(make_features(data))
+	data["pred_%s" % col] = model.predict(make_features(data))
 
 	# plot the predicted rows/bays
 	plot_images(data, "predicted_%s.png" % col, col)

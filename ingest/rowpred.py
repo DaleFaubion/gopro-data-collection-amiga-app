@@ -89,8 +89,6 @@ def predict(data, num_rows):
 
 	data = data.sort_values(["camera", "ts"], ignore_index=True)
 
-	print("Predicting Rows")
-
 	for cam in data["camera"].dropna().unique():
 		idx = data["camera"] == cam
 
