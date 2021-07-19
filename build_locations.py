@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 import numpy as np
 import pandas as pd
 
-from ingest import gencsv, fix, pred, rename, rowpred
+from ingest import gencsv, fix, pred, rename, rowpred, angle
 
 
 def main(image_dir, file_path, vineyard, block, date, num_rows, labeled_data):
@@ -36,8 +36,11 @@ def main(image_dir, file_path, vineyard, block, date, num_rows, labeled_data):
 		print("Predicting the bay")
 		data = pred.predict(data, labeled, "bay")
 
+		print("Predict the camera angle")
+		data = angle.predict(data)
+
 		print("Renaming")
-		data = rename.rename(data, date)
+		data = rename.rename(data, date, image_dir)
 
 		# write out the CSV file
 		data.to_csv(file_path)
