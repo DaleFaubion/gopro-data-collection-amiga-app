@@ -5,6 +5,7 @@ meta-data
 """
 
 import os
+from os.path import join
 from argparse import ArgumentParser
 
 import numpy as np
@@ -12,11 +13,13 @@ import pandas as pd
 
 from ingest import gencsv, fix, pred, rename, rowpred, angle
 
+LOC = "locations.csv"
 
-def main(image_dir, file_path, vineyard, block, date, num_rows, labeled_data):
+def main(image_dir, out_dir, vineyard, block, date, num_rows, labeled_data):
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
+    out_file = join(out_dir, LOC)
 	
 	# if the directory contains images, proceed with creating the locations file
 	if len(os.listdir(image_dir)):
@@ -28,13 +31,13 @@ def main(image_dir, file_path, vineyard, block, date, num_rows, labeled_data):
 		data = gencsv.create_csv(vineyard, block, date, image_dir)
 
 		print("Fill in the missing GPS data")
-		data = fix.predict(data)
+		data = fix.predict(data, out_dir)
 
 		print("Predicting the row")
-		data = rowpred.predict(data, num_rows)
+		data = rowpred.predict(data, num_rows, out_dir)
 
 		print("Predicting the bay")
-		data = pred.predict(data, labeled, "bay")
+		data = pred.predict(data, labeled, "bay", out_dir)
 
 		print("Predict the camera angle")
 		data = angle.predict(data)
@@ -43,7 +46,7 @@ def main(image_dir, file_path, vineyard, block, date, num_rows, labeled_data):
 		data = rename.rename(data, date, image_dir)
 
 		# write out the CSV file
-		data.to_csv(file_path)
+		data.to_csv(out_file)
 		
 	else:
 		print("Chosen path does not contain files")
@@ -68,7 +71,7 @@ if __name__ == "__main__":
 	ap.add_argument("-d", "--date", required=True, help="date to ingest (yyyy-mm-dd)")
 	ap.add_argument("-l", "--labeled_data", required=True, help="The locations file labeled row and bay")
 	
-	ap.add_argument("-f", "--file_path", default="locations.csv", help="The path of the CSV file to create")
+	ap.add_argument("-o", "--out_dir", default=".", help="The path to write the output files to")
 	ap.add_argument("-v", "--vineyard", default="crawford-beck", help="vineyard name")
 	ap.add_argument("-b", "--block", default=9, type=int, help="block number")
 	ap.add_argument("-r", "--num_rows", default=21, type=int, help="The number of rows")

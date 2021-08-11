@@ -2,6 +2,8 @@
 A module for predicting the row or bay each image
 """
 
+from os.path import join
+
 import pandas as pd
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
@@ -86,12 +88,12 @@ def train_model(model, training_data, col):
 	return model
 
 
-def predict(data, labeled_data, col):
+def predict(data, labeled_data, col, out_dir):
 	"""
 	Predicts the row/bay numbers from the ingested gps data.
 	"""
 	# plot the labeled data's rows/bays
-	plot_images(labeled_data, "hand_labeled_%s.png" % col, col)
+	plot_images(labeled_data, join(out_dir, "hand_labeled_%s.png" % col), col)
 
 	# prep the labeled data
 	labeled_data = prep_data(labeled_data)
@@ -105,6 +107,6 @@ def predict(data, labeled_data, col):
 	data["pred_%s" % col] = model.predict(make_features(data))
 
 	# plot the predicted rows/bays
-	plot_images(data, "predicted_%s.png" % col, col)
+	plot_images(data, join(out_dir, "predicted_%s.png" % col), col)
 
 	return data[COLUMNS]

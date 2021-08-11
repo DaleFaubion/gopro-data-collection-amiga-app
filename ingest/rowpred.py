@@ -2,6 +2,8 @@
 A module for predicting the row each image
 """
 
+from os.path import join
+
 import numpy as np
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
@@ -78,7 +80,7 @@ def adjust_clusers(data, idx, col):
 
 
 #TODO double check this
-def predict(data, num_rows):
+def predict(data, num_rows, out_dir):
 	"""
 	Predicts the row numbers from the ingested gps data.
 	"""
@@ -122,6 +124,6 @@ def predict(data, num_rows):
 		data.loc[idx, "row"] = adjust_clusers(data, idx, "row")
 
 	# plot the images by row
-	plot_images(data, "predicted_row.png", "row")
+	plot_images(data, join(out_dir, "predicted_row.png"), "row")
 
 	return data[COLUMNS]

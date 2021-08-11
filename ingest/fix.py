@@ -2,7 +2,7 @@
 A module to fix the GPS coordinates and sort image entries
 """
 
-from os.path import dirname
+from os.path import dirname, join
 import pandas as pd
 import numpy as np
 
@@ -135,7 +135,7 @@ def train_model(data, col, model):
 	return model
 
 
-def predict(data):
+def predict(data, out_dir):
 	"""
 	Interpolates corrupted image metadata in the given date's csv file.
 	"""
@@ -164,14 +164,14 @@ def predict(data):
 	corrupt = gps_outliers(data)
 	valid =  np.invert(corrupt)
 
-	plot_images(data, "image_loc.png")
+	plot_images(data, join(out_dir, "image_loc.png"))
 
 	if corrupt.sum() > 0:
 
 		training = data.loc[valid]
 
-		plot_images(data.loc[corrupt], "image_outliers.png")
-		plot_images(training, "normal_images.png")
+		plot_images(data.loc[corrupt], join(out_dir, "image_outliers.png"))
+		plot_images(training, join(out_dir, "normal_images.png"))
 
 		# Fit the latitude predictor model
 		model = train_model(training, "lat", LinearRegression())
@@ -188,7 +188,7 @@ def predict(data):
 		# Sort the dataframe again
 		data = data.sort_values(["camera", "time"], ignore_index=True)
 
-		plot_images(data, "image_loc_fixed.png")
+		plot_images(data, join(out_dir, "image_loc_fixed.png"))
 
 	# Shave off computation columns and save
 	return data[COLUMNS]
