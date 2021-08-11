@@ -19,7 +19,7 @@ def main(image_dir, out_dir, vineyard, block, date, num_rows, labeled_data):
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
-    out_file = join(out_dir, LOC)
+	out_file = join(out_dir, LOC)
 	
 	# if the directory contains images, proceed with creating the locations file
 	if len(os.listdir(image_dir)):

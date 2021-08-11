@@ -5,9 +5,7 @@ A module for predicting the row or bay each image
 from os.path import join
 
 import pandas as pd
-import numpy as np
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt

@@ -6,7 +6,6 @@ from os.path import join
 
 import numpy as np
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
 
 from ingest.common import to_ord, COLUMNS
 from ingest.pred import plot_images
