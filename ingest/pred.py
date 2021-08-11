@@ -101,10 +101,12 @@ def predict(data, labeled_data, col, out_dir):
 
 	data = prep_data(data)
 
+	predicted_col = "pred_%s" % col
+
 	# predict the rows/bays on the data
-	data["pred_%s" % col] = model.predict(make_features(data))
+	data[predicted_col] = model.predict(make_features(data))
 
 	# plot the predicted rows/bays
-	plot_images(data, join(out_dir, "predicted_%s.png" % col), col)
+	plot_images(data, join(out_dir, "predicted_%s.png" % col), predicted_col)
 
 	return data[COLUMNS]
