@@ -24,7 +24,8 @@ def main(location_file, harvest_file, db_conf, image_dir, vineyard, block, date)
 	harvest = pd.read_csv(harvest_file)
 
 	# Connect to the database
-	db_conn = d.Database(d.connect(db_conf))
+	db_conn = d.Database()
+	db_conn.connect(db_conf)
 
 	# Ensure the schema is up to date
 	# db.create_schema(Schema)
