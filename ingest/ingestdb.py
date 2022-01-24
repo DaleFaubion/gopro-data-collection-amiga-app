@@ -3,6 +3,10 @@ A module for providing a class to ingest images and meta-data
 into the database
 """
 
+from PIL import Image
+from io import BytesIO
+import torchvision.transforms as T
+
 import numpy as np
 import pandas as pd
 import itertools as it
@@ -100,12 +104,40 @@ class Ingester:
 		return data
 
 
-	def add_image_bytes(self, data, image_path, batch_size=64):
+	def add_image_bytes(self, data, image_path, batch_size=64, resize_dims=(300,400)):
 		"""
 		Add image byte data to the database
 		"""
 
+		def resize_loader(image_path: str, dims):
+			# Input: path to a file
+			# Output: raw JPEG bytes, but they will be shrunk.
+
+			out = BytesIO()
+
+			# Read in file
+			img = Image.open(image_path)
+
+			# Resize
+			transformer = T.Compose([
+				T.Resize(dims)
+			])
+
+			shrunk_img = transformer(img)
+
+			# Write to memory as "JPEG file"
+			shrunk_img.save(out, format="jpeg")
+
+			# Reset internal "file pointer" to beginning for
+			# a subsequent read
+			out.seek(0)
+
+			# Return bytes
+			return out.read()
+
 		def loader(image_path):
+			# Input: path to file
+			# Output: the raw JPEG bytes of the file
 			with open(image_path, "rb") as f:
 				return f.read()
 
@@ -124,11 +156,12 @@ class Ingester:
 				file_names = chunk["name"].apply(lambda name: join(image_path, name))
 
 			# Load the files in the chunk
-			chunk["binary"] = [loader(f_name) for f_name in file_names]
+			chunk["binary"] = [resize_loader(f_name, resize_dims) for f_name in file_names]
 			entries = list(chunk[["image_id", "binary"]].to_records(index=False))
 
 			# Store the binaries
-			self.db.add_image_encodings("jpg", entries)
+			# TODO parameterize resized JPG string
+			self.db.add_image_encodings("jpg_resized", entries)
 
 		return data
 
