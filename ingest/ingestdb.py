@@ -132,6 +132,10 @@ class Ingester:
 			# a subsequent read
 			out.seek(0)
 
+			# Close old ptrs
+			img.close()
+			shrunk_img.close()
+
 			# Return bytes
 			return out.read()
 
@@ -146,7 +150,7 @@ class Ingester:
 		# Stride through the dataframe
 		for chunk_size, chunk in data.groupby(np.arange(len(data)) // batch_size):
 
-			print("chunk %d of %d" % (chunk_size, len(data) // batch_size), end="\r")
+			print("- Chunk %d of %d" % (chunk_size, len(data) // batch_size), end="\r")
 
 			# Get the file names
 			if "raw_dir" in chunk.columns:
