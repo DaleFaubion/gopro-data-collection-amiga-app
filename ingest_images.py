@@ -61,10 +61,16 @@ if __name__ == "__main__":
 	ap.add_argument("-d", "--date", required=True, help="date to ingest (yyyy-mm-dd)")
 	ap.add_argument("-i", "--image_dir", help="directory of unprocessed images")
 	ap.add_argument("-db", "--db_conf", default="db.conf", help="Database config files")
-	ap.add_argument("-resize", "--resize", nargs=2, default=[300,400], type=int, help="The dimensions of the resized image that will be loaded into the database")
+	ap.add_argument("-resize", "--resize", nargs=2, default=[], required=False, type=int, help="The W,H dimensions of the resized image that will be loaded into the database")
 
 	args = ap.parse_args()
 
 	# Convert to tuple
-	args.resize = tuple(args.resize)
+	if len(args.resize) != 2:
+		args.resize = None
+		print("Using default resolution of images for ingest")
+	else:
+		args.resize = tuple(args.resize)
+		print(f"Dimensions to resize images: {args.resize[0]}x{args.resize[1]}")
+
 	main(**vars(args))

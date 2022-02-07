@@ -104,10 +104,16 @@ class Ingester:
 		return data
 
 
-	def add_image_bytes(self, data, image_path, batch_size=64, resize_dims=(300,400)):
+	def add_image_bytes(self, data, image_path, resize_dims=None, batch_size=64):
 		"""
 		Add image byte data to the database
 		"""
+
+		encoding_name = "jpg"
+
+		# Set the encoding type to resized if there are resize dimensions
+		if resize_dims is not None:
+			encoding_name = "jpg_resized"
 
 		def resize_loader(image_path: str, dims):
 			# Input: path to a file
@@ -118,9 +124,12 @@ class Ingester:
 			# Read in file
 			img = Image.open(image_path)
 
-			# Resize
+			# Create the transformer closure
+			# Note, we take in WxH, the more typical human-readable format
+			# here we need to give the dimensions as HxW for PyTorch. Invert
+			# the tuple
 			transformer = T.Compose([
-				T.Resize(dims)
+				T.Resize(dims[::-1])
 			])
 
 			shrunk_img = transformer(img)
@@ -155,17 +164,19 @@ class Ingester:
 			# Get the file names
 			if "raw_dir" in chunk.columns:
 				file_names = chunk["raw_dir"]
-
 			else:
 				file_names = chunk["name"].apply(lambda name: join(image_path, name))
 
-			# Load the files in the chunk
-			chunk["binary"] = [resize_loader(f_name, resize_dims) for f_name in file_names]
+			if resize_dims is not None:
+				# Load the files in the chunk
+				chunk["binary"] = [resize_loader(f_name, resize_dims) for f_name in file_names]
+			else:
+				chunk["binary"] = [loader(f_name) for f_name in file_names]
+
 			entries = list(chunk[["image_id", "binary"]].to_records(index=False))
 
 			# Store the binaries
-			# TODO parameterize resized JPG string
-			self.db.add_image_encodings("jpg_resized", entries)
+			self.db.add_image_encodings(encoding_name, entries)
 
 		return data
 
