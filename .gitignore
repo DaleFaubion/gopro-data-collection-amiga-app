@@ -8,6 +8,6 @@ testdata
 *.txt
 *.csv
 *.csv#
-*.sh
 *.conf
 *.png
+./*.sh

@@ -4,11 +4,24 @@ There are two primary ingest steps, the first generates a set of csvs from image
 
 The current schema can be found [here](https://gitlab.com/georgefox/engr/senior-design/vinetech-data-processing/database/-/blob/master/schema.sql).
 
+## Get Started
+To ingest all data into the database, make sure it is empty before running the script.
+As of now, the scripts do not check to see if images have previously been ingested,
+so there will be conflicts down the line if one tries to train with these duplicates
+in the database. So make sure to clear all rows from the tables before running
+the following:
+```bash
+conda activate vinetech # Need vinetech environment setup
+
+git clone https://gitlab.com/georgefox/engr/senior-design/vinetech-data-processing/ingest.git
+cd ingest/scripts
+./main.sh # Runs the main script that builds locations and ingests each date in the FS
+```
 
 ## Initial Ingest (JPG -> CSV)
 
 To generate a `csv` from a date of `jpg` files, run
-```cmd
+```bash
 python3 build_locations.py -i IMAGE_DIR -d DATE -l LABELED_DATA
 ```
 
@@ -19,7 +32,7 @@ The date with hand-labeled data with row/bay labels is '2019-06-12'.
 ## Database Ingest (CSV -> DB)
 
 To ingest a date of images from a `csv` into the database, run
-```cmd
+```bash
 python ingest_images.py -d DATE [-i IMAGE_DIR] [-db DB_CONF] harvest_file location_file
 ```
 
