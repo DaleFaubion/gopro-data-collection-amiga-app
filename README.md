@@ -4,6 +4,19 @@ There are two primary ingest steps, the first generates a set of csvs from image
 
 The current schema can be found [here](https://gitlab.com/georgefox/engr/senior-design/vinetech-data-processing/database/-/blob/master/schema.sql).
 
+## Get Started
+To ingest all data into the database, make sure it is empty before running the script.
+As of now, the scripts do not check to see if images have previously been ingested,
+so there will be conflicts down the line if one tries to train with these duplicates
+in the database. So make sure to clear all rows from the tables before running
+the following:
+```cmd
+git clone https://gitlab.com/georgefox/engr/senior-design/vinetech-data-processing/ingest.git
+cd ingest
+conda activate vinetech # Need vinetech environment setup
+cd scripts
+./main.sh # Runs the main script that builds locations and ingests each date in the FS
+```
 
 ## Initial Ingest (JPG -> CSV)
 
