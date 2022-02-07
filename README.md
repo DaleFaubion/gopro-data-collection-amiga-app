@@ -11,10 +11,10 @@ so there will be conflicts down the line if one tries to train with these duplic
 in the database. So make sure to clear all rows from the tables before running
 the following:
 ```cmd
-git clone https://gitlab.com/georgefox/engr/senior-design/vinetech-data-processing/ingest.git
-cd ingest
 conda activate vinetech # Need vinetech environment setup
-cd scripts
+
+git clone https://gitlab.com/georgefox/engr/senior-design/vinetech-data-processing/ingest.git
+cd ingest/scripts
 ./main.sh # Runs the main script that builds locations and ingests each date in the FS
 ```
 
