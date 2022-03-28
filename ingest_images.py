@@ -7,6 +7,7 @@ Uses the 'locations.csv' file to determine what to ingest
 from argparse import ArgumentParser
 
 import pandas as pd
+from PIL import Image
 
 import database as d
 #from database import Schema
@@ -17,8 +18,24 @@ def main(location_file, harvest_file, db_conf, image_dir, vineyard, block, date,
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
+	broken_imgs = []
+
 	# load the image location data
 	images = pd.read_csv(location_file)
+
+	# check that image file is valid
+	# if it's corrupt, throw it out of the DataFrame
+	for i, row in images.iterrows():
+		try:
+			img = Image.open(row['raw_dir'])
+			img.close()
+		except Exception as e:
+			print(f"Could not open {row['raw_dir']}: {e}")
+			broken_imgs.append(i)
+
+	if len(broken_imgs) > 0:
+		images = images.drop(images.index[broken_imgs])
+		print(f"Dropped {len(broken_imgs)} image(s)")
 
 	# load the harvest data
 	harvest = pd.read_csv(harvest_file)
