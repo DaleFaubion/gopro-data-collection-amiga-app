@@ -7,16 +7,16 @@ Uses the 'locations.csv' file to determine what to ingest
 from argparse import ArgumentParser
 
 import pandas as pd
+from PIL import Image
 
 import database as d
-#from database import Schema
 from ingest.ingestdb import Ingester
-
 
 def main(location_file, harvest_file, db_conf, image_dir, vineyard, block, date, resize):
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
+
 	# load the image location data
 	images = pd.read_csv(location_file)
 
