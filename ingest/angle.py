@@ -13,9 +13,9 @@ Existing naming schemes:
 	2021: Subfolder structure - Top, Middle, Bottom (same mapping as 2020)
 """
 ANGLES = {
-	"0": ["0", "1", "top"],
-	"1": ["1", "2", "middle"],
-	"2": ["2", "3", "bottom"],
+	"0": ["1", "top"],
+	"1": ["2", "middle"],
+	"2": ["3", "bottom"],
 }
 
 
