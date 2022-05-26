@@ -7,16 +7,16 @@ Uses the 'locations.csv' file to determine what to ingest
 from argparse import ArgumentParser
 
 import pandas as pd
+from PIL import Image
 
 import database as d
-#from database import Schema
 from ingest.ingestdb import Ingester
 
-
-def main(location_file, harvest_file, db_conf, image_dir, vineyard, block, date):
+def main(location_file, harvest_file, db_conf, image_dir, vineyard, block, date, resize):
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
+
 	# load the image location data
 	images = pd.read_csv(location_file)
 
@@ -44,7 +44,7 @@ def main(location_file, harvest_file, db_conf, image_dir, vineyard, block, date)
 	db_loader.add_images_to_bays(images, vineyard, block)
 
 	# add image binaries
-	db_loader.add_image_bytes(images, image_dir)
+	db_loader.add_image_bytes(images, image_dir, resize_dims=resize)
 
 	# add harvest (yield weight) data
 	db_loader.add_harvest_data(harvest, vineyard, block, date)
@@ -61,7 +61,16 @@ if __name__ == "__main__":
 	ap.add_argument("-d", "--date", required=True, help="date to ingest (yyyy-mm-dd)")
 	ap.add_argument("-i", "--image_dir", help="directory of unprocessed images")
 	ap.add_argument("-db", "--db_conf", default="db.conf", help="Database config files")
+	ap.add_argument("-resize", "--resize", nargs=2, default=[], required=False, type=int, help="The W,H dimensions of the resized image that will be loaded into the database")
 
 	args = ap.parse_args()
+
+	# Convert to tuple
+	if len(args.resize) != 2:
+		args.resize = None
+		print("Using default resolution of images for ingest")
+	else:
+		args.resize = tuple(args.resize)
+		print(f"Dimensions to resize images: {args.resize[0]}x{args.resize[1]}")
 
 	main(**vars(args))

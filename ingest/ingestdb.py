@@ -3,6 +3,10 @@ A module for providing a class to ingest images and meta-data
 into the database
 """
 
+from PIL import Image
+from io import BytesIO
+import torchvision.transforms as T
+
 import numpy as np
 import pandas as pd
 import itertools as it
@@ -100,12 +104,53 @@ class Ingester:
 		return data
 
 
-	def add_image_bytes(self, data, image_path, batch_size=64):
+	def add_image_bytes(self, data, image_path, resize_dims=None, batch_size=64):
 		"""
 		Add image byte data to the database
 		"""
 
+		encoding_name = "jpg"
+
+		# Set the encoding type to resized if there are resize dimensions
+		if resize_dims is not None:
+			encoding_name = "jpg_resized"
+
+		def resize_loader(image_path: str, dims):
+			# Input: path to a file
+			# Output: raw JPEG bytes, but they will be shrunk.
+
+			out = BytesIO()
+
+			# Read in file
+			img = Image.open(image_path)
+
+			# Create the transformer closure
+			# Note, we take in WxH, the more typical human-readable format
+			# here we need to give the dimensions as HxW for PyTorch. Invert
+			# the tuple
+			transformer = T.Compose([
+				T.Resize(dims[::-1])
+			])
+
+			shrunk_img = transformer(img)
+
+			# Write to memory as "JPEG file"
+			shrunk_img.save(out, format="jpeg")
+
+			# Reset internal "file pointer" to beginning for
+			# a subsequent read
+			out.seek(0)
+
+			# Close old ptrs
+			img.close()
+			shrunk_img.close()
+
+			# Return bytes
+			return out.read()
+
 		def loader(image_path):
+			# Input: path to file
+			# Output: the raw JPEG bytes of the file
 			with open(image_path, "rb") as f:
 				return f.read()
 
@@ -114,21 +159,24 @@ class Ingester:
 		# Stride through the dataframe
 		for chunk_size, chunk in data.groupby(np.arange(len(data)) // batch_size):
 
-			print("chunk %d of %d" % (chunk_size, len(data) // batch_size), end="\r")
+			print("- Chunk %d of %d" % (chunk_size, len(data) // batch_size), end="\r")
 
 			# Get the file names
 			if "raw_dir" in chunk.columns:
 				file_names = chunk["raw_dir"]
-
 			else:
 				file_names = chunk["name"].apply(lambda name: join(image_path, name))
 
-			# Load the files in the chunk
-			chunk["binary"] = [loader(f_name) for f_name in file_names]
+			if resize_dims is not None:
+				# Load the files in the chunk
+				chunk["binary"] = [resize_loader(f_name, resize_dims) for f_name in file_names]
+			else:
+				chunk["binary"] = [loader(f_name) for f_name in file_names]
+
 			entries = list(chunk[["image_id", "binary"]].to_records(index=False))
 
 			# Store the binaries
-			self.db.add_image_encodings("jpg", entries)
+			self.db.add_image_encodings(encoding_name, entries)
 
 		return data
 
