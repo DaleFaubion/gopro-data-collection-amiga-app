@@ -60,21 +60,30 @@ def mark_duplicates(options:Options, date:str):
 			# make the images into PIL objects
 			images = {k: Image.open(b) for k,b in images.items()}
 
+			# make a set of images to remove
+			dups = set()
+
 			# check all pairwise combinations
 			for i,left in enumerate(images):
 				for j,right in enumerate(images):
 
 					# if the pair is a duplicate, mark one of them as a duplciate
-					if i < j:
+					# if the left image is marked as a duplicate that means
+					# it was previously a "right" duplicate image
+					if i < j and left not in dups:
 						
 						diff = count_differences(images[left], images[right])
 
 						if diff < options.threshold:
-						
 							print("Duplicate: %d -> %s, %s" % (diff, left, right))
-
-							if not options.dry_run:
-								mark_duplicate(db_conn, left, right)
+							dups.add(right)
+			
+			if not options.dry_run:
+				
+				# remove all the duplicates
+				for image in dups:
+					print("Removing %s" % image)
+					remove_duplicate(db_conn, image)
 
 
 def count_differences(left:Image, right:Image) -> int:
@@ -87,12 +96,14 @@ def count_differences(left:Image, right:Image) -> int:
 	return dhash.get_num_bits_different(l_row, r_row) + dhash.get_num_bits_different(l_col, r_col)
 
 
-def mark_duplicate(db_conn, left_id:str, right_id:str):
+def remove_duplicate(db_conn, image_id:str):
 	"""
 	Marks the image as a duplicate
 	"""
-	#TODO this needs to be changed to reflect the new schema
-	pass
+	sql = "delete from image where image_id = %s"
+
+	db_conn.execute(sql, image_id)
+
 
 if __name__ == "__main__":
 	main()
