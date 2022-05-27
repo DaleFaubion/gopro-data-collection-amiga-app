@@ -73,7 +73,8 @@ def mark_duplicates(options:Options, date:str):
 						
 							print("Duplicate: %d -> %s, %s" % (diff, left, right))
 
-							mark_duplicate(db_conn, left, right)
+							if not options.dry_run:
+								mark_duplicate(db_conn, left, right)
 
 
 def count_differences(left:Image, right:Image) -> int:
@@ -90,10 +91,8 @@ def mark_duplicate(db_conn, left_id:str, right_id:str):
 	"""
 	Marks the image as a duplicate
 	"""
-	sql = "update image set duplicate = %s where image_id = %s"
-	
-	db_conn.execute(sql, left_id, right_id)
-
+	#TODO this needs to be changed to reflect the new schema
+	pass
 
 if __name__ == "__main__":
 	main()
