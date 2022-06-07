@@ -1,6 +1,7 @@
 __pycache__
 .DS_Store
 *.JPG
+.idea
 
 **/.pytest_cache
 testdata
