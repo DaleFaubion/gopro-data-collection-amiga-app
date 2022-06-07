@@ -15,7 +15,7 @@ def main():
 
 	parser.add_argument("dates", nargs="*", help="The dates to apply deduplication to")
 	parser.add_argument("-dry", action="store_true", help="Try the deduplication but do not save the results to the db")
-	parser.add_argument("-t", type=int, default=10, 
+	parser.add_argument("-t", type=int, default=5, 
 		help="The upper threshold of the number of edits that is considered to mean two images are the same")
 	parser.add_argument("-db", default="db_config.ini", help="Database connection configuration file")
 	parser.add_argument("-vineyard", default="crawford-beck")
@@ -74,7 +74,7 @@ def mark_duplicates(options:Options, date:str):
 						
 						diff = count_differences(images[left], images[right])
 
-						if diff < options.threshold:
+						if diff <= options.threshold:
 							print("Row %d, Bay %d, Duplicate: %d -> %s, %s" % (row, bay, diff, left, right))
 							dups.add(right)
 			
