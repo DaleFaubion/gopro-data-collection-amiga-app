@@ -75,7 +75,7 @@ def mark_duplicates(options:Options, date:str):
 						diff = count_differences(images[left], images[right])
 
 						if diff < options.threshold:
-							print("Duplicate: %d -> %s, %s" % (diff, left, right))
+							print("Row %d, Bay %d, Duplicate: %d -> %s, %s" % (row, bay, diff, left, right))
 							dups.add(right)
 			
 			if not options.dry_run:
