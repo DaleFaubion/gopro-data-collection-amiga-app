@@ -7,8 +7,7 @@ from os.path import join
 import math
 import numpy as np
 import pandas as pd
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifer
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
@@ -127,7 +126,7 @@ def predict(data, labeled_data, col, out_dir, exp_pic_per_row, max_row):
 	labeled_data = prep_data(labeled_data)
 
 	# train the model on the labeled data
-	model = train_model(RandomForestClassifer(), labeled_data, col, exp_pic_per_row, max_row)
+	model = train_model(RandomForestClassifier(), labeled_data, col, exp_pic_per_row, max_row)
 
 	data = prep_data(data)
 
