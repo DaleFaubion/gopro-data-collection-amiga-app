@@ -25,7 +25,7 @@ def plot_images(data, filename, col):
 
 		current = data[col] == row
 
-		plt.scatter(data.loc[current, "lat"], data.loc[current, "lon"], label="%s %d" % (col, current), s=2)
+		plt.scatter(data.loc[current, "lat"], data.loc[current, "lon"], label="%s %d" % (col, row), s=2)
 	
 	plt.title("%s of Images" % col.title())
 	plt.legend()
