@@ -127,12 +127,18 @@ def predict(data, labeled_data, col, out_dir, exp_pic_per_row, max_row):
 	# prep the labeled data
 	labeled_data = prep_data(labeled_data)
 
+	predicted_col = "pred_%s" % col
+
 	# train the model on the labeled data
 	model = train_model(RandomForestClassifier(), labeled_data, col, exp_pic_per_row, max_row)
 
-	data = prep_data(data)
+	# predict the rows/bays on the training data
+	labeled_data[predicted_col] = model.predict(make_features(labeled_data, exp_pic_per_row, max_row))
 
-	predicted_col = "pred_%s" % col
+	# plot the predicted rows/bays
+	plot_images(labeled_data, join(out_dir, "training_data_predicted_%s.png" % col), predicted_col)
+
+	data = prep_data(data)
 
 	# predict the rows/bays on the data
 	data[predicted_col] = model.predict(make_features(data, exp_pic_per_row, max_row))
