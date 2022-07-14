@@ -20,9 +20,16 @@ def main(image_dir, out_dir, vineyard, block, date, num_rows, labeled_data, expe
 	Ingests the images indicated by the passed args object.
 	"""
 	out_file = join(out_dir, LOC)
+
+	num_files = len(os.listdir(image_dir))
 	
 	# if the directory contains images, proceed with creating the locations file
-	if len(os.listdir(image_dir)):
+	if num_files:
+
+		# if not expected number of pictures was given, use the number of
+		# files divided by the number
+		if not expected_pics:
+			expected_pics = num_files / (num_rows * num_rows)
 
 		# load the labled data
 		labeled = load_labeled_data(labeled_data)
@@ -74,7 +81,7 @@ if __name__ == "__main__":
 	ap.add_argument("-v", "--vineyard", default="crawford-beck", help="vineyard name")
 	ap.add_argument("-b", "--block", default=9, type=int, help="block number")
 	ap.add_argument("-r", "--num_rows", default=21, type=int, help="The number of rows")
-	ap.add_argument("-e", "--expected_pics", default=105, type=int, help="The expected number of pictures per row")
+	ap.add_argument("-e", "--expected_pics", default=0, type=int, help="The expected number of pictures per row")
 
 	args = ap.parse_args()
 
