@@ -112,6 +112,8 @@ def train_model(model, training_data, col, exp_pic_per_row, max_row):
 	for group, f1 in enumerate(scores):
 		print("%s %d, F1 %.4f" % (col.title(), group, f1))
 
+	print("Overall F1 %.4f" % f1_score(y_test, y_pred, average="micro"))
+
 	return model
 
 
