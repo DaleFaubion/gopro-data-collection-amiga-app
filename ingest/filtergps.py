@@ -32,4 +32,4 @@ def filter_by_col(data, column):
 	upper = avg + (OUTLIER_DEV * std)
 	lower = avg - (OUTLIER_DEV * std)
 
-	return data[ data[column] > lower & data[column] < upper ]
+	return data[ (data[column] > lower) & (data[column] < upper) ]
