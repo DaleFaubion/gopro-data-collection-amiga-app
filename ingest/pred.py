@@ -94,7 +94,10 @@ def train_model(model, training_data, col, exp_pic_per_row, max_row):
 
 	features = make_features(training_data, exp_pic_per_row, max_row)
 	labels = training_data[col]
-	
+
+	#print the unique labels
+	print("Unique labels ", labels.unique())
+
 	# split the data into training/testing
 	x_train, x_test, y_train, y_test = \
 		train_test_split(features, labels, test_size=0.2, stratify=labels)
