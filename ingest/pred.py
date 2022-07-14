@@ -113,7 +113,7 @@ def train_model(model, training_data, col, exp_pic_per_row, max_row):
 
 	# print all the scores
 	for group, f1 in enumerate(scores):
-		print("%s %d, F1 %.4f" % (col.title(), group, f1))
+		print("%s %d, F1 %.4f" % (col.title(), group + 1, f1))
 
 	print("Overall F1 %.4f" % f1_score(y_test, y_pred, average="micro"))
 
@@ -133,7 +133,7 @@ def predict(data, labeled_data, col, out_dir, exp_pic_per_row, max_row):
 	predicted_col = "pred_%s" % col
 
 	# train the model on the labeled data
-	model = train_model(RandomForestClassifier(), labeled_data, col, exp_pic_per_row, max_row)
+	model = train_model(RandomForestClassifier(n_estimators=300), labeled_data, col, exp_pic_per_row, max_row)
 
 	# predict the rows/bays on the training data
 	labeled_data[predicted_col] = model.predict(make_features(labeled_data, exp_pic_per_row, max_row))
