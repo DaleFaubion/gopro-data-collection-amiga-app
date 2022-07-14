@@ -25,9 +25,10 @@ def plot_images(data, filename, col):
 
 		current = data[col] == row
 
-		plt.scatter(data.loc[current, "lat"], data.loc[current, "lon"], s=2)
+		plt.scatter(data.loc[current, "lat"], data.loc[current, "lon"], label="%s %d" % (col, current), s=2)
 	
 	plt.title("%s of Images" % col.title())
+	plt.legend()
 	plt.savefig(filename)
 	plt.close()
 
@@ -40,13 +41,22 @@ def prep_data(data):
 	data["ts"] = data["time"].apply(to_ord)
 	data["ts"] = data["ts"].interpolate()
 
-	# start the time at zero
-	data["ts_norm"] = data["ts"] - data["ts"].min()
+	# make a map from time stamp to position
+	time = enumerate(sorted(data["ts"].to_numpy()))
+
+	# make the sequence position map
+	time_map = {t:i for i,t in time}
+
+	# start the time at zero, count up one at a time
+	data["ts_norm"] = data["ts"].apply(lambda t: time_map[t])
+
+	#do a reverse time series
+	data["ts_rev"] = data["ts_norm"].max() - data["ts_norm"]
 
 	return data
 
 
-def make_features(data):
+def make_features(data, exp_pic_per_row, max_bay):
 	"""
 	Returns the features for predicting the row/bay, assumes prep_data
 	has been run first
@@ -54,23 +64,38 @@ def make_features(data):
 	features = pd.DataFrame()
 
 	features["ts_norm"] = data["ts_norm"]
+	features["ts_cos"] = trans_time(data["ts_norm"], exp_pic_per_row, max_bay)
+	features["ts_cos_rev"] = trans_time(data["ts_rev"], exp_pic_per_row, max_bay)
 	features["lat"] = normalize(data["lat"] - data["lat"].min())
 	features["lon"] = normalize(data["lon"] - data["lat"].min())
 
 	return features
 
 
-def train_model(model, training_data, col):
+def trans_time(time_ord, period, max_value):	
+	"""
+	Transforms the series (ints starting at 0 and up) into a cosine
+	wave based on a specified period
+
+	the period should be the expected number of pictures per row
+	the max value is the largest bay index e.g. 0 to 20, 20 is the max
+	"""
+	# set period to one
+	time_ord = (time_ord * math.pi * 2) 
+	return ((np.cos((time_ord / (period * 2))) + 1) / 2) * max_value
+
+
+def train_model(model, training_data, col, exp_pic_per_row, max_row):
 	"""
 	Trains a model to predict the rows/bays
 	"""
 
-	features = make_features(training_data)
+	features = make_features(training_data, exp_pic_per_row, max_row)
 	labels = training_data[col]
 	
 	# split the data into training/testing
-	x_train, x_test, y_train, y_test = train_test_split(features, labels, \
-		test_size=0.2, stratify=labels)
+	x_train, x_test, y_train, y_test = \
+		train_test_split(features, labels, test_size=0.2, stratify=labels)
 
 	# fit the model to the data
 	model.fit(x_train, y_train)
@@ -78,10 +103,12 @@ def train_model(model, training_data, col):
 	# evaluate the model on the test data
 	y_pred = model.predict(x_test)
 
-	score = f1_score(y_test, y_pred, average="micro")
+	# measure the f1 score for each group
+	scores = f1_score(y_test, y_pred, average=None)
 
-	# print the results
-	print("%s F1 Score %f" % (col.title(), score))
+	# print all the scores
+	for group, f1 in enumerate(scores):
+		print("%s %d, F1 %.4f" % (col.title(), group, f1))
 
 	return model
 

@@ -15,7 +15,7 @@ from ingest import gencsv, fix, pred, rename, rowpred, angle
 
 LOC = "locations.csv"
 
-def main(image_dir, out_dir, vineyard, block, date, num_rows, labeled_data):
+def main(image_dir, out_dir, vineyard, block, date, num_rows, labeled_data, expected_pics):
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
@@ -37,7 +37,7 @@ def main(image_dir, out_dir, vineyard, block, date, num_rows, labeled_data):
 		data = rowpred.predict(data, num_rows, out_dir)
 
 		print("Predicting the bay")
-		data = pred.predict(data, labeled, "bay", out_dir)
+		data = pred.predict(data, labeled, "bay", out_dir, expected_pics, num_rows-1)
 
 		print("Predict the camera angle")
 		data = angle.predict(data)
@@ -49,8 +49,7 @@ def main(image_dir, out_dir, vineyard, block, date, num_rows, labeled_data):
 		data.to_csv(out_file)
 		
 	else:
-		print("Chosen path does not contain files")
-		print("Make sure to run setup.sh from the root repo")
+		print("Chosen image directory does not contain files")
 
 
 def load_labeled_data(label_file):
@@ -75,6 +74,7 @@ if __name__ == "__main__":
 	ap.add_argument("-v", "--vineyard", default="crawford-beck", help="vineyard name")
 	ap.add_argument("-b", "--block", default=9, type=int, help="block number")
 	ap.add_argument("-r", "--num_rows", default=21, type=int, help="The number of rows")
+	ap.add_argument("-e", "--expected_pics", default=105, type=int, help="The expected number of pictures per row")
 
 	args = ap.parse_args()
 
