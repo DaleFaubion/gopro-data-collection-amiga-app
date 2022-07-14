@@ -8,10 +8,9 @@ import os
 from os.path import join
 from argparse import ArgumentParser
 
-import numpy as np
 import pandas as pd
 
-from ingest import gencsv, fix, pred, rename, rowpred, angle
+from ingest import gencsv, fix, pred, rename, rowpred, angle, filtergps
 
 LOC = "locations.csv"
 
@@ -36,6 +35,9 @@ def main(image_dir, out_dir, vineyard, block, date, num_rows, labeled_data, expe
 
 		print("Creating the CSV")
 		data = gencsv.create_csv(vineyard, block, date, image_dir)
+
+		print("Filtering extreme GPS values")
+		data = filtergps.filter_gps_outliers(data)
 
 		print("Fill in the missing GPS data")
 		data = fix.predict(data, out_dir)
