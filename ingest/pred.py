@@ -4,6 +4,8 @@ A module for predicting the row or bay each image
 
 from os.path import join
 
+import math
+import numpy as np
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import f1_score
@@ -113,7 +115,7 @@ def train_model(model, training_data, col, exp_pic_per_row, max_row):
 	return model
 
 
-def predict(data, labeled_data, col, out_dir):
+def predict(data, labeled_data, col, out_dir, exp_pic_per_row, max_row):
 	"""
 	Predicts the row/bay numbers from the ingested gps data.
 	"""
@@ -124,14 +126,14 @@ def predict(data, labeled_data, col, out_dir):
 	labeled_data = prep_data(labeled_data)
 
 	# train the model on the labeled data
-	model = train_model(DecisionTreeClassifier(max_depth=7), labeled_data, col)
+	model = train_model(DecisionTreeClassifier(max_depth=7), labeled_data, col, exp_pic_per_row, max_row)
 
 	data = prep_data(data)
 
 	predicted_col = "pred_%s" % col
 
 	# predict the rows/bays on the data
-	data[predicted_col] = model.predict(make_features(data))
+	data[predicted_col] = model.predict(make_features(data, exp_pic_per_row, max_row))
 
 	# plot the predicted rows/bays
 	plot_images(data, join(out_dir, "predicted_%s.png" % col), predicted_col)
