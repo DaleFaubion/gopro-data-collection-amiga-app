@@ -93,15 +93,16 @@ def parse_time(info):
 	"""
 	parse_time parses the timestamp from gps metadata.
 	"""
-
+	result = None
 	time = get_exif(info, "DateTimeDigitized")
 
 	try:
-		return time.split(" ")[1]
+		result = time.split(" ")[1]
 
-	#TODO fix
 	except:
-		return None
+		pass
+
+	return result
 
 
 def create_csv(vineyard, block, date, image_dir):
