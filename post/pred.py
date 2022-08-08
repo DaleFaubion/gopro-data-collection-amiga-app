@@ -50,7 +50,7 @@ def main(model_path, image_dir, out_path):
 						model.eval()
 
 						# predict if the image has a post
-						pred = model(img_tensor.cuda()).cpu().data.numpy().argmax()[0]
+						pred = model(img_tensor.cuda()).cpu().data.numpy().argmax()
 
 						# write the prediction to file
 						csv_file.writerow([path, str(pred)])
