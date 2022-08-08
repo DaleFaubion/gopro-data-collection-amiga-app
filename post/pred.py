@@ -24,7 +24,7 @@ def main(model_path, image_dir, out_path):
 	model = t.load(model_path)
 
 	# open the csv file
-	with open(out_path) as csv_path:
+	with open(out_path, "w") as csv_path:
 
 		csv_file = writer(csv_path)
 
