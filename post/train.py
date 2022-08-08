@@ -8,7 +8,7 @@ from PIL import Image
 import torch as t
 import numpy as np
 
-from postmodel import Model
+from postmodel import Mk2
 from quant import make_predictions, overall_f1, class_f1_scores, NAMES
 
 Options = namedtuple("Options", ["hidden", "epochs", "min_epochs", 
@@ -36,7 +36,7 @@ def main(anno_file_path, options):
 	print("Dev", dev.counts(), sep="\n")
 	print("Testing", test.counts(), sep="\n")
 
-	model = Model(options.hidden)
+	model = Mk2(options.hidden)
 
 	print("Training Model")
 	print("Number of parameters", model.num_parameters())
