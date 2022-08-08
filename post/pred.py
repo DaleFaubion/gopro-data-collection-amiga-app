@@ -9,7 +9,7 @@ from os import walk
 from csv import writer
 
 from PIL import Image
-import tensor as t
+import torch as t
 import numpy as np
 
 def main(model_path, image_dir, out_path):
