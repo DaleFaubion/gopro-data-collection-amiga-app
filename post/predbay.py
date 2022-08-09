@@ -66,10 +66,6 @@ def predict_row_bay(post_map, image_info):
 		if i > 0:
 			prev = image_info[i -1]	
 
-			#TODO remove
-			print("filename", image.filename)
-			print("trimmed", trim_path(image.filename))
-
 			if post_map[trim_path(prev.filename)] and not post_map[trim_path(image.filename)]:
 				row, bay = next(pred)
 
@@ -94,10 +90,6 @@ def read_post_info(post_csv):
 		for row in reader(posts):
 
 			filename, raw_post = row
-
-			#TODO remove
-			print("adding", trim_path(filename))
-
 			results[trim_path(filename)] = bool(int(raw_post))
 	
 	return results
@@ -125,9 +117,6 @@ def find_images(image_dir):
 	
 	# find all the files in the directory and sub-directories
 	for root, _, files in walk(image_dir):
-
-		#TODO remove
-		print("path", root)
 
 		images = [f for f in files if f.lower().endswith("jpg")]
 
