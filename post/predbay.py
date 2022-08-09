@@ -95,6 +95,9 @@ def read_post_info(post_csv):
 
 			filename, raw_post = row
 
+			#TODO remove
+			print("adding", trim_path(filename))
+
 			results[trim_path(filename)] = bool(raw_post)
 	
 	return results
