@@ -141,12 +141,12 @@ def show_summary(row_bay_pred):
 	"""
 
 	# for each row, print all the bays
-	for row, bays in groupby(row_bay_pred):
+	for row, bays in groupby(row_bay_pred, key=lambda r: r.row):
 
-		print("Row", row)
+		print("Row", row.row)
 
 		# for each bay, print the number of images
-		for bay, images in groupby(bays):
+		for bay, images in groupby(bays, key=lambda b: b.bay):
 
 			print("Bay", bay, "number of images", len(list(images)))
 
