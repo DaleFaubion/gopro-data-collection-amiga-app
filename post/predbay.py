@@ -157,7 +157,7 @@ def trim_path(path):
 		else:
 			i += 1
 
-	return join(parts[i:])
+	return join(*parts[i:])
 
 
 def show_summary(row_bay_pred):
