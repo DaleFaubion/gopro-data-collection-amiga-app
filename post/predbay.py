@@ -10,6 +10,7 @@ from os.path import join, getmtime
 from collections import namedtuple
 from csv import reader, writer
 from itertools import cycle, repeat, chain, groupby
+from re import match
 
 ImageInfo = namedtuple("ImageInfo", ["filename", "time"])
 
@@ -65,7 +66,7 @@ def predict_row_bay(post_map, image_info):
 		if i > 0:
 			prev = image_info[i -1]	
 			
-			if post_map[prev.filename] and not post_map[image.filename]:
+			if post_map[trim_path(prev.filename)] and not post_map[trim_path(image.filename)]:
 				row, bay = next(pred)
 
 		# predict a row/bay image
@@ -90,7 +91,7 @@ def read_post_info(post_csv):
 
 			filename, raw_post = row
 
-			results[filename] = bool(raw_post)
+			results[trim_path(filename)] = bool(raw_post)
 	
 	return results
 
@@ -118,6 +119,9 @@ def find_images(image_dir):
 	# find all the files in the directory and sub-directories
 	for root, _, files in walk(image_dir):
 
+		#TODO remove
+		print("path", root)
+
 		images = [f for f in files if f.lower().endswith("jpg")]
 
 		# load the EXIF data from each image
@@ -133,6 +137,27 @@ def find_images(image_dir):
 	results = sorted(results, key=lambda f: f.time)
 
 	return results
+
+
+def trim_path(path):
+	"""
+	Trims the path
+	"""
+	i = 0
+	found = False
+
+	parts = path.split("/")
+
+	# find the date part of the path
+	while i < len(path) and not found:
+	
+		if match(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", parts[i]):
+			found = True
+
+		else:
+			i += 1
+
+	return join(parts[i:])
 
 
 def show_summary(row_bay_pred):
