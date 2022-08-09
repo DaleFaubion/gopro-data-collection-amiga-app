@@ -19,7 +19,7 @@ LabeledImage = namedtuple("LabelImage", ["filename", "row", "bay"])
 MAX_BAY = 21
 MIN_BAY = 1
 MIN_ROW = 1
-MAX_ROW = 21
+MAX_ROW = 100 #TODO change this hack...
 
 def main(post_csv, image_dir, out_path):
 	"""
