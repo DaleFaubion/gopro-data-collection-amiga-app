@@ -106,7 +106,7 @@ def write_row_bay(out_path, row_bay_pred):
 		# for each image, write out the predicted row/bay
 		for image in row_bay_pred:
 
-			csv_out.write([image.filename, image.row, image.bay])
+			csv_out.writerow([image.filename, image.row, image.bay])
 
 
 def find_images(image_dir):
