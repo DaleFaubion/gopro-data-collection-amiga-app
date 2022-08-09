@@ -8,7 +8,7 @@ from os.path import join
 from os import walk
 from csv import writer
 
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import torch as t
 import numpy as np
 
@@ -38,27 +38,33 @@ def main(model_path, image_dir, out_path):
 
 				if name.endswith("jpeg") or name.endswith("jpg"):
 
-					path = join(root, img_path)
+					try:
+						path = join(root, img_path)
 
-					# load the image
-					image = Image.open(path)
+						# load the image
+						image = Image.open(path)
 
-					# make it into a tensor
-					img_tensor = t.tensor(np.array(image), dtype=t.float).permute(2, 0, 1).unsqueeze(0)
+						# make it into a tensor
+						img_tensor = t.tensor(np.array(image), dtype=t.float).permute(2, 0, 1).unsqueeze(0)
 
-					with t.no_grad():
-						model.eval()
+						with t.no_grad():
+							model.eval()
 
-						# predict if the image has a post
-						pred = model(img_tensor.cuda()).cpu().data.numpy().argmax()
+							# predict if the image has a post
+							pred = model(img_tensor.cuda()).cpu().data.numpy().argmax()
 
-						# write the prediction to file
-						csv_file.writerow([path, str(pred)])
+							# write the prediction to file
+							csv_file.writerow([path, str(pred)])
 
-						count += 1
+							count += 1
 
-					if count % 1000 == 0:
-						print("Processed", count)
+								
+						if count % 1000 == 0:
+							print("Processed", count)
+					
+					except UnidentifiedImageError:
+						print("Could not load image:", img_path)
+
 
 
 if __name__ == "__main__":
