@@ -148,7 +148,7 @@ def show_summary(row_bay_pred):
 		# for each bay, print the number of images
 		for bay, images in groupby(bays):
 
-			print("Bay", bay, "number of images", len(images))
+			print("Bay", bay, "number of images", len(list(images)))
 
 
 if __name__ == "__main__":
