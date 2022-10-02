@@ -8,11 +8,11 @@ from PIL import Image
 import torch as t
 import numpy as np
 
-from postmodel import Mk2
+from postmodel import Mk2, VggNarrow
 from quant import make_predictions, overall_f1, class_f1_scores, NAMES
 
 Options = namedtuple("Options", ["hidden", "epochs", "min_epochs", 
-	"learning_rate", "reg", "seed"])
+	"learning_rate", "reg", "seed", "vgg"])
 
 TRAIN_PROP = .70
 DEV_PROP = .1 / (1.0 - TRAIN_PROP)
@@ -36,7 +36,10 @@ def main(anno_file_path, options):
 	print("Dev", dev.counts(), sep="\n")
 	print("Testing", test.counts(), sep="\n")
 
-	model = Mk2(options.hidden)
+	if options.vgg:
+		model = VggNarrow(options.hidden)
+	else:
+		model = Mk2(options.hidden)
 
 	print("Training Model")
 	print("Number of parameters", model.num_parameters())
@@ -179,9 +182,11 @@ if __name__ == "__main__":
 	parser.add_argument("-seed", type=int, default=42, \
 		help="Random seed")
 
+	parser.add_argument("-vggnarrow", action="store_true", help="Use the vgg narrow model")
+
 	args = parser.parse_args()
 
 	opts = Options(args.hidden, args.epochs, args.min_epochs, \
-		args.learning_rate, args.regularizer, args.seed)
+		args.learning_rate, args.regularizer, args.seed, args.vggnarrow)
 
 	main(args.annotation_file, opts)

@@ -133,3 +133,74 @@ class Mk2(Model):
 		tensor = self.linear3(tensor)
 
 		return tensor
+
+class VggNarrow(Model):
+
+	def __init__(self, hidden):
+		super().__init__()
+		class_weights = t.tensor([1.0, 200.0])
+
+		self.resize = Resize([300, 400])
+
+		self.hidden = hidden
+		self.conv2d = nn.Conv2d(3, hidden, 3, 1, 1)
+		self.relu = nn.ReLU()
+		self.conv2d2 = nn.Conv2d(hidden, hidden, 3, 1, 1)
+		self.relu2 = nn.ReLU()
+		self.maxpool2d = nn.MaxPool2d(2, 2, 0)
+		self.conv2d3 = nn.Conv2d(hidden, hidden, 3, 1, 1)
+		self.relu3 = nn.ReLU()
+		self.conv2d4 = nn.Conv2d(hidden, hidden, 3, 1, 1)
+		self.relu4 = nn.ReLU()
+		self.maxpool2d2 = nn.MaxPool2d(2, 2, 0)
+		self.conv2d5 = nn.Conv2d(hidden, hidden, 3, 1, 1)
+		self.relu5 = nn.ReLU()
+		self.conv2d6 = nn.Conv2d(hidden, hidden, 3, 1, 1)
+		self.relu6 = nn.ReLU()
+		self.maxpool2d3 = nn.MaxPool2d(2, 2, 0)
+		self.conv2d7 = nn.Conv2d(hidden, hidden, 3, 1, 1)
+		self.relu7 = nn.ReLU()
+		self.conv2d8 = nn.Conv2d(hidden, hidden, 3, 1, 1)
+		self.relu8 = nn.ReLU()
+		self.maxpool2d4 = nn.MaxPool2d(2, 2, 0)
+		self.linear = nn.Linear(450*hidden, hidden)
+		self.relu9 = nn.ReLU()
+		self.linear2 = nn.Linear(hidden, hidden)
+		self.relu10 = nn.ReLU()
+		self.linear3 = nn.Linear(hidden, 2)
+		self.loss_function = nn.CrossEntropyLoss()
+
+	def forward(self, tensor):
+		"""
+		Applies the model to the given tensor
+		"""
+		tensor = self.resize(tensor)
+		tensor = self.conv2d(tensor)
+		tensor = self.relu(tensor)
+		tensor = self.conv2d2(tensor)
+		tensor = self.relu2(tensor)
+		tensor = self.maxpool2d(tensor)
+		tensor = self.conv2d3(tensor)
+		tensor = self.relu3(tensor)
+		tensor = self.conv2d4(tensor)
+		tensor = self.relu4(tensor)
+		tensor = self.maxpool2d2(tensor)
+		tensor = self.conv2d5(tensor)
+		tensor = self.relu5(tensor)
+		tensor = self.conv2d6(tensor)
+		tensor = self.relu6(tensor)
+		tensor = self.maxpool2d3(tensor)
+		tensor = self.conv2d7(tensor)
+		tensor = self.relu7(tensor)
+		tensor = self.conv2d8(tensor)
+		tensor = self.relu8(tensor)
+		tensor = self.maxpool2d4(tensor)
+		tensor = tensor.squeeze(0)
+		tensor = t.reshape(tensor, (450*self.hidden,))
+		tensor = self.linear(tensor)
+		tensor = self.relu9(tensor)
+		tensor = self.linear2(tensor)
+		tensor = self.relu10(tensor)
+		tensor = self.linear3(tensor)
+
+		return tensor
