@@ -168,8 +168,10 @@ class VggNarrow(Model):
 			nn.ReLU(),
 			nn.Linear(hidden, hidden),
 			nn.ReLU(),
-			nn.Linear(hidden, 2),
-			nn.CrossEntropyLoss())
+			nn.Linear(hidden, 2)
+			)
+		
+		self.loss_function = nn.CrossEntropyLoss(class_weights)
 
 	def forward(self, tensor):
 		"""
@@ -178,7 +180,7 @@ class VggNarrow(Model):
 		tensor = self.resize(tensor)
 		tensor = self.sequential(tensor)
 		tensor = tensor.squeeze(0)
-		tensor = t.reshape(tensor, (450*hidden,))
+		tensor = t.reshape(tensor, (450*self.hidden,))
 		tensor = self.mlp(tensor)
 
 		return tensor
