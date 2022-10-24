@@ -187,10 +187,13 @@ class Mk4(Model):
 
 		self.hidden = hidden
 		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
+			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0),
 			nn.Conv2d(hidden, hidden, 5, 2, 2),
+			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0),
 			nn.Conv2d(hidden, hidden, 5, 2, 2),
+			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0))
 		self.mlp = nn.Sequential(nn.Linear(30*hidden, hidden),
 			nn.ReLU(),
