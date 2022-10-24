@@ -8,11 +8,11 @@ from PIL import Image
 import torch as t
 import numpy as np
 
-from postmodel import Mk2, VggNarrow
+from postmodel import Mk2, Mk3, VggNarrow, ResNet18
 from quant import make_predictions, overall_f1, class_f1_scores, NAMES
 
 Options = namedtuple("Options", ["hidden", "epochs", "min_epochs", 
-	"learning_rate", "reg", "seed", "vgg"])
+	"learning_rate", "reg", "seed", "vgg", "mk3", "resnet18", "model_file"])
 
 TRAIN_PROP = .70
 DEV_PROP = .1 / (1.0 - TRAIN_PROP)
@@ -38,6 +38,13 @@ def main(anno_file_path, options):
 
 	if options.vgg:
 		model = VggNarrow(options.hidden)
+
+	elif options.mk3:
+		model = Mk3(options.hidden)
+
+	elif options.resnet18:
+		model = ResNet18(3)
+
 	else:
 		model = Mk2(options.hidden)
 
@@ -47,7 +54,7 @@ def main(anno_file_path, options):
 	model = model.cuda()
 
 	# train the model
-	model = model.fit(training, dev, options.epochs, options.learning_rate, options.reg)
+	model = model.fit(training, dev, options.epochs, options.learning_rate, options.reg, options.model_file)
 
 	# evaluate the model
 	evaluate_model("Training", model, training)
@@ -183,10 +190,17 @@ if __name__ == "__main__":
 		help="Random seed")
 
 	parser.add_argument("-vggnarrow", action="store_true", help="Use the vgg narrow model")
+	parser.add_argument("-mk3", action="store_true", help="Use the mk3 model")
+	parser.add_argument("-resnet18", action="store_true", help="Use the resnet model")
+
+	parser.add_argument("-o", default="best_model", help="The name of the model file")
 
 	args = parser.parse_args()
 
 	opts = Options(args.hidden, args.epochs, args.min_epochs, \
-		args.learning_rate, args.regularizer, args.seed, args.vggnarrow)
+		args.learning_rate, args.regularizer, args.seed, \
+		args.vggnarrow, args.mk3, \
+		args.resnet18, \
+		args.o + ".p")
 
 	main(args.annotation_file, opts)
