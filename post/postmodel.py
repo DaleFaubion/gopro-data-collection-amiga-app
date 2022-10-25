@@ -214,6 +214,43 @@ class Mk4(Model):
 
 		return tensor
 
+class Mk5(Model):
+
+	def __init__(self, hidden):
+		super().__init__()
+
+		class_weights = t.tensor([1.0, 200.0])
+
+		self.resize = Resize([300, 400])
+
+		self.hidden = hidden
+		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
+			nn.ReLU(),
+			nn.AvgPool2d(2, 2, 0),
+			nn.Conv2d(hidden, hidden, 5, 2, 2),
+			nn.ReLU(),
+			nn.AvgPool2d(2, 2, 0),
+			nn.Conv2d(hidden, hidden, 5, 1, 2),
+			nn.ReLU(),
+			nn.AvgPool2d(2, 2, 0))
+		self.mlp = nn.Sequential(nn.Linear(108*hidden, hidden),
+			nn.ReLU(),
+			nn.Linear(hidden, hidden),
+			nn.ReLU(),
+			nn.Linear(hidden, 2))
+		self.loss_function = nn.CrossEntropyLoss(class_weights)
+
+	def forward(self, tensor):
+		"""
+		Applies the model to the given tensor
+		"""
+		tensor = self.resize(tensor)
+		tensor = self.sequential(tensor)
+		tensor = tensor.squeeze(0)
+		tensor = t.reshape(tensor, (108*self.hidden,))
+		tensor = self.mlp(tensor)
+
+		return tensor
 
 class VggNarrow(Model):
 
@@ -243,9 +280,10 @@ class VggNarrow(Model):
 			nn.ReLU(),
 			nn.Conv2d(hidden, hidden, 3, 1, 1),
 			nn.ReLU(),
-			nn.MaxPool2d(2, 2, 0))
+			nn.MaxPool2d(2, 2, 0),
+			nn.AvgPool2d(2, 2, 0))
 
-		self.mlp = nn.Sequential(nn.Linear(450*hidden, hidden),
+		self.mlp = nn.Sequential(nn.Linear(108*hidden, hidden),
 			nn.ReLU(),
 			nn.Linear(hidden, hidden),
 			nn.ReLU(),
@@ -261,7 +299,7 @@ class VggNarrow(Model):
 		tensor = self.resize(tensor)
 		tensor = self.sequential(tensor)
 		tensor = tensor.squeeze(0)
-		tensor = t.reshape(tensor, (450*self.hidden,))
+		tensor = t.reshape(tensor, (108*self.hidden,))
 		tensor = self.mlp(tensor)
 
 		return tensor
