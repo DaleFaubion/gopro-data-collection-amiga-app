@@ -252,6 +252,41 @@ class Mk5(Model):
 
 		return tensor
 
+class Mk6(Model):
+
+	def __init__(self, hidden):
+		super().__init__()
+
+		class_weights = t.tensor([1.0, 200.0])
+
+		self.resize = Resize([300, 400])
+
+		self.hidden = hidden
+		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 9, 2, 4),
+			nn.MaxPool2d(4, 2, 2),
+			nn.Conv2d(hidden, hidden, 7, 2, 3),
+			nn.MaxPool2d(4, 2, 1),
+			nn.Conv2d(hidden, hidden, 5, 1, 2),
+			nn.MaxPool2d(3, 2, 1))
+		self.mlp = nn.Sequential(nn.Linear(130*hidden, hidden),
+			nn.ReLU(),
+			nn.Linear(hidden, hidden),
+			nn.ReLU(),
+			nn.Linear(hidden, 2))
+		self.loss_function = nn.CrossEntropyLoss(class_weights)
+
+	def forward(self, tensor):
+		"""
+		Applies the model to the given tensor
+		"""
+		
+		tensor = self.sequential(tensor)
+		tensor = tensor.squeeze(0)
+		tensor = t.reshape(tensor, (130*self.hidden,))
+		tensor = self.mlp(tensor)
+
+		return tensor
+
 class VggNarrow(Model):
 
 	def __init__(self, hidden):
