@@ -8,11 +8,12 @@ from PIL import Image
 import torch as t
 import numpy as np
 
-from postmodel import Mk2, Mk3, Mk4, Mk5, Mk6, VggNarrow, ResNet18
+from postmodel import Mk2, Mk3, Mk4, Mk5, Mk6, Mk7, VggNarrow, ResNet18
 from quant import make_predictions, overall_f1, class_f1_scores, NAMES
 
 Options = namedtuple("Options", ["hidden", "epochs", "min_epochs", 
-	"learning_rate", "reg", "seed", "vgg", "mk3", "mk4", "mk5", "mk6", "resnet18", "model_file"])
+	"learning_rate", "reg", "seed", "vgg", "mk3", "mk4", "mk5", "mk6", "mk7", 
+	"resnet18", "model_file"])
 
 TRAIN_PROP = .70
 DEV_PROP = .1 / (1.0 - TRAIN_PROP)
@@ -47,6 +48,8 @@ def main(anno_file_path, options):
 		model = Mk5(options.hidden)
 	elif options.mk6:
 		model = Mk6(options.hidden)
+	elif options.mk7
+		model = Mk7(options.hidden)
 	elif options.resnet18:
 		model = ResNet18(3)
 
@@ -199,6 +202,7 @@ if __name__ == "__main__":
 	parser.add_argument("-mk4", action="store_true", help="Use the mk4 model")
 	parser.add_argument("-mk5", action="store_true", help="Use the mk5 model")
 	parser.add_argument("-mk6", action="store_true", help="Use the mk6 model")
+	parser.add_argument("-mk7", action="store_true", help="Use the mk7 model")
 	parser.add_argument("-resnet18", action="store_true", help="Use the resnet model")
 
 	parser.add_argument("-o", default="best_model", help="The name of the model file")
@@ -207,7 +211,7 @@ if __name__ == "__main__":
 
 	opts = Options(args.hidden, args.epochs, args.min_epochs, \
 		args.learning_rate, args.regularizer, args.seed, \
-		args.vggnarrow, args.mk3, args.mk4, args.mk5, args.mk6, \
+		args.vggnarrow, args.mk3, args.mk4, args.mk5, args.mk6, args.mk7 \
 		args.resnet18, \
 		args.o + ".p")
 

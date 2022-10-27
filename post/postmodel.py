@@ -258,7 +258,6 @@ class Mk6(Model):
 		super().__init__()
 
 		class_weights = t.tensor([1.0, 200.0])
-
 		self.resize = Resize([300, 400])
 
 		self.hidden = hidden
@@ -284,6 +283,45 @@ class Mk6(Model):
 		tensor = tensor.squeeze(0)
 		tensor = t.reshape(tensor, (130*self.hidden,))
 		tensor = self.mlp(tensor)
+
+		return tensor
+
+class Mk7(nn.Module):
+
+	def __init__(self, hidden):
+		super().__init__()
+
+		class_weights = t.tensor([1.0, 200.0])
+		self.resize = Resize([300, 400])
+
+		self.hidden = hidden
+		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
+			nn.ReLU(),
+			nn.AvgPool2d(2, 2, 0),
+			nn.Conv2d(hidden, hidden, 5, 2, 2),
+			nn.ReLU(),
+			nn.AvgPool2d(2, 2, 0),
+			nn.Conv2d(hidden, hidden, 3, 1, 1),
+			nn.ReLU(),
+			nn.AvgPool2d(2, 2, 0),
+			nn.Conv2d(hidden, hidden, 1, 1, 0),
+			nn.ReLU())
+		self.sequential2 = nn.Sequential(nn.Linear(108*hidden, hidden),
+			nn.ReLU(),
+			nn.Linear(hidden, hidden),
+			nn.ReLU(),
+			nn.Linear(hidden, 2))
+		self.loss_function = nn.CrossEntropyLoss(class_weights)
+
+	def forward(self, tensor):
+		"""
+		Applies the model to the given tensor
+		"""
+		tensor = self.resize(tensor)	
+		tensor = self.sequential(tensor)
+		tensor = tensor.squeeze(0)
+		tensor = t.reshape(tensor, (108*self.hidden,))
+		tensor = self.sequential2(tensor)
 
 		return tensor
 
