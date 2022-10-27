@@ -31,7 +31,7 @@ class Model(nn.Module):
 		# setup transformations to augment the data
 		transform = tt.Compose([
 								 #tt.RandomRotation(10),
-								 #tt.RandomHorizontalFlip(),
+								 tt.RandomHorizontalFlip()
 								 #tt.RandomPerspective(.1)  #causes warning
 								 #tt.ColorJitter(.3, .1, .1, .1),
 								 #tt.GaussianBlur((5,5), (0.001, .5))
@@ -277,8 +277,8 @@ class Mk6(Model):
 	def forward(self, tensor):
 		"""
 		Applies the model to the given tensor
-		"""
-		
+		"""	
+		tensor = self.resize(tensor)	
 		tensor = self.sequential(tensor)
 		tensor = tensor.squeeze(0)
 		tensor = t.reshape(tensor, (130*self.hidden,))
@@ -286,7 +286,7 @@ class Mk6(Model):
 
 		return tensor
 
-class Mk7(nn.Module):
+class Mk7(Model):
 
 	def __init__(self, hidden):
 		super().__init__()
