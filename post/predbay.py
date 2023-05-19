@@ -266,7 +266,7 @@ def find_images(image_dir: str) -> list[ImageInfo]:
 
 def trim_path(path: str) -> str:
 	"""
-	Trims the path
+	Trims the path, removes everything before the date
 	"""
 	i = 0
 	found = False
