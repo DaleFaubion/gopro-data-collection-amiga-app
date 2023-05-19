@@ -48,7 +48,7 @@ def main(anno_file_path, options):
 		model = Mk5(options.hidden)
 	elif options.mk6:
 		model = Mk6(options.hidden)
-	elif options.mk7
+	elif options.mk7:
 		model = Mk7(options.hidden)
 	elif options.resnet18:
 		model = ResNet18(3)
@@ -211,7 +211,7 @@ if __name__ == "__main__":
 
 	opts = Options(args.hidden, args.epochs, args.min_epochs, \
 		args.learning_rate, args.regularizer, args.seed, \
-		args.vggnarrow, args.mk3, args.mk4, args.mk5, args.mk6, args.mk7 \
+		args.vggnarrow, args.mk3, args.mk4, args.mk5, args.mk6, args.mk7, \
 		args.resnet18, \
 		args.o + ".p")
 
