@@ -8,12 +8,11 @@ from PIL import Image
 import torch as t
 import numpy as np
 
-from postmodel import Mk2, Mk3, Mk4, Mk5, Mk6, Mk7, VggNarrow, ResNet18
+from postmodel import Mk5
 from quant import make_predictions, overall_f1, class_f1_scores, NAMES
 
-Options = namedtuple("Options", ["hidden", "epochs", "min_epochs", 
-	"learning_rate", "reg", "seed", "vgg", "mk3", "mk4", "mk5", "mk6", "mk7", 
-	"resnet18", "model_file"])
+Options = namedtuple("Options", ["hidden", "batch_size", "epochs", "min_epochs", 
+	"learning_rate", "reg", "seed", "model_file"])
 
 TRAIN_PROP = .70
 DEV_PROP = .1 / (1.0 - TRAIN_PROP)
@@ -37,24 +36,7 @@ def main(anno_file_path, options):
 	print("Dev", dev.counts(), sep="\n")
 	print("Testing", test.counts(), sep="\n")
 
-	if options.vgg:
-		model = VggNarrow(options.hidden)
-
-	elif options.mk3:
-		model = Mk3(options.hidden)
-	elif options.mk4:
-		model = Mk4(options.hidden)
-	elif options.mk5:
-		model = Mk5(options.hidden)
-	elif options.mk6:
-		model = Mk6(options.hidden)
-	elif options.mk7:
-		model = Mk7(options.hidden)
-	elif options.resnet18:
-		model = ResNet18(3)
-
-	else:
-		model = Mk2(options.hidden)
+	model = Mk5(options.hidden)
 
 	print("Training Model")
 	print("Number of parameters", model.num_parameters())
@@ -62,12 +44,13 @@ def main(anno_file_path, options):
 	model = model.cuda()
 
 	# train the model
-	model = model.fit(training, dev, options.epochs, options.learning_rate, options.reg, options.model_file)
+	model = model.fit(training, dev, options.batch_size, options.epochs, \
+		options.learning_rate, options.reg, options.model_file)
 
 	# evaluate the model
-	evaluate_model("Training", model, training)
-	evaluate_model("Dev", model, dev)
-	evaluate_model("Testing", model, test)
+	evaluate_model("Training", model, training, options.batch_size)
+	evaluate_model("Dev", model, dev, options.batch_size)
+	evaluate_model("Testing", model, test, options.batch_size)
 
 
 def load_datasets(filename):
@@ -125,6 +108,7 @@ class Dataset:
 			# yeild the pair
 			yield x_tensor, y_tensor
 
+
 	def shuffle(self):
 		shuffle(self.annos)
 
@@ -153,12 +137,12 @@ def split_data(data, prop):
 	return left, right
 
 
-def evaluate_model(group_name, model, dataset):
+def evaluate_model(group_name, model, dataset, batch_size):
 	"""
 	Evaluates the model and prints the results
 	"""
 	# makes predictions on the dataset
-	predictions = make_predictions(model, dataset)
+	predictions = make_predictions(model, dataset, batch_size)
 
 	print("---%s Results---" % group_name)
 
@@ -179,6 +163,9 @@ if __name__ == "__main__":
 	parser.add_argument("annotation_file", \
 		help="The file with the post annotations")
 
+	parser.add_argument("-batch_size", type=int, default=10, \
+		help="The batch size")
+
 	parser.add_argument("-hidden", type=int, default=16, \
 		help="The size of the NN hidden layers")
 	
@@ -197,22 +184,12 @@ if __name__ == "__main__":
 	parser.add_argument("-seed", type=int, default=42, \
 		help="Random seed")
 
-	parser.add_argument("-vggnarrow", action="store_true", help="Use the vgg narrow model")
-	parser.add_argument("-mk3", action="store_true", help="Use the mk3 model")
-	parser.add_argument("-mk4", action="store_true", help="Use the mk4 model")
-	parser.add_argument("-mk5", action="store_true", help="Use the mk5 model")
-	parser.add_argument("-mk6", action="store_true", help="Use the mk6 model")
-	parser.add_argument("-mk7", action="store_true", help="Use the mk7 model")
-	parser.add_argument("-resnet18", action="store_true", help="Use the resnet model")
 
 	parser.add_argument("-o", default="best_model", help="The name of the model file")
 
 	args = parser.parse_args()
 
-	opts = Options(args.hidden, args.epochs, args.min_epochs, \
-		args.learning_rate, args.regularizer, args.seed, \
-		args.vggnarrow, args.mk3, args.mk4, args.mk5, args.mk6, args.mk7, \
-		args.resnet18, \
-		args.o + ".p")
+	opts = Options(args.hidden, args.batch_size, args.epochs, args.min_epochs, \
+		args.learning_rate, args.regularizer, args.seed, args.o + ".p")
 
 	main(args.annotation_file, opts)

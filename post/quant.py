@@ -21,7 +21,7 @@ def class_f1_scores(predictions, gold_data):
 	return f1_score(predictions, [l for _, l in gold_data], average=None)
 
 
-def make_predictions(model, dataset):
+def make_predictions(model, dataset, batch_size):
 	"""
 	Makes predicitons for the whole dataset and returns a list of predictions
 	"""
@@ -31,10 +31,21 @@ def make_predictions(model, dataset):
 		model.eval()
 
 		# for each image in the dataset make a prediction
-		for image, _ in dataset:
+		for images, _ in ibatch(dataset, batch_size):
 			
-			pred = model(image.cuda()).cpu().data.numpy()
-
-			predictions.append(pred.argmax())
+			pred = model(images.cuda()).cpu().data.numpy()
+			
+			for post_pred in pred:
+				predictions.append(post_pred.argmax())
 
 	return predictions
+
+
+def ibatch(dataset, batch_size):
+	"""
+	Iterates over the dataset in batch-sized chunks
+	"""
+	for i in range(len(dataset)):
+		chunk = dataset[i : i + batch_size]
+
+		yield t.tensor([x for x,_ in chunk]), t.tensor([y for _,y in chunk])
