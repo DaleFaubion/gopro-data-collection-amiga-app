@@ -7,10 +7,16 @@ from argparse import ArgumentParser
 from os.path import join
 from os import walk
 from csv import writer
+import re
 
+from PIL.ExifTags import TAGS, GPSTAGS
 from PIL import Image, UnidentifiedImageError
 import torch as t
 import numpy as np
+
+
+#major hack..
+tag_keys = {}
 
 def main(model_path, image_dir, out_path):
 	"""
@@ -44,6 +50,14 @@ def main(model_path, image_dir, out_path):
 						# load the image
 						image = Image.open(path)
 
+						# parse the data (YYYY-MM-DD out of the path
+						matches = re.findall(r"[0-9]+-[0-9]+-[0-9]+", path)
+						date = matches[0] if matches else None
+
+						# parse out the timestamp info from the exif data
+						info = image._getexif()
+						timestamp = parse_time(info)
+
 						# make it into a tensor
 						img_tensor = t.tensor(np.array(image), dtype=t.float).permute(2, 0, 1).unsqueeze(0)
 
@@ -54,7 +68,7 @@ def main(model_path, image_dir, out_path):
 							pred = model(img_tensor.cuda()).cpu().data.numpy().argmax()
 
 							# write the prediction to file
-							csv_file.writerow([path, str(pred)])
+							csv_file.writerow([path, date, timestamp, str(pred)])
 
 							count += 1
 
@@ -65,6 +79,35 @@ def main(model_path, image_dir, out_path):
 					except UnidentifiedImageError:
 						print("Could not load image:", img_path)
 
+# hack... the structure of the project needs to be reworked
+def get_exif(info, tag):
+	"""
+	get_exif pulls the value from the exif info, caching the correct key for the tag.
+	"""
+
+	if not tag in tag_keys:
+		for key, _ in info.items():
+			tag_keys[TAGS[key] if key in TAGS else GPSTAGS[key]] = key
+
+	key = tag_keys[tag] if tag in tag_keys else None
+
+	return info[key] if key in info else None
+
+
+def parse_time(info):
+	"""
+	parse_time parses the timestamp from gps metadata.
+	"""
+	result = None
+	time = get_exif(info, "DateTimeDigitized")
+
+	try:
+		result = time.split(" ")[1]
+
+	except:
+		pass
+
+	return result
 
 
 if __name__ == "__main__":
