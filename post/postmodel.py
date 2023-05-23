@@ -97,7 +97,7 @@ class Mk2(Model):
 		super().__init__()
 		class_weights = t.tensor([1.0, 200.0])
 
-		self.resize = Resize([300, 400])
+		self.resize = Resize([300, 400], antialias=True)
 
 		self.hidden = hidden
 		self.conv2d = nn.Conv2d(3, hidden, 9, 1, 4)
@@ -148,7 +148,7 @@ class Mk3(Model):
 		super().__init__()
 		class_weights = t.tensor([1.0, 200.0])
 
-		self.resize = Resize([300, 400])
+		self.resize = Resize([300, 400], antialias=True)
 
 		self.hidden = hidden
 		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 9, 1, 4),
@@ -183,7 +183,7 @@ class Mk4(Model):
 
 		class_weights = t.tensor([1.0, 200.0])
 
-		self.resize = Resize([300, 400])
+		self.resize = Resize([300, 400], antialias=True)
 
 		self.hidden = hidden
 		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
@@ -221,7 +221,7 @@ class Mk5(Model):
 
 		class_weights = t.tensor([1.0, 200.0])
 
-		self.resize = Resize([300, 400])
+		self.resize = Resize([300, 400], antialias=True)
 
 		self.hidden = hidden
 		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
@@ -258,7 +258,7 @@ class Mk6(Model):
 		super().__init__()
 
 		class_weights = t.tensor([1.0, 200.0])
-		self.resize = Resize([300, 400])
+		self.resize = Resize([300, 400], antialias=True)
 
 		self.hidden = hidden
 		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 9, 2, 4),
@@ -292,7 +292,7 @@ class Mk7(Model):
 		super().__init__()
 
 		class_weights = t.tensor([1.0, 200.0])
-		self.resize = Resize([300, 400])
+		self.resize = Resize([300, 400], antialias=True)
 
 		self.hidden = hidden
 		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
@@ -331,7 +331,7 @@ class VggNarrow(Model):
 		super().__init__()
 		class_weights = t.tensor([1.0, 200.0])
 
-		self.resize = Resize([300, 400])
+		self.resize = Resize([300, 400], antialias=True)
 
 		self.hidden = hidden
 		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 3, 1, 1),
@@ -401,7 +401,7 @@ class ResNetBase(Model):
 
 		class_weights = t.tensor([1.0, 200.0])
 
-		self.resize = Resize([300, 400])
+		self.resize = Resize([300, 400], antialias=True)
 
 		#setup the basic input layers
 		layers = [nn.Conv2d(channels, init_filters, 7, 2, 1), nn.ReLU(inplace=True), nn.MaxPool2d(3, 2)]
