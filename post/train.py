@@ -98,10 +98,10 @@ class Dataset:
 		for image_files, has_posts in ibatch(self.annos, self.batch_size):
 	
 			# open the file
-			images = [Image.open(image_file) for image_file in image_files]
+			images = [np.array(Image.open(image_file)) for image_file in image_files]
 
 			# convert the image into a tensor
-			x_tensor = t.tensor(np.array(images), dtype=t.float).permute(0, 3, 1, 2)
+			x_tensor = t.tensor(images, dtype=t.float).permute(0, 3, 1, 2)
 
 			# convert the response into a tensor
 			y_tensor = t.tensor(has_posts, dtype=t.long)
