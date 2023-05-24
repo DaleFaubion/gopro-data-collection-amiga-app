@@ -3,7 +3,6 @@ from typing import Union
 import torch as t
 import torch.nn as nn
 from torch.optim import Adam
-from torchvision.transforms import Resize
 from torchvision import transforms as tt
 import numpy as np
 
@@ -97,7 +96,6 @@ class Mk5(Model):
 
 		class_weights = t.tensor([1.0, 200.0])
 
-		self.resize = Resize([300, 400], antialias=True)
 		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
 			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0),
