@@ -92,6 +92,16 @@ class Dataset:
 		self.batch_size = batch_size
 		self.resize = Resize([300, 400], antialias=True)
 
+	
+	def load_image(self, img_path):
+		img = Image.open(image_file)
+
+		# make into a tensor and put the channels in font to match
+		# pytorch's convension (resize and cnn)
+		tensor = t.tensor(np.array(img), dtype=t.float).permute(2, 0, 1)
+
+		return self.resize(tensor)
+
 
 	def load_data(self):
 		"""
@@ -100,11 +110,10 @@ class Dataset:
 		for image_files, has_posts in ibatch(self.annos, self.batch_size):
 	
 			# open the file
-			images = [self.resize(t.tensor(np.array(Image.open(image_file)), dtype=t.float))
-				for image_file in image_files]
+			images = [self.load_image(image_file) for image_file in image_files]
 
 			# convert the image into a tensor
-			x_tensor = t.stack(images, 0).permute(0, 3, 1, 2)
+			x_tensor = t.stack(images, 0)
 
 			# convert the response into a tensor
 			y_tensor = t.tensor(has_posts, dtype=t.long)
