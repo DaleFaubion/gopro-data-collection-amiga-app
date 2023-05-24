@@ -48,4 +48,4 @@ def ibatch(dataset, batch_size):
 	for i in range(len(dataset)):
 		chunk = dataset[i : i + batch_size]
 
-		yield t.tensor([x for x,_ in chunk]), t.tensor([y for _,y in chunk])
+		yield [x for x,_ in chunk], [y for _,y in chunk]
