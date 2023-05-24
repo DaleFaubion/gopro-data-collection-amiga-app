@@ -49,9 +49,9 @@ def main(anno_file_path, options):
 		options.learning_rate, options.reg, options.model_file)
 
 	# evaluate the model
-	evaluate_model("Training", model, training, options.batch_size)
-	evaluate_model("Dev", model, dev, options.batch_size)
-	evaluate_model("Testing", model, test, options.batch_size)
+	evaluate_model("Training", model, training)
+	evaluate_model("Dev", model, dev)
+	evaluate_model("Testing", model, test)
 
 
 def load_datasets(filename, batch_size):
