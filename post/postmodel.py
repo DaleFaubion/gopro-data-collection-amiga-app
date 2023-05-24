@@ -95,6 +95,7 @@ class Mk5(Model):
 		super().__init__()
 
 		class_weights = t.tensor([1.0, 200.0])
+		self.hidden = hidden
 
 		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
 			nn.ReLU(),
@@ -118,7 +119,7 @@ class Mk5(Model):
 		"""
 		batch_size, _, _, _ = tensor.size()
 		tensor = self.sequential(tensor)
-		tensor = t.reshape(tensor, (batch_size, 480))
+		tensor = t.reshape(tensor, (batch_size, 30 * self.hidden))
 		tensor = self.mlp(tensor)
 
 		return tensor
