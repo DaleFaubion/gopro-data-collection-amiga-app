@@ -121,6 +121,9 @@ class Dataset:
 			yield x_tensor, y_tensor
 
 
+	def flat_iters(self):
+		return self.annos
+
 	def shuffle(self):
 		shuffle(self.annos)
 
