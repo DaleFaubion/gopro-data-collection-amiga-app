@@ -88,9 +88,9 @@ class Dataset:
 		"""
 		Initialize the dataset from the csv file
 		"""
-		self.annos = data
 		self.batch_size = batch_size
 		self.resize = Resize([300, 400], antialias=True)
+		self.annos = [self.load_image(i), l for i,j in data]
 
 	
 	def load_image(self, img_path):
@@ -109,11 +109,8 @@ class Dataset:
 		"""
 		Lazily loads the images from the FS
 		"""
-		for image_files, has_posts in ibatch(self.annos, self.batch_size):
+		for images, has_posts in ibatch(self.annos, self.batch_size):
 	
-			# load all the images
-			images = [self.load_image(image_file) for image_file in image_files]
-
 			# convert the image into a tensor
 			x_tensor = t.stack(images, 0)
 
