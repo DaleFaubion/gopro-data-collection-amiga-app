@@ -11,7 +11,7 @@ def overall_f1(predictions, gold_data):
 	"""
 	Calculates and returns the overall F1 score
 	"""
-	return f1_score(predictions, [l.data.numpy() for _, l in gold_data.flat_iter()], average="micro")
+	return f1_score(predictions, [l for _, l in gold_data.flat_iter()], average="micro")
 
 
 def class_f1_scores(predictions, gold_data):
