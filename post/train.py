@@ -7,6 +7,7 @@ from csv import reader
 from PIL import Image
 import torch as t
 import numpy as np
+from torchvision.transforms import Resize
 
 from postmodel import Mk5
 from quant import make_predictions, overall_f1, class_f1_scores, NAMES, ibatch
@@ -89,6 +90,7 @@ class Dataset:
 		"""
 		self.annos = data
 		self.batch_size = batch_size
+		self.resize = Resize([300, 400], antialias=True)
 
 
 	def load_data(self):
@@ -98,7 +100,7 @@ class Dataset:
 		for image_files, has_posts in ibatch(self.annos, self.batch_size):
 	
 			# open the file
-			images = [np.array(Image.open(image_file)) for image_file in image_files]
+			images = [self.resize(np.array(Image.open(image_file))) for image_file in image_files]
 
 			# convert the image into a tensor
 			x_tensor = t.tensor(images, dtype=t.float).permute(0, 3, 1, 2)
