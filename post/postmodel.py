@@ -7,7 +7,7 @@ from torchvision.transforms import Resize
 from torchvision import transforms as tt
 import numpy as np
 
-from quant import make_predictions, overall_f1, ibatch
+from quant import make_predictions, overall_f1
 
 RGB=3
 
@@ -16,7 +16,7 @@ class Model(nn.Module):
 	def __init__(self):
 		super().__init__()
 	
-	def fit(self, train_data, dev_data, batch_size, num_epochs, learning_rate, reg, model_path):
+	def fit(self, train_data, dev_data, num_epochs, learning_rate, reg, model_path):
 		"""
 		Trains the model, the data collections are iterables of (inst, target) tuples
 		"""
@@ -46,7 +46,7 @@ class Model(nn.Module):
 			train_data.shuffle()
 			
 			# for each training example, make a prediction, measure the loss, and update
-			for inst, target in ibatch(train_data, batch_size):
+			for inst, target in train_data:
 				self.zero_grad()
 				pred = self(transform(inst.cuda()))
 
@@ -60,8 +60,8 @@ class Model(nn.Module):
 			
 
 			# make predictions on the training and dev data
-			training_f1 = overall_f1(make_predictions(self, train_data, batch_size), train_data)
-			dev_f1 = overall_f1(make_predictions(self, dev_data, batch_size), dev_data)
+			training_f1 = overall_f1(make_predictions(self, train_data), train_data)
+			dev_f1 = overall_f1(make_predictions(self, dev_data), dev_data)
 
 			if dev_f1 > best_f1 and epoch > MIN_ROUND:
 				best_f1 = dev_f1

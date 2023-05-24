@@ -9,7 +9,7 @@ import torch as t
 import numpy as np
 
 from postmodel import Mk5
-from quant import make_predictions, overall_f1, class_f1_scores, NAMES
+from quant import make_predictions, overall_f1, class_f1_scores, NAMES, ibatch
 
 Options = namedtuple("Options", ["hidden", "batch_size", "epochs", "min_epochs", 
 	"learning_rate", "reg", "seed", "model_file"])
@@ -28,7 +28,7 @@ def main(anno_file_path, options):
 	print("Loading Data")
 
 	# load the data
-	training, dev, test = load_datasets(anno_file_path)
+	training, dev, test = load_datasets(anno_file_path, options.batch_size)
 
 	print("Training %d, Dev %d, Testing %d" % (len(training), len(dev), len(test)))
 
@@ -44,7 +44,7 @@ def main(anno_file_path, options):
 	model = model.cuda()
 
 	# train the model
-	model = model.fit(training, dev, options.batch_size, options.epochs, \
+	model = model.fit(training, dev, options.epochs, \
 		options.learning_rate, options.reg, options.model_file)
 
 	# evaluate the model
@@ -53,7 +53,7 @@ def main(anno_file_path, options):
 	evaluate_model("Testing", model, test, options.batch_size)
 
 
-def load_datasets(filename):
+def load_datasets(filename, batch_size):
 	"""
 	Loads the training, dev, testing dataset from the CSV
 	"""
@@ -75,7 +75,7 @@ def load_datasets(filename):
 	training, rest = split_data(data, TRAIN_PROP)
 	dev, test = split_data(rest, DEV_PROP)
 
-	return Dataset(training), Dataset(dev), Dataset(test)
+	return Dataset(training, batch_size), Dataset(dev, batch_size), Dataset(test, batch_size)
 
 
 class Dataset:
@@ -83,27 +83,28 @@ class Dataset:
 	A class to lazily load the data from the filesystem
 	"""
 
-	def __init__(self, data):
+	def __init__(self, data, batch_size):
 		"""
 		Initialize the dataset from the csv file
 		"""
 		self.annos = data
+		self.batch_size = batch_size
 
 
 	def load_data(self):
 		"""
 		Lazily loads the images from the FS
 		"""
-		for image_file, has_post in self.annos:
-			
+		for image_files, has_posts in ibatch(self.annos, self.batch_size):
+	
 			# open the file
-			image = Image.open(image_file)
+			images = [Image.open(image_file) for image_file in image_files]
 
 			# convert the image into a tensor
-			x_tensor = t.tensor(np.array(image), dtype=t.float).permute(2, 0, 1).unsqueeze(0)
+			x_tensor = t.tensor(np.array(images), dtype=t.float).permute(0, 3, 1, 2)
 
 			# convert the response into a tensor
-			y_tensor = t.tensor([has_post], dtype=t.long).squeeze(0)
+			y_tensor = t.tensor(has_posts, dtype=t.long)
 
 			# yeild the pair
 			yield x_tensor, y_tensor
@@ -137,12 +138,12 @@ def split_data(data, prop):
 	return left, right
 
 
-def evaluate_model(group_name, model, dataset, batch_size):
+def evaluate_model(group_name, model, dataset):
 	"""
 	Evaluates the model and prints the results
 	"""
 	# makes predictions on the dataset
-	predictions = make_predictions(model, dataset, batch_size)
+	predictions = make_predictions(model, dataset)
 
 	print("---%s Results---" % group_name)
 
