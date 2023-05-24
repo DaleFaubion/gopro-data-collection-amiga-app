@@ -45,7 +45,7 @@ def ibatch(dataset, batch_size):
 	"""
 	Iterates over the dataset in batch-sized chunks
 	"""
-	for i in range(len(dataset)):
+	for i in range(0, len(dataset), batch_size):
 		chunk = dataset[i : i + batch_size]
 
 		yield [x for x,_ in chunk], [y for _,y in chunk]
