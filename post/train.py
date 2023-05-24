@@ -94,7 +94,9 @@ class Dataset:
 
 	
 	def load_image(self, img_path):
-		img = Image.open(image_file)
+
+		# open the image file
+		img = Image.open(img_path)
 
 		# make into a tensor and put the channels in font to match
 		# pytorch's convension (resize and cnn)
@@ -109,7 +111,7 @@ class Dataset:
 		"""
 		for image_files, has_posts in ibatch(self.annos, self.batch_size):
 	
-			# open the file
+			# load all the images
 			images = [self.load_image(image_file) for image_file in image_files]
 
 			# convert the image into a tensor
