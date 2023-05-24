@@ -90,7 +90,7 @@ class Dataset:
 		"""
 		self.batch_size = batch_size
 		self.resize = Resize([300, 400], antialias=True)
-		self.annos = [self.load_image(i), l for i,j in data]
+		self.annos = [(self.load_image(i), l) for i,l in data]
 
 	
 	def load_image(self, img_path):
