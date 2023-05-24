@@ -104,7 +104,7 @@ class Dataset:
 				for image_file in image_files]
 
 			# convert the image into a tensor
-			x_tensor = t.cat(images, 0).permute(0, 3, 1, 2)
+			x_tensor = t.stack(images, 0).permute(0, 3, 1, 2)
 
 			# convert the response into a tensor
 			y_tensor = t.tensor(has_posts, dtype=t.long)
