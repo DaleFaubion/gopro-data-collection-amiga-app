@@ -13,6 +13,7 @@ from PIL.ExifTags import TAGS, GPSTAGS
 from PIL import Image, UnidentifiedImageError
 import torch as t
 import numpy as np
+from torchvision.transforms import Resize
 
 
 #major hack..
@@ -25,6 +26,8 @@ def main(model_path, image_dir, out_path):
 	"""
 	count = 0
 	
+	resize = Resize([300, 400], antialias=True)
+
 	# load the model
 	print("Loading model")
 	model = t.load(model_path)
@@ -59,7 +62,8 @@ def main(model_path, image_dir, out_path):
 						timestamp = parse_time(info)
 
 						# make it into a tensor
-						img_tensor = t.tensor(np.array(image), dtype=t.float).permute(2, 0, 1).unsqueeze(0)
+						img_tensor = t.tensor(np.array(image), dtype=t.float).permute(2, 0, 1)
+						img_tensor = resize(img_tensor).unsqueeze(0)
 
 						with t.no_grad():
 							model.eval()
