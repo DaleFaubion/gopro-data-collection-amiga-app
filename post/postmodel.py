@@ -2,7 +2,7 @@ from time import time
 from typing import Union
 import torch as t
 import torch.nn as nn
-from torch.optim import Adam
+from torch.optim import Adamax 
 from torchvision import transforms as tt
 import numpy as np
 
@@ -21,7 +21,7 @@ class Model(nn.Module):
 		"""
 		MIN_ROUND = min(10, num_epochs)
 		params = [p for p in self.parameters() if p.requires_grad]
-		optim = Adam(params, learning_rate, weight_decay=reg)
+		optim = Adamax(params, learning_rate, weight_decay=reg)
 		best_f1 = 0.0
 		best_epoch = 0
 		self.train()
@@ -62,7 +62,7 @@ class Model(nn.Module):
 			training_f1 = overall_f1(make_predictions(self, train_data), train_data)
 			dev_f1 = overall_f1(make_predictions(self, dev_data), dev_data)
 
-			if dev_f1 > best_f1 and epoch > MIN_ROUND:
+			if dev_f1 >= best_f1 and epoch > MIN_ROUND:
 				best_f1 = dev_f1
 				best_epoch = epoch
 				t.save(self, model_path)
@@ -94,7 +94,7 @@ class Mk5(Model):
 	def __init__(self, hidden):
 		super().__init__()
 
-		class_weights = t.tensor([1.0, 200.0])
+		class_weights = t.tensor([1.0, 400.0])
 		self.hidden = hidden
 
 		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
