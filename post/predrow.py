@@ -39,13 +39,14 @@ def smooth_pred(row_data):
 	# for each entry, if the predicted end post (1) is surrounded by 0's
 	# then make the prediction a zero
 	for i in range(1, len(row_data) - 1):
+
 		prev = row_data[i - 1][END_POST] == 0
 		adv = row_data[i + 1][END_POST] == 0
-		is_end = row_data[END_POST] == 1
+		is_end = row_data[i][END_POST] == 1
 
 		# make the current prediction "no post"
 		if prev and is_end and adv:
-			row_data[i] = 0
+			row_data[i][END_POST] = 0
 
 	return row_data
 
@@ -65,7 +66,8 @@ def group_rows(row_data):
 	for i, group in enumerate(groups):
 		
 		# even indexed groups will be "ends"
-		if i > 0 and i % 2 == 0:
+		# skip the first and last "ends" group
+		if i > 0 and i < len(groups) -1 and i % 2 == 0:
 			mid = len(group) // 2
 			first = group[:mid]
 			second = group[mid:]
