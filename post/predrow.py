@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from itertools import groupby, chain
 from csv import reader, writer
 
+TIME = 2
 END_POST = 3
 
 def main(ends_file, out_file):
@@ -27,6 +28,10 @@ def load_data(csv_file):
 		for row in reader(in_file):
 			row[END_POST] = int(row[END_POST])
 			result.append(row)
+
+
+	#sort the images by time
+	result.sort(key=lambda r: r[TIME])
 
 	return result
 
