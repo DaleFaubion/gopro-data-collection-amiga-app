@@ -103,7 +103,7 @@ def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData]) -> list[ImageDa
 
 	# group up the images into chunks based on rows
 	# for each row, predict the bays for each image
-	for _, row in groupby(img_data, key=lambda i: i.row):
+	for row_num, row in groupby(img_data, key=lambda i: i.row):
 
 		row = list(row)
 
@@ -120,9 +120,16 @@ def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData]) -> list[ImageDa
 		print((seq // STATES_PER_BAY) + 1)
 
 		# update the image data
-		for img, bay in zip(row, seq):
+		for img, state in zip(row, seq):
+
+			bay = (bay // STATES_PER_BAY) + 1
+
+			# even rows were traversed in reverse order
+			if row % 2 == 0:
+				bay = NUM_BAYS - bay + 1
+
 			# adjust down from multiple states per bay down to bay number
-			img = img._replace(bay = (bay // STATES_PER_BAY) + 1)
+			img = img._replace(bay = bay)
 			results.append(img)
 
 	return results
