@@ -18,19 +18,26 @@ NUM_BAYS = 21
 STATES_PER_BAY = 3
 NUM_STATES = NUM_BAYS * STATES_PER_BAY
 
+STATES_PER_BAY_2021 = 2
+NUM_STATES_2021 = NUM_BAYS * STATES_PER_BAY_2021
+
 ImageData = namedtuple("ImageData", ["file", "date", "time", "row", "post", "bay"])
 
 
-def main(row_file, post_file, out_file, mid_size, end_size):
+def main(row_file, post_file, out_file, mid_size, end_size, is_2021):
 	"""
 	Predicts the bay for each image in the CSV file
 	"""
-	
 	# create an HMM
+	if is_2021:
+		hmm = create_hmm_2021(mid_size, end_size)		
+	else:
+		hmm = create_hmm(mid_size, end_size)
+
 	# load the data
 	# predict bays
 	# write back to file
-	write_data(out_file, predict_bays(create_hmm(mid_size, end_size), load_data(row_file, post_file)))
+	write_data(out_file, predict_bays(hmm, load_data(row_file, post_file)))
 
 
 def create_hmm(images_per_bay: int, bookend_size: int) -> CategoricalHMM:
@@ -41,11 +48,8 @@ def create_hmm(images_per_bay: int, bookend_size: int) -> CategoricalHMM:
 
 	# only start in the first state
 	start_probabilities = np.array([1.0] + ([0.0] * (NUM_STATES -1)) )
-	#start_probabilities = start_probabilities.reshape(-1, 1)
 
 	# only see posts in the "bookends"
-	#emission_probabilities = np.array( [ [.01, .99], [.99, .01], [.01, .99] ] * NUM_BAYS )
-
 	emission_probabilities = np.array([
 						[0.01, 0.99],
 						[0.99, 0.01],
@@ -60,6 +64,29 @@ def create_hmm(images_per_bay: int, bookend_size: int) -> CategoricalHMM:
 	
 	return hmm
 
+
+def create_hmm_2021(images_per_bay: int, bookend_size: int) -> CategoricalHMM:
+	"""
+	Creates a "shorter" HMM for the year 2021
+	"""
+	hmm = CategoricalHMM(n_components=NUM_STATES_2021)
+
+	# only start in the first state
+	start_probabilities = np.array([1.0] + ([0.0] * (NUM_STATES_2021 -1)) )
+
+	# only see posts in the "bookends"
+	emission_probabilities = np.array([
+						[0.01, 0.99],
+						[0.99, 0.01],
+					] * NUM_BAYS)
+
+	transition_probabilities = make_trans_matrix_2021(images_per_bay, bookend_size)
+
+	hmm.startprob_ = start_probabilities
+	hmm.transmat_ = transition_probabilities
+	hmm.emissionprob_ = emission_probabilities
+	
+	return hmm
 
 def make_trans_matrix(images_per_bay: int, bookend_size: int) -> np.array:
 	"""
@@ -76,6 +103,7 @@ def make_trans_matrix(images_per_bay: int, bookend_size: int) -> np.array:
 
 	probs_template = [end_leave_prob, mid_leave_prob, end_leave_prob]
 
+	# print out the row/bay information
 	# fill out a diagonal of the transition matrix
 	# i.e. transitions between states within a bay and to the next bay
 	for bay in range(0, NUM_STATES, STATES_PER_BAY):
@@ -84,6 +112,41 @@ def make_trans_matrix(images_per_bay: int, bookend_size: int) -> np.array:
 		
 			# check if there is a next state
 			if state + 1 < NUM_STATES:
+				trans_matrix[state][state + 1] = leave_prob
+				trans_matrix[state][state] = 1.0 - leave_prob
+
+			# else just stay in the last state
+			else:
+				trans_matrix[state][state] = 1.0
+
+
+	return trans_matrix
+
+
+def make_trans_matrix_2021(images_per_bay: int, bookend_size: int) -> np.array:
+	"""
+	Builds the transition matrix based on the number of images per bay
+	"""
+	EPS = 0.0001
+	trans_matrix = np.zeros( (NUM_STATES_2021, NUM_STATES_2021) )
+
+	# transition prob, geometric dist
+	mid_leave_prob = (1.0 / images_per_bay) - EPS
+
+	# assumes symmetry of "bookend"
+	end_leave_prob = (1.0 / bookend_size) - EPS
+
+	probs_template = [end_leave_prob, mid_leave_prob]
+
+	# print out the row/bay information
+	# fill out a diagonal of the transition matrix
+	# i.e. transitions between states within a bay and to the next bay
+	for bay in range(0, NUM_STATES_2021, STATES_PER_BAY_2021):
+
+		for leave_prob, state in zip(probs_template, range(bay, bay + STATES_PER_BAY_2021 + 1)):
+		
+			# check if there is a next state
+			if state + 1 < NUM_STATES_2021:
 				trans_matrix[state][state + 1] = leave_prob
 				trans_matrix[state][state] = 1.0 - leave_prob
 
@@ -184,8 +247,10 @@ if __name__ == "__main__":
 		help="Expected number of images in the middle of a bay")
 	parser.add_argument("-e", default=1, type=float, 
 		help="Expected number of images on one end of a bay (two ends)")
-	
+	parser.add_argument("-y", action="store_true", 
+		help="Use the 2021 HMM which has fewer states")
+
 	args = parser.parse_args()
 
 
-	main(args.row_csv, args.post_csv, args.out_csv, args.m, args.e)
+	main(args.row_csv, args.post_csv, args.out_csv, args.m, args.e, args.y)
