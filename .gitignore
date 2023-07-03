@@ -2,7 +2,9 @@ __pycache__
 .DS_Store
 *.JPG
 .idea
+post/pred
 
+*.p
 **/.pytest_cache
 testdata
 *.swp
