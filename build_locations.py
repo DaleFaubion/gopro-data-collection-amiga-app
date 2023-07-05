@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 
 import pandas as pd
 
-from ingest import gencsv, fix, pred, rename, rowpred, angle, filtergps
+from ingest import gencsv, rename, angle
 
 LOC = "locations.csv"
 
@@ -33,20 +33,9 @@ def main(image_dir, out_dir, vineyard, block, date, num_rows, labeled_data, expe
 		# load the labled data
 		labeled = load_labeled_data(labeled_data)
 
+		#TODO need to change this to use a CSV instead of a directory
 		print("Creating the CSV")
 		data = gencsv.create_csv(vineyard, block, date, image_dir)
-
-		print("Filtering extreme GPS values")
-		data = filtergps.filter_gps_outliers(data)
-
-		print("Fill in the missing GPS data")
-		data = fix.predict(data, out_dir)
-
-		print("Predicting the row")
-		data = rowpred.predict(data, num_rows, out_dir)
-
-		print("Predicting the bay")
-		data = pred.predict(data, labeled, "bay", out_dir, expected_pics, num_rows-1)
 
 		print("Predict the camera angle")
 		data = angle.predict(data)
