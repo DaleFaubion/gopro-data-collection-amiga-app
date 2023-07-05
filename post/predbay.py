@@ -30,17 +30,19 @@ def main(row_file, post_file, out_file, mid_size, end_size, is_2021):
 	"""
 	# create an HMM
 	if is_2021:
-		hmm = create_hmm_2021(mid_size, end_size)		
+		hmm = create_hmm_2021(mid_size, end_size)
+		states_per_bay = STATES_PER_BAY_2021
 	else:
 		hmm = create_hmm(mid_size, end_size)
+		states_per_bay = STATES_PER_BAY
 
 	# load the data
 	# predict bays
 	# write back to file
-	write_data(out_file, predict_bays(hmm, load_data(row_file, post_file)))
+	write_data(out_file, predict_bays(hmm, load_data(row_file, post_file), states_per_bay))
 
 
-def create_hmm(images_per_bay: int, bookend_size: int) -> CategoricalHMM:
+def create_hmm(images_per_bay: float, bookend_size: float) -> CategoricalHMM:
 	"""
 	Creates an HMM model to predict the bay
 	"""
@@ -65,7 +67,7 @@ def create_hmm(images_per_bay: int, bookend_size: int) -> CategoricalHMM:
 	return hmm
 
 
-def create_hmm_2021(images_per_bay: int, bookend_size: int) -> CategoricalHMM:
+def create_hmm_2021(images_per_bay: float, bookend_size: float) -> CategoricalHMM:
 	"""
 	Creates a "shorter" HMM for the year 2021
 	"""
@@ -123,7 +125,7 @@ def make_trans_matrix(images_per_bay: int, bookend_size: int) -> np.array:
 	return trans_matrix
 
 
-def make_trans_matrix_2021(images_per_bay: int, bookend_size: int) -> np.array:
+def make_trans_matrix_2021(images_per_bay: float, bookend_size: float) -> np.array:
 	"""
 	Builds the transition matrix based on the number of images per bay
 	"""
@@ -158,7 +160,7 @@ def make_trans_matrix_2021(images_per_bay: int, bookend_size: int) -> np.array:
 	return trans_matrix
 
 
-def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData]) -> list[ImageData]:
+def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData], states_per_bay: int) -> list[ImageData]:
 	"""
 	Predicts the bay for each image
 	"""
@@ -183,7 +185,7 @@ def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData]) -> list[ImageDa
 		# update the image data
 		for img, state in zip(row, seq):
 
-			bay = (state // STATES_PER_BAY) + 1
+			bay = (state // states_per_bay) + 1
 
 			bay_count[(row_num, bay)] = bay_count.get((row_num, bay), 0) + 1
 
@@ -243,9 +245,9 @@ if __name__ == "__main__":
 	parser.add_argument("row_csv", help="Image CSV file with predicted rows")
 	parser.add_argument("post_csv", help="Image CSV file with predicted posts")
 	parser.add_argument("out_csv", help="The file to write to")
-	parser.add_argument("-m", default=5, type=float, 
+	parser.add_argument("-m", default=5.0, type=float, 
 		help="Expected number of images in the middle of a bay")
-	parser.add_argument("-e", default=1, type=float, 
+	parser.add_argument("-e", default=1.0, type=float, 
 		help="Expected number of images on one end of a bay (two ends)")
 	parser.add_argument("-y", action="store_true", 
 		help="Use the 2021 HMM which has fewer states")
