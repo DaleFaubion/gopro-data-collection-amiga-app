@@ -166,6 +166,7 @@ def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData], states_per_bay:
 	"""
 	results = []
 	bay_count = {}
+	max_bay = {}
 
 	# group up the images into chunks based on rows
 	# for each row, predict the bays for each image
@@ -201,6 +202,13 @@ def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData], states_per_bay:
 	# print out the row/bay information
 	for (row, bay), count in bay_count.items():
 		print("Row %2d Bay %2d: %3d" % (row, bay, count))
+		max_bay[row] = max(bay, max_bay.get(row, 0))
+
+	print("-" * 18)
+
+	# print out the max bay
+	for row, bay in sorted(max_bay.items()):
+		print("Row %2d Max Bay %2d" % (row, bay))
 
 	return results
 
