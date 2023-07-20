@@ -9,7 +9,7 @@ from csv import reader, writer
 from collections import namedtuple
 from itertools import groupby
 
-from os.path import basename
+from os.path import basename, join
 
 from hmmlearn.hmm import CategoricalHMM
 import numpy as np
@@ -223,16 +223,34 @@ def load_data(row_file: str, post_file: str) -> list[ImageData]:
 	with open(post_file) as post_in:
 		for row in reader(post_in):
 			file, post = row
-			post_pred[basename(file)] = int(post)
+			post_pred[get_rel_path(file)] = int(post)
+
+			#TODO remove
+			if "2020-08-03" in file:
+				print("%s %s" % (file, post))
 
 
 	with open(row_file) as in_file:
 		for row in reader(in_file):
 			file, date, time, row_id = row
-			results.append(ImageData(file, date, time, int(row_id), post_pred[basename(file)], None))
+			results.append(ImageData(file, date, time, int(row_id), post_pred[get_rel_path(file)], None))
+
+
+	#TODO remove
+	for img in results:
+		print("data: %s %d" % (img.file, img.post))
 
 	return results
 
+
+def get_rel_path(full_path):
+	"""
+	Standardizes the path by making it relative
+	"""
+	parts = full_path.split("/")
+	index = parts.index("block09") + 1
+
+	return join(*parts[index:])
 
 def write_data(csv_out: str, image_data: list[ImageData]):
 	"""
