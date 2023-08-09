@@ -94,10 +94,12 @@ class Mk5(Model):
 	def __init__(self, hidden):
 		super().__init__()
 
-		class_weights = t.tensor([1.0, 400.0])
+		class_weights = t.tensor([1.0, 1.5])
 		self.hidden = hidden
 
-		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
+		self.sequential = nn.Sequential(
+			nn.InstanceNorm2d(3),
+			nn.Conv2d(3, hidden, 5, 2, 2),
 			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0),
 			nn.Conv2d(hidden, hidden, 5, 2, 2),
