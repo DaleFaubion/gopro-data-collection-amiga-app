@@ -108,8 +108,10 @@ class Mk5(Model):
 			nn.AvgPool2d(2, 2, 0),
 			nn.Conv2d(hidden, hidden, 5, 2, 2),
 			nn.ReLU(),
-			nn.AvgPool2d(2, 2, 0))
-		self.mlp= nn.Sequential(nn.Linear(108 * hidden, hidden),
+			nn.AvgPool2d(2, 2, 0)
+			nn.Conv2d(hidden, hidden, 5, 1, 1),
+			nn.ReLU())
+		self.mlp= nn.Sequential(nn.Linear(70 * hidden, hidden),
 			nn.ReLU(),
 			nn.Linear(hidden, hidden),
 			nn.ReLU(),
@@ -122,7 +124,7 @@ class Mk5(Model):
 		"""
 		batch_size, _, _, _ = tensor.size()
 		tensor = self.sequential(tensor)
-		tensor = t.reshape(tensor, (batch_size, 108 * self.hidden))
+		tensor = t.reshape(tensor, (batch_size, 70 * self.hidden))
 		tensor = self.mlp(tensor)
 
 		return tensor

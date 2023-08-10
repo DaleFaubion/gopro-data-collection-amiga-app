@@ -4,6 +4,7 @@ from collections import namedtuple, Counter
 from random import seed, shuffle
 from csv import reader
 
+import cv2
 from PIL import Image
 import torch as t
 import numpy as np
@@ -97,13 +98,29 @@ class Dataset:
 	def load_image(self, img_path):
 
 		# open the image file
-		img = Image.open(img_path)
+		#img = Image.open(img_path)
+		img = self.clahe_transform(cv2.imread(img_path))
 
 		# make into a tensor and put the channels in font to match
 		# pytorch's convension (resize and cnn)
 		tensor = t.tensor(np.array(img), dtype=t.float).permute(2, 0, 1)
 
 		return self.resize(tensor)
+
+
+	def clahe_transform(self, img_mat):
+		"""
+		Transform the image with the CLAHE trans. to reduce glare
+		"""
+		lab = cv2.cvtColor(img_mat, cv2.COLOR_BGR2LAB)
+		lab_planes = cv2.split(lab)
+
+		clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(8,8))
+		new_lab_planes = (clahe.apply(lab_planes[0]), lab_planes[1], lab_planes[2])
+		lab = cv2.merge(new_lab_planes)
+		clahe_bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+		
+		return clahe_bgr
 
 
 	def load_data(self):
@@ -140,6 +157,7 @@ class Dataset:
 		names = ["Class %d: %d" % (l,c) for l,c in counts.items()]
 
 		return "\n".join(names)
+
 
 def split_data(data, prop):
 	"""
