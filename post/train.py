@@ -10,7 +10,7 @@ import numpy as np
 from torchvision.transforms import Resize
 
 from postmodel import Mk5
-from quant import make_predictions, overall_f1, class_f1_scores, NAMES, ibatch
+from quant import make_predictions, overall_f1, class_f1_scores, NAMES, ibatch, write_errors
 
 Options = namedtuple("Options", ["hidden", "batch_size", "epochs", "min_epochs", 
 	"learning_rate", "reg", "seed", "model_file"])
@@ -51,7 +51,7 @@ def main(anno_file_path, options):
 	# evaluate the model
 	evaluate_model("Training", model, training)
 	evaluate_model("Dev", model, dev)
-	evaluate_model("Testing", model, test)
+	evaluate_model("Testing", model, test, True)
 
 
 def load_datasets(filename, batch_size):
@@ -89,8 +89,9 @@ class Dataset:
 		Initialize the dataset from the csv file
 		"""
 		self.batch_size = batch_size
-		self.resize = Resize([300, 400], antialias=True)
+		self.resize = Resize([600, 800], antialias=True)
 		self.annos = [(self.load_image(i), l) for i,l in data]
+		self.names = data
 
 	
 	def load_image(self, img_path):
@@ -152,7 +153,7 @@ def split_data(data, prop):
 	return left, right
 
 
-def evaluate_model(group_name, model, dataset):
+def evaluate_model(group_name, model, dataset, write_errs=False):
 	"""
 	Evaluates the model and prints the results
 	"""
@@ -168,6 +169,9 @@ def evaluate_model(group_name, model, dataset):
 
 	# print the f1 scores
 	print("Overall F1: %.4f" % overall_f1(predictions, dataset))
+
+	if write_errs:
+		write_errors("%s_errors.txt" % group_name, predictions, dataset)
 
 
 if __name__ == "__main__":

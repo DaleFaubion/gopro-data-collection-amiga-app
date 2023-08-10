@@ -2,7 +2,7 @@ from time import time
 from typing import Union
 import torch as t
 import torch.nn as nn
-from torch.optim import Adamax 
+from torch.optim import AdamW
 from torchvision import transforms as tt
 import numpy as np
 
@@ -21,7 +21,7 @@ class Model(nn.Module):
 		"""
 		MIN_ROUND = min(10, num_epochs)
 		params = [p for p in self.parameters() if p.requires_grad]
-		optim = Adamax(params, learning_rate, weight_decay=reg)
+		optim = AdamW(params, learning_rate, weight_decay=reg)
 		best_f1 = 0.0
 		best_epoch = 0
 		self.train()
@@ -98,7 +98,8 @@ class Mk5(Model):
 		self.hidden = hidden
 
 		self.sequential = nn.Sequential(
-			nn.InstanceNorm2d(3),
+			#nn.InstanceNorm2d(3),
+			nn.BatchNorm2d(3),
 			nn.Conv2d(3, hidden, 5, 2, 2),
 			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0),
@@ -108,7 +109,7 @@ class Mk5(Model):
 			nn.Conv2d(hidden, hidden, 5, 2, 2),
 			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0))
-		self.mlp= nn.Sequential(nn.Linear(30 * hidden, hidden),
+		self.mlp= nn.Sequential(nn.Linear(108 * hidden, hidden),
 			nn.ReLU(),
 			nn.Linear(hidden, hidden),
 			nn.ReLU(),
@@ -121,7 +122,7 @@ class Mk5(Model):
 		"""
 		batch_size, _, _, _ = tensor.size()
 		tensor = self.sequential(tensor)
-		tensor = t.reshape(tensor, (batch_size, 30 * self.hidden))
+		tensor = t.reshape(tensor, (batch_size, 108 * self.hidden))
 		tensor = self.mlp(tensor)
 
 		return tensor
