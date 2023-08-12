@@ -2,8 +2,7 @@ from time import time
 from typing import Union
 import torch as t
 import torch.nn as nn
-from torch.optim import AdamW
-from torchvision import transforms as tt
+from torch.optim import SGD
 import numpy as np
 
 from quant import make_predictions, overall_f1
@@ -21,21 +20,12 @@ class Model(nn.Module):
 		"""
 		MIN_ROUND = min(10, num_epochs)
 		params = [p for p in self.parameters() if p.requires_grad]
-		optim = AdamW(params, learning_rate, weight_decay=reg)
+		optim = SGD(params, learning_rate, weight_decay=reg, momentum=0.9)
 		best_f1 = 0.0
 		best_epoch = 0
 		self.train()
 		epoch = 1
 
-		# setup transformations to augment the data
-		transform = tt.Compose([
-								 #tt.RandomRotation(10),
-								 tt.RandomHorizontalFlip()
-								 #tt.RandomPerspective(.1)  #causes warning
-								 #tt.ColorJitter(.3, .1, .1, .1),
-								 #tt.GaussianBlur((5,5), (0.001, .5))
-								])
-		
 		# for a fixed number of epochs, train the model
 		while epoch <= num_epochs:
 			print("Epoch %4d |" % epoch, end="")
@@ -45,12 +35,9 @@ class Model(nn.Module):
 			train_data.shuffle()
 			
 			# for each training example, make a prediction, measure the loss, and update
-			for inst, target in train_data:
+			for inst, target in train_data.aug_iter():
 				self.zero_grad()
-				pred = self(transform(inst.cuda()))
-
-				#TODO debug
-				#print("Debug, target", target, "pred", pred.cpu().data.numpy().argmax(), pred.cpu().data)
+				pred = self(inst.cuda())
 
 				loss = self.loss_function(pred, target.cuda())
 				total_loss += loss.cpu().data.item()
@@ -68,7 +55,7 @@ class Model(nn.Module):
 				t.save(self, model_path)
 
 			# print out the statistics for the epoch
-			print(" Loss: %7.4f |" % (total_loss / len(train_data)), end="")
+			print(" Loss: %7.6f |" % (total_loss / len(train_data)), end="")
 			print(" Train F1 %4.4f |" % training_f1, end="")
 			print(" Dev F1 %4.4f |" % dev_f1, end="")
 			print(" Time: %8.2f" % (time() - start_time), "seconds")
@@ -108,7 +95,7 @@ class Mk5(Model):
 			nn.AvgPool2d(2, 2, 0),
 			nn.Conv2d(hidden, hidden, 5, 2, 2),
 			nn.ReLU(),
-			nn.AvgPool2d(2, 2, 0)
+			nn.AvgPool2d(2, 2, 0),
 			nn.Conv2d(hidden, hidden, 5, 1, 1),
 			nn.ReLU())
 		self.mlp= nn.Sequential(nn.Linear(70 * hidden, hidden),

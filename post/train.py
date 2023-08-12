@@ -1,14 +1,15 @@
 
 from argparse import ArgumentParser
 from collections import namedtuple, Counter
-from random import seed, shuffle
+from random import seed, shuffle, uniform
 from csv import reader
 
 import cv2
 from PIL import Image
 import torch as t
 import numpy as np
-from torchvision.transforms import Resize
+from torchvision import transforms as tt
+from torchvision.transforms import functional as tf
 
 from postmodel import Mk5
 from quant import make_predictions, overall_f1, class_f1_scores, NAMES, ibatch, write_errors
@@ -90,22 +91,23 @@ class Dataset:
 		Initialize the dataset from the csv file
 		"""
 		self.batch_size = batch_size
-		self.resize = Resize([600, 800], antialias=True)
 		self.annos = [(self.load_image(i), l) for i,l in data]
 		self.names = data
+		self.aug = tt.Compose([
+								 #tt.RandomRotation(10),
+								 tt.RandomHorizontalFlip(),
+								 #tt.RandomPerspective(.1)  #causes warning
+								 #tt.ColorJitter(brightness=0.5)
+								 #tt.GaussianBlur((5,5), (0.001, .5))
+								])
 
 	
 	def load_image(self, img_path):
 
 		# open the image file
-		#img = Image.open(img_path)
-		img = self.clahe_transform(cv2.imread(img_path))
+		img = Image.open(img_path)
 
-		# make into a tensor and put the channels in font to match
-		# pytorch's convension (resize and cnn)
-		tensor = t.tensor(np.array(img), dtype=t.float).permute(2, 0, 1)
-
-		return self.resize(tensor)
+		return img.resize((800, 600))
 
 
 	def clahe_transform(self, img_mat):
@@ -123,14 +125,29 @@ class Dataset:
 		return clahe_bgr
 
 
-	def load_data(self):
+	def augment_data(self, img):
+		
+		img = self.aug(img)
+		
+		# sample a random brightness factor
+		brightness = uniform(.5, 1.75)
+
+		return tf.adjust_brightness(img, brightness)
+		#return img
+
+
+	def load_data(self, augment=False):
 		"""
 		Lazily loads the images from the FS
 		"""
 		for images, has_posts in ibatch(self.annos, self.batch_size):
-	
-			# convert the image into a tensor
-			x_tensor = t.stack(images, 0)
+
+			# augment the data by applying random transformations
+			if augment:
+				images = [self.augment_data(img) for img in images]
+
+			# convert the images into a tensor
+			x_tensor = t.stack([self.to_tensor(img) for img in images], 0)
 
 			# convert the response into a tensor
 			y_tensor = t.tensor(has_posts, dtype=t.long)
@@ -139,8 +156,20 @@ class Dataset:
 			yield x_tensor, y_tensor
 
 
+	def to_tensor(self, pil_img):
+		"""
+		Returns the image as a tensor
+		"""
+		# make into a tensor and put the channels in font to match
+		# pytorch's convension (resize and cnn)
+		return t.tensor(np.array(pil_img), dtype=t.float).permute(2, 0, 1)
+
+	
 	def flat_iter(self):
 		return self.annos
+
+	def aug_iter(self):
+		return self.load_data(True)
 
 	def shuffle(self):
 		shuffle(self.annos)
