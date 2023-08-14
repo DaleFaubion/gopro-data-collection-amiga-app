@@ -106,8 +106,8 @@ def load_data(row_file: str, post_file: str) -> Images:
 	"""
 	Loads the image data from the CSV file
 	"""
-    FILE = 0
-    POST = -1
+	FILE = 0
+	POST = -1
 	results = []
 	post_pred = {}
 	
