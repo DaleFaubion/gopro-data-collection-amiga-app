@@ -106,13 +106,14 @@ def load_data(row_file: str, post_file: str) -> Images:
 	"""
 	Loads the image data from the CSV file
 	"""
+    FILE = 0
+    POST = -1
 	results = []
 	post_pred = {}
 	
 	with open(post_file) as post_in:
 		for row in reader(post_in):
-			file, post = row
-			post_pred[get_rel_path(file)] = int(post)
+			post_pred[get_rel_path(row[FILE])] = int(row[POST])
 
 
 	with open(row_file) as in_file:
