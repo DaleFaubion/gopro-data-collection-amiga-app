@@ -1,4 +1,3 @@
-
 from argparse import ArgumentParser
 from itertools import groupby, chain
 from csv import reader, writer
@@ -22,8 +21,15 @@ def main(ends_file, out_file):
 
 def load_data(csv_file):
 	"""
-	Loads the image data from the CSV file
-	"""
+    Loads image data from the specified CSV file, converts the 'END_POST' column to integers, 
+    and sorts the data by time.
+
+    Args:
+        csv_file (str): The path to the CSV file containing image data.
+
+    Returns:
+        result (list of lists): A list of image data rows, where each row is represented as a list.
+    """
 	result = []
 
 	with open(csv_file) as in_file:
@@ -40,10 +46,16 @@ def load_data(csv_file):
 
 def adjust_time(time_str):
 	"""
-	This is a hack... make 11 PM i.e. hour 23 from the "night" before
-	negative so that it sorts properly. The GOPRO time stamps are off 
-	but are in the correct order for the most part
-	"""
+    Adjusts the given time string to handle 11 PM (hour 23) from the previous night as a negative value
+    for proper sorting. This function is a workaround for correcting GOPRO time stamp sorting issues.
+
+    Args:
+        time_str (str): A time string in the format "HH:MM:SS" or "23:MM:SS".
+
+    Returns:
+        adjusted_time_str (str): The adjusted time string with a negative sign if it starts with "23",
+                                 otherwise returns the input time string unchanged.
+    """
 	if time_str.startswith("23"):
 		return "-" + time_str
 	else:
@@ -51,9 +63,15 @@ def adjust_time(time_str):
 
 
 def smooth_pred(row_data):
-	"""
-	Smooth out the potential false positives in the data
-	"""
+	 """
+    Smooths out potential false positives in the given data by examining each entry.
+    
+    Args:
+        row_data (list of lists of tuples): A list of image data rows with predictions.
+        
+    Returns:
+        row_data (list of lists of tuples): The modified input data with potential false positives smoothed out.
+    """
 
 	# for each entry, if the predicted end post (1) is surrounded by 0's
 	# then make the prediction a zero
@@ -72,8 +90,18 @@ def smooth_pred(row_data):
 
 def group_rows(row_data):
 	"""
-	Group up the image data into rows (list of lists of tuples)
-	"""
+    Group rows of image data from a CSV file into alternating sequences of "ends" and "no ends" groups,
+    and then combine every three consecutive groups into rows.
+
+    Args:
+        row_data (list of lists of tuples): A list of image data rows loaded from a CSV file.
+
+    Returns:
+        rows (list of lists of tuples): A list of rows where each row is a combination of three consecutive
+                                        groups, consisting of "ends", "no ends", and "ends".
+    """
+	#turns = 0
+	#is_turns = False
 
 	# group up the images into rows 
 	groups = [list(g) for _, g in groupby(row_data, key=lambda r: r[END_POST])]
@@ -113,8 +141,15 @@ def group_rows(row_data):
 
 def write_rows(out_file, rows):
 	"""
-	Write all the rows out to the CSV file
-	"""
+    Writes all the rows of image data to the specified CSV file, appending row numbers to each image data row.
+
+    Args:
+        out_file (str): The path to the CSV file where the image data will be written.
+        rows (list of lists of tuples): A list of rows, where each row is a list of image data represented as tuples.
+
+    Returns:
+        None
+    """
 
 	with open(out_file, "w") as out:
 		csv_out = writer(out)
