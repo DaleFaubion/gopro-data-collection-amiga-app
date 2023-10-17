@@ -133,8 +133,9 @@ def group_rows(row_data):
 		rows.append(list(chain(*parts)))
 
 	# print out information about the rows
-	for i, row in enumerate(rows):
-		print("Row %2d: %d" % (i + 1, len(row)))
+	for each in rows:
+		for i, row in enumerate(each):
+			print("Row %2d: %d" % (i + 1, len(row)))
 
 	return rows
 
@@ -163,8 +164,24 @@ def write_rows(out_file, rows):
 			
 				# replace the end post prediction with the row prediction
 				img_data[END_POST] = i + 1
-
+				img_data.append(findCamera(img_data[0]))
 				csv_out.writerow(img_data)
+
+def findCamera(metadata):
+	"""
+
+	:param (metadata)
+
+	Returns:
+
+	"""
+	pattern = r'/(?P<number>[1-4])/'
+	camera_num = re.search(pattern, metadata)['number']
+	# print("HI")
+
+	return camera_num
+
+
 
 
 if __name__ == "__main__":
