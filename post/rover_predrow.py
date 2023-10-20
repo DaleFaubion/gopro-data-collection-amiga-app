@@ -4,6 +4,7 @@ from csv import reader, writer
 
 TIME = 2
 END_POST = 3
+CAMERA_FINDER_PATTERN = r'/(?P<number>[1-4])/'
 
 # TODO Copied the predrow.py and will update this to match the desired 
 
@@ -135,6 +136,23 @@ def group_rows(row_data):
 	# print out information about the rows
 	for each in rows:
 		for i, row in enumerate(each):
+			camera_num = int(findCamera(row[0]))
+			row.append(camera_num)
+
+			# Code to switch the bearing on 2 or more successful end post predictions
+			# (essentially if the end row is 1)
+
+			camera_direction[camera_num][0] += row[3]
+			if camera_direction[camera_num][0] > 1:
+				if camera_direction[camera_num][1] == "East":
+					camera_direction[camera_num][1] = "West"
+				else:
+					camera_direction[camera_num][1] = "East"
+				camera_direction[camera_num][0] = 0
+
+			row.append(camera_direction[camera_num][1])
+
+
 			print("Row %2d: %d" % (i + 1, len(row)))
 
 	return rows
