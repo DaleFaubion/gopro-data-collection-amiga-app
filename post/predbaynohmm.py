@@ -121,11 +121,6 @@ def load_data(row_file: str, post_file: str) -> Images:
 			file, date, time, row_id = row
 			results.append(ImageData(file, date, time, int(row_id), post_pred[get_rel_path(file)], None))
 
-
-	#TODO remove
-	for img in results:
-		print("data: %s %d" % (img.file, img.post))
-
 	return results
 
 
