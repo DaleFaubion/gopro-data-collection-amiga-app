@@ -34,7 +34,7 @@ class Model(nn.Module):
 			
 			train_data.shuffle()
 			
-			# for each training example, make a prediction, measure the loss, and update
+			# for each training batch, make a prediction, measure the loss, and update
 			for inst, target in train_data.aug_iter():
 				self.zero_grad()
 				pred = self(inst.cuda())
@@ -43,8 +43,7 @@ class Model(nn.Module):
 				total_loss += loss.cpu().data.item()
 				loss.backward()
 				optim.step()
-			
-
+		
 			# make predictions on the training and dev data
 			training_f1 = overall_f1(make_predictions(self, train_data), train_data)
 			dev_f1 = overall_f1(make_predictions(self, dev_data), dev_data)
