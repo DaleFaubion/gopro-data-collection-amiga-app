@@ -26,8 +26,6 @@ def main(model_path, image_dir, out_path, include):
 	"""
 	count = 0
 	
-	resize = Resize([300, 400], antialias=True)
-
 	# load the model
 	print("Loading model")
 	model = t.load(model_path)
@@ -54,18 +52,20 @@ def main(model_path, image_dir, out_path, include):
 
 							# load the image
 							image = Image.open(path)
+							# for post model
+							image = image.resize((800, 600))
 
 							# parse the data (YYYY-MM-DD out of the path
 							matches = re.findall(r"[0-9]+-[0-9]+-[0-9]+", path)
 							date = matches[0] if matches else None
 
 							# parse out the timestamp info from the exif data
-							info = image._getexif()
+							info = image.getexif()
 							timestamp = parse_time(info)
 
 							# make it into a tensor
 							img_tensor = t.tensor(np.array(image), dtype=t.float).permute(2, 0, 1)
-							img_tensor = resize(img_tensor).unsqueeze(0)
+							img_tensor = img_tensor.unsqueeze(0)
 
 							with t.no_grad():
 								model.eval()
