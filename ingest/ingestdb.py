@@ -68,7 +68,7 @@ class Ingester:
 		Add image meta-data to the database
 		"""
 		# Get the image data that is to be loaded
-		fields = ["image_id", "date", "time"]
+		fields = ["image_id", "date", "time", "file_name", "orient_id"]
 		entries = list(data[fields].to_records(index=False))
 
 		# Add the image metadata to the database

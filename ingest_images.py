@@ -12,16 +12,26 @@ from PIL import Image
 import database as d
 from ingest.ingestdb import Ingester
 
-def main(location_file, harvest_file, db_conf, vineyard, block, year, resize):
+# the id for East
+EAST = 0
+
+def main(location_file, harvest_file, db_conf, vineyard, block, year, resize, add_orientation):
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
-
 	# load the image location data
 	images = pd.read_csv(location_file)
 
+	columns = ["file_name", "date", "time", "row", "bay"]
+
 	# add the missing columns names
-	images.columns = ["file_name", "date", "time", "row", "bay"]
+	if add_orientation:
+		images.columns = columns
+		images["orient_id"] = [EAST] * len(images)
+
+	else:
+		columns += ["orient_id"]
+		images.columns = columns
 
 	# load the harvest data
 	harvest = pd.read_csv(harvest_file)
@@ -36,9 +46,6 @@ def main(location_file, harvest_file, db_conf, vineyard, block, year, resize):
 
 	# add a UUID to the images
 	db_loader.add_uuids(images)
-
-	# ingest the bay info
-	db_loader.add_bays(images, vineyard, block)
 
 	# add the image meta-data
 	db_loader.add_metadata(images)
@@ -63,7 +70,10 @@ if __name__ == "__main__":
 	ap.add_argument("-b", "--block", default=9, type=int, help="block number")
 	ap.add_argument("-y", "--year", required=True, help="the harvest year to ingest (yyyy)")
 	ap.add_argument("-db", "--db_conf", default="db.conf", help="Database config files")
-	ap.add_argument("-resize", "--resize", nargs=2, default=[], required=False, type=int, help="The W,H dimensions of the resized image that will be loaded into the database")
+	ap.add_argument("-resize", "--resize", nargs=2, default=[], required=False, type=int, 
+		help="The W,H dimensions of the resized image that will be loaded into the database")
+	ap.add_argument("-o", "--add-orientation", action="store_true", 
+		help="Defaults to an Eastward orientation")
 
 	args = ap.parse_args()
 
