@@ -68,12 +68,12 @@ class Ingester:
 		Add image meta-data to the database
 		"""
 		# Get the image data that is to be loaded
-		entries = ["image_id", "date", "time", "lat", "lon", "angle", "camera"]
-		entries = list(data[entries].to_records(index=False))
+		fields = ["image_id", "date", "time"]
+		entries = list(data[fields].to_records(index=False))
 
 		# Add the image metadata to the database
 		print("Adding image metadata to the database")
-		self.db.add_images(entries)
+		self.db.add_images(fields, entries)
 
 		return data
 
@@ -162,10 +162,7 @@ class Ingester:
 			print("- Chunk %d of %d" % (chunk_size, len(data) // batch_size), end="\r")
 
 			# Get the file names
-			if "raw_dir" in chunk.columns:
-				file_names = chunk["raw_dir"]
-			else:
-				file_names = chunk["name"].apply(lambda name: join(image_path, name))
+			file_names = chunk["file_name"]
 
 			if resize_dims is not None:
 				# Load the files in the chunk

@@ -12,13 +12,16 @@ from PIL import Image
 import database as d
 from ingest.ingestdb import Ingester
 
-def main(location_file, harvest_file, db_conf, image_dir, vineyard, block, date, resize):
+def main(location_file, harvest_file, db_conf, vineyard, block, year, resize):
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
 
 	# load the image location data
 	images = pd.read_csv(location_file)
+
+	# add the missing columns names
+	images.columns = ["file_name", "date", "time", "row", "bay"]
 
 	# load the harvest data
 	harvest = pd.read_csv(harvest_file)
@@ -47,7 +50,7 @@ def main(location_file, harvest_file, db_conf, image_dir, vineyard, block, date,
 	db_loader.add_image_bytes(images, image_dir, resize_dims=resize)
 
 	# add harvest (yield weight) data
-	db_loader.add_harvest_data(harvest, vineyard, block, date)
+	db_loader.add_harvest_data(harvest, vineyard, block, year)
 
 
 if __name__ == "__main__":
@@ -55,11 +58,10 @@ if __name__ == "__main__":
 	ap = ArgumentParser()
 
 	ap.add_argument("harvest_file", help="The CSV file with harvest weights")
-	ap.add_argument("location_file", help="The location CSV file with image meta-data")
+	ap.add_argument("bay_file", help="The predicted row/bay CSV file with image meta-data")
 	ap.add_argument("-v", "--vineyard", default="crawford-beck", help="vineyard name")
 	ap.add_argument("-b", "--block", default=9, type=int, help="block number")
-	ap.add_argument("-d", "--date", required=True, help="date to ingest (yyyy-mm-dd)")
-	ap.add_argument("-i", "--image_dir", help="directory of unprocessed images")
+	ap.add_argument("-y", "--year", required=True, help="the harvest year to ingest (yyyy)")
 	ap.add_argument("-db", "--db_conf", default="db.conf", help="Database config files")
 	ap.add_argument("-resize", "--resize", nargs=2, default=[], required=False, type=int, help="The W,H dimensions of the resized image that will be loaded into the database")
 
