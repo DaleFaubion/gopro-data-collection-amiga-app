@@ -15,12 +15,12 @@ from ingest.ingestdb import Ingester
 # the id for East
 EAST = 0
 
-def main(location_file, harvest_file, db_conf, vineyard, block, year, resize, add_orientation):
+def main(bay_file, harvest_file, db_conf, vineyard, block, year, resize, add_orientation):
 	"""
 	Ingests the images indicated by the passed args object.
 	"""
 	# load the image location data
-	images = pd.read_csv(location_file)
+	images = pd.read_csv(bay_file)
 
 	columns = ["file_name", "date", "time", "row", "bay"]
 
@@ -54,7 +54,7 @@ def main(location_file, harvest_file, db_conf, vineyard, block, year, resize, ad
 	db_loader.add_images_to_bays(images, vineyard, block)
 
 	# add image binaries
-	db_loader.add_image_bytes(images, image_dir, resize_dims=resize)
+	db_loader.add_image_bytes(images, resize_dims=resize)
 
 	# add harvest (yield weight) data
 	db_loader.add_harvest_data(harvest, vineyard, block, year)

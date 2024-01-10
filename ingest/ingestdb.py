@@ -69,7 +69,7 @@ class Ingester:
 		"""
 		# Get the image data that is to be loaded
 		fields = ["image_id", "date", "time", "file_name", "orient_id"]
-		entries = list(data[fields].to_records(index=False))
+		entries = [tuple(r) for r in data[fields].to_records(index=False)]
 
 		# Add the image metadata to the database
 		print("Adding image metadata to the database")
@@ -84,27 +84,16 @@ class Ingester:
 		"""
 
 		# Add the predicted bays
-		valid = data[data["pred_bay"].notna()]
-		if len(valid) > 0:
-			print("Adding predicted bay labels to the database")
-			entries = list(valid[["row", "pred_bay", "image_id"]].to_records(index=False))
+		print("Adding predicted bay labels to the database")
+		entries = [tuple(r) for r in 
+			data[["row", "bay", "image_id"]].to_records(index=False)]
 
-			self.db.add_images_to_bays(vineyard, block, "true", "pred", entries)
-
-		# Add the real bays (if they exist...)
-		valid = data[data["bay"].notna()]
-
-		if len(valid) > 0:
-			print("Adding hand-labeled bays to the database")
-			
-			entries = list(valid[["row", "bay", "image_id"]].to_records(index=False))
-			
-			self.db.add_images_to_bays(vineyard, block, "true", "true", entries)
+		self.db.add_images_to_bays(vineyard, block, "pred", "pred", entries)
 
 		return data
 
 
-	def add_image_bytes(self, data, image_path, resize_dims=None, batch_size=64):
+	def add_image_bytes(self, data, resize_dims=None, batch_size=64):
 		"""
 		Add image byte data to the database
 		"""
