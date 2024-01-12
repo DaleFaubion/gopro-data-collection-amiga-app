@@ -36,6 +36,9 @@ def main(bay_file, harvest_file, db_conf, vineyard, block, year, resize, add_ori
 	# load the harvest data
 	harvest = pd.read_csv(harvest_file)
 
+    # remove rows/bays that don't exist
+	images = images[ (images.row >= 1) & (images.row <= 21) & (images.bay >= 1) & (images.bay <= 21) ]
+
 	# Connect to the database
 	db_conn = d.Database()
 	db_conn.connect(db_conf)
