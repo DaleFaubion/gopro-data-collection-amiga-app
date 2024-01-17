@@ -2,8 +2,7 @@ from time import time
 from typing import Union
 import torch as t
 import torch.nn as nn
-from torch.optim import Adamax 
-from torchvision import transforms as tt
+from torch.optim import SGD
 import numpy as np
 
 from quant import make_predictions, overall_f1
@@ -21,21 +20,12 @@ class Model(nn.Module):
 		"""
 		MIN_ROUND = min(10, num_epochs)
 		params = [p for p in self.parameters() if p.requires_grad]
-		optim = Adamax(params, learning_rate, weight_decay=reg)
+		optim = SGD(params, learning_rate, weight_decay=reg, momentum=0.9)
 		best_f1 = 0.0
 		best_epoch = 0
 		self.train()
 		epoch = 1
 
-		# setup transformations to augment the data
-		transform = tt.Compose([
-								 #tt.RandomRotation(10),
-								 tt.RandomHorizontalFlip()
-								 #tt.RandomPerspective(.1)  #causes warning
-								 #tt.ColorJitter(.3, .1, .1, .1),
-								 #tt.GaussianBlur((5,5), (0.001, .5))
-								])
-		
 		# for a fixed number of epochs, train the model
 		while epoch <= num_epochs:
 			print("Epoch %4d |" % epoch, end="")
@@ -44,20 +34,16 @@ class Model(nn.Module):
 			
 			train_data.shuffle()
 			
-			# for each training example, make a prediction, measure the loss, and update
-			for inst, target in train_data:
+			# for each training batch, make a prediction, measure the loss, and update
+			for inst, target in train_data.aug_iter():
 				self.zero_grad()
-				pred = self(transform(inst.cuda()))
-
-				#TODO debug
-				#print("Debug, target", target, "pred", pred.cpu().data.numpy().argmax(), pred.cpu().data)
+				pred = self(inst.cuda())
 
 				loss = self.loss_function(pred, target.cuda())
 				total_loss += loss.cpu().data.item()
 				loss.backward()
 				optim.step()
-			
-
+		
 			# make predictions on the training and dev data
 			training_f1 = overall_f1(make_predictions(self, train_data), train_data)
 			dev_f1 = overall_f1(make_predictions(self, dev_data), dev_data)
@@ -68,7 +54,7 @@ class Model(nn.Module):
 				t.save(self, model_path)
 
 			# print out the statistics for the epoch
-			print(" Loss: %7.4f |" % (total_loss / len(train_data)), end="")
+			print(" Loss: %7.6f |" % (total_loss / len(train_data)), end="")
 			print(" Train F1 %4.4f |" % training_f1, end="")
 			print(" Dev F1 %4.4f |" % dev_f1, end="")
 			print(" Time: %8.2f" % (time() - start_time), "seconds")
@@ -94,10 +80,13 @@ class Mk5(Model):
 	def __init__(self, hidden):
 		super().__init__()
 
-		class_weights = t.tensor([1.0, 400.0])
+		class_weights = t.tensor([1.0, 1.5])
 		self.hidden = hidden
 
-		self.sequential = nn.Sequential(nn.Conv2d(3, hidden, 5, 2, 2),
+		self.sequential = nn.Sequential(
+			#nn.InstanceNorm2d(3),
+			nn.BatchNorm2d(3),
+			nn.Conv2d(3, hidden, 5, 2, 2),
 			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0),
 			nn.Conv2d(hidden, hidden, 5, 2, 2),
@@ -105,8 +94,10 @@ class Mk5(Model):
 			nn.AvgPool2d(2, 2, 0),
 			nn.Conv2d(hidden, hidden, 5, 2, 2),
 			nn.ReLU(),
-			nn.AvgPool2d(2, 2, 0))
-		self.mlp= nn.Sequential(nn.Linear(30 * hidden, hidden),
+			nn.AvgPool2d(2, 2, 0),
+			nn.Conv2d(hidden, hidden, 5, 1, 1),
+			nn.ReLU())
+		self.mlp= nn.Sequential(nn.Linear(70 * hidden, hidden),
 			nn.ReLU(),
 			nn.Linear(hidden, hidden),
 			nn.ReLU(),
@@ -119,7 +110,7 @@ class Mk5(Model):
 		"""
 		batch_size, _, _, _ = tensor.size()
 		tensor = self.sequential(tensor)
-		tensor = t.reshape(tensor, (batch_size, 30 * self.hidden))
+		tensor = t.reshape(tensor, (batch_size, 70 * self.hidden))
 		tensor = self.mlp(tensor)
 
 		return tensor

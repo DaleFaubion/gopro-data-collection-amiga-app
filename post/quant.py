@@ -21,6 +21,18 @@ def class_f1_scores(predictions, gold_data):
 	return f1_score(predictions, [l for _, l in gold_data.flat_iter()], average=None)
 
 
+def write_errors(error_file, predictions, gold_data):
+	"""
+	Writes all the mistakes to an error log
+	"""
+	with open(error_file, "w") as err_out:
+		
+		for pred, (path, label) in zip(predictions, gold_data.names):
+			
+			if pred != label:
+				err_out.write("%s\n" % path)
+
+
 def make_predictions(model, dataset):
 	"""
 	Makes predicitons for the whole dataset and returns a list of predictions
@@ -37,6 +49,8 @@ def make_predictions(model, dataset):
 			
 			for post_pred in pred:
 				predictions.append(post_pred.argmax())
+		
+		model.train()
 
 	return predictions
 

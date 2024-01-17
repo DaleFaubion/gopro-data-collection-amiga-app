@@ -1,16 +1,18 @@
 
 from argparse import ArgumentParser
 from collections import namedtuple, Counter
-from random import seed, shuffle
+from random import seed, shuffle, uniform
 from csv import reader
 
+import cv2
 from PIL import Image
 import torch as t
 import numpy as np
-from torchvision.transforms import Resize
+from torchvision import transforms as tt
+from torchvision.transforms import functional as tf
 
 from postmodel import Mk5
-from quant import make_predictions, overall_f1, class_f1_scores, NAMES, ibatch
+from quant import make_predictions, overall_f1, class_f1_scores, NAMES, ibatch, write_errors
 
 Options = namedtuple("Options", ["hidden", "batch_size", "epochs", "min_epochs", 
 	"learning_rate", "reg", "seed", "model_file"])
@@ -51,7 +53,7 @@ def main(anno_file_path, options):
 	# evaluate the model
 	evaluate_model("Training", model, training)
 	evaluate_model("Dev", model, dev)
-	evaluate_model("Testing", model, test)
+	evaluate_model("Testing", model, test, True)
 
 
 def load_datasets(filename, batch_size):
@@ -89,8 +91,15 @@ class Dataset:
 		Initialize the dataset from the csv file
 		"""
 		self.batch_size = batch_size
-		self.resize = Resize([300, 400], antialias=True)
 		self.annos = [(self.load_image(i), l) for i,l in data]
+		self.names = data
+		self.aug = tt.Compose([
+								 #tt.RandomRotation(10),
+								 tt.RandomHorizontalFlip(),
+								 #tt.RandomPerspective(.1)  #causes warning
+								 #tt.ColorJitter(brightness=0.5)
+								 #tt.GaussianBlur((5,5), (0.001, .5))
+								])
 
 	
 	def load_image(self, img_path):
@@ -98,21 +107,47 @@ class Dataset:
 		# open the image file
 		img = Image.open(img_path)
 
-		# make into a tensor and put the channels in font to match
-		# pytorch's convension (resize and cnn)
-		tensor = t.tensor(np.array(img), dtype=t.float).permute(2, 0, 1)
-
-		return self.resize(tensor)
+		return img.resize((800, 600))
 
 
-	def load_data(self):
+	def clahe_transform(self, img_mat):
+		"""
+		Transform the image with the CLAHE trans. to reduce glare
+		"""
+		lab = cv2.cvtColor(img_mat, cv2.COLOR_BGR2LAB)
+		lab_planes = cv2.split(lab)
+
+		clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(8,8))
+		new_lab_planes = (clahe.apply(lab_planes[0]), lab_planes[1], lab_planes[2])
+		lab = cv2.merge(new_lab_planes)
+		clahe_bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+		
+		return clahe_bgr
+
+
+	def augment_data(self, img):
+		
+		img = self.aug(img)
+		
+		# sample a random brightness factor
+		brightness = uniform(.5, 1.75)
+
+		return tf.adjust_brightness(img, brightness)
+		#return img
+
+
+	def load_data(self, augment=False):
 		"""
 		Lazily loads the images from the FS
 		"""
 		for images, has_posts in ibatch(self.annos, self.batch_size):
-	
-			# convert the image into a tensor
-			x_tensor = t.stack(images, 0)
+
+			# augment the data by applying random transformations
+			if augment:
+				images = [self.augment_data(img) for img in images]
+
+			# convert the images into a tensor
+			x_tensor = t.stack([self.to_tensor(img) for img in images], 0)
 
 			# convert the response into a tensor
 			y_tensor = t.tensor(has_posts, dtype=t.long)
@@ -121,8 +156,20 @@ class Dataset:
 			yield x_tensor, y_tensor
 
 
+	def to_tensor(self, pil_img):
+		"""
+		Returns the image as a tensor
+		"""
+		# make into a tensor and put the channels in font to match
+		# pytorch's convension (resize and cnn)
+		return t.tensor(np.array(pil_img), dtype=t.float).permute(2, 0, 1)
+
+	
 	def flat_iter(self):
 		return self.annos
+
+	def aug_iter(self):
+		return self.load_data(True)
 
 	def shuffle(self):
 		shuffle(self.annos)
@@ -140,6 +187,7 @@ class Dataset:
 
 		return "\n".join(names)
 
+
 def split_data(data, prop):
 	"""
 	Splits the data based on the given proportion
@@ -152,7 +200,7 @@ def split_data(data, prop):
 	return left, right
 
 
-def evaluate_model(group_name, model, dataset):
+def evaluate_model(group_name, model, dataset, write_errs=False):
 	"""
 	Evaluates the model and prints the results
 	"""
@@ -168,6 +216,9 @@ def evaluate_model(group_name, model, dataset):
 
 	# print the f1 scores
 	print("Overall F1: %.4f" % overall_f1(predictions, dataset))
+
+	if write_errs:
+		write_errors("%s_errors.txt" % group_name, predictions, dataset)
 
 
 if __name__ == "__main__":

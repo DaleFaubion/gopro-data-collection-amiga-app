@@ -9,7 +9,7 @@ from csv import reader, writer
 from collections import namedtuple
 from itertools import groupby
 
-from os.path import basename
+from os.path import basename, join
 
 from hmmlearn.hmm import CategoricalHMM
 import numpy as np
@@ -30,17 +30,19 @@ def main(row_file, post_file, out_file, mid_size, end_size, is_2021):
 	"""
 	# create an HMM
 	if is_2021:
-		hmm = create_hmm_2021(mid_size, end_size)		
+		hmm = create_hmm_2021(mid_size, end_size)
+		states_per_bay = STATES_PER_BAY_2021
 	else:
 		hmm = create_hmm(mid_size, end_size)
+		states_per_bay = STATES_PER_BAY
 
 	# load the data
 	# predict bays
 	# write back to file
-	write_data(out_file, predict_bays(hmm, load_data(row_file, post_file)))
+	write_data(out_file, predict_bays(hmm, load_data(row_file, post_file), states_per_bay))
 
 
-def create_hmm(images_per_bay: int, bookend_size: int) -> CategoricalHMM:
+def create_hmm(images_per_bay: float, bookend_size: float) -> CategoricalHMM:
 	"""
 	Creates an HMM model to predict the bay
 	"""
@@ -65,7 +67,7 @@ def create_hmm(images_per_bay: int, bookend_size: int) -> CategoricalHMM:
 	return hmm
 
 
-def create_hmm_2021(images_per_bay: int, bookend_size: int) -> CategoricalHMM:
+def create_hmm_2021(images_per_bay: float, bookend_size: float) -> CategoricalHMM:
 	"""
 	Creates a "shorter" HMM for the year 2021
 	"""
@@ -123,7 +125,7 @@ def make_trans_matrix(images_per_bay: int, bookend_size: int) -> np.array:
 	return trans_matrix
 
 
-def make_trans_matrix_2021(images_per_bay: int, bookend_size: int) -> np.array:
+def make_trans_matrix_2021(images_per_bay: float, bookend_size: float) -> np.array:
 	"""
 	Builds the transition matrix based on the number of images per bay
 	"""
@@ -158,12 +160,13 @@ def make_trans_matrix_2021(images_per_bay: int, bookend_size: int) -> np.array:
 	return trans_matrix
 
 
-def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData]) -> list[ImageData]:
+def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData], states_per_bay: int) -> list[ImageData]:
 	"""
 	Predicts the bay for each image
 	"""
 	results = []
 	bay_count = {}
+	max_bay = {}
 
 	# group up the images into chunks based on rows
 	# for each row, predict the bays for each image
@@ -183,7 +186,7 @@ def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData]) -> list[ImageDa
 		# update the image data
 		for img, state in zip(row, seq):
 
-			bay = (state // STATES_PER_BAY) + 1
+			bay = (state // states_per_bay) + 1
 
 			bay_count[(row_num, bay)] = bay_count.get((row_num, bay), 0) + 1
 
@@ -199,6 +202,13 @@ def predict_bays(hmm: CategoricalHMM, img_data: list[ImageData]) -> list[ImageDa
 	# print out the row/bay information
 	for (row, bay), count in bay_count.items():
 		print("Row %2d Bay %2d: %3d" % (row, bay, count))
+		max_bay[row] = max(bay, max_bay.get(row, 0))
+
+	print("-" * 18)
+
+	# print out the max bay
+	for row, bay in sorted(max_bay.items()):
+		print("Row %2d Max Bay %2d" % (row, bay))
 
 	return results
 
@@ -213,16 +223,34 @@ def load_data(row_file: str, post_file: str) -> list[ImageData]:
 	with open(post_file) as post_in:
 		for row in reader(post_in):
 			file, post = row
-			post_pred[basename(file)] = int(post)
+			post_pred[get_rel_path(file)] = int(post)
+
+			#TODO remove
+			if "2020-08-03" in file:
+				print("%s %s" % (file, post))
 
 
 	with open(row_file) as in_file:
 		for row in reader(in_file):
 			file, date, time, row_id = row
-			results.append(ImageData(file, date, time, int(row_id), post_pred[basename(file)], None))
+			results.append(ImageData(file, date, time, int(row_id), post_pred[get_rel_path(file)], None))
+
+
+	#TODO remove
+	for img in results:
+		print("data: %s %d" % (img.file, img.post))
 
 	return results
 
+
+def get_rel_path(full_path):
+	"""
+	Standardizes the path by making it relative
+	"""
+	parts = full_path.split("/")
+	index = parts.index("block09") + 1
+
+	return join(*parts[index:])
 
 def write_data(csv_out: str, image_data: list[ImageData]):
 	"""
@@ -243,9 +271,9 @@ if __name__ == "__main__":
 	parser.add_argument("row_csv", help="Image CSV file with predicted rows")
 	parser.add_argument("post_csv", help="Image CSV file with predicted posts")
 	parser.add_argument("out_csv", help="The file to write to")
-	parser.add_argument("-m", default=5, type=float, 
+	parser.add_argument("-m", default=5.0, type=float, 
 		help="Expected number of images in the middle of a bay")
-	parser.add_argument("-e", default=1, type=float, 
+	parser.add_argument("-e", default=1.0, type=float, 
 		help="Expected number of images on one end of a bay (two ends)")
 	parser.add_argument("-y", action="store_true", 
 		help="Use the 2021 HMM which has fewer states")

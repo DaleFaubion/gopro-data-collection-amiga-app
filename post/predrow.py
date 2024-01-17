@@ -31,9 +31,21 @@ def load_data(csv_file):
 
 
 	#sort the images by time
-	result.sort(key=lambda r: r[TIME])
+	result.sort(key=lambda r: adjust_time(r[TIME]))
 
 	return result
+
+
+def adjust_time(time_str):
+	"""
+	This is a hack... make 11 PM i.e. hour 23 from the "night" before
+	negative so that it sorts properly. The GOPRO time stamps are off 
+	but are in the correct order for the most part
+	"""
+	if time_str.startswith("23"):
+		return "-" + time_str
+	else:
+		return time_str
 
 
 def smooth_pred(row_data):
