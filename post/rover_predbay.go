@@ -9,6 +9,9 @@ import (
 	"strconv"
 )
 
+const NUM_ROWS = 21
+const NUM_BAYS = 21
+
 // Image a single image
 type Image struct {
 	path    string
@@ -258,43 +261,114 @@ func LoadRowData(posts map[string]bool, path string) []Image {
 	return results
 }
 
-// MakeInitial creates an assignment for each row based on the data and the row/bay constraints
-func MakeInitial([]Image) []RowAssignment {
-	// TODO finish
-	return []RowAssignment{}
+// MakeInitialGroups creates an assignment for each row based on the data and the row/bay constraints
+func MakeInitialGroups(images []Image) []RowAssignment {
+
+	rows := make([][]Image, NUM_ROWS)
+
+	// put all the images into their row array
+	for _, image := range images {
+		rowIdx := image.row - 1
+		rows[rowIdx] = append(rows[rowIdx], image)
+	}
+
+	results := make([]RowAssignment, NUM_ROWS)
+
+	// make bays for all the rows
+	for i := 0; i < len(results); i++ {
+		results[i].rowNum = i + 1
+
+		for j := 0; j < NUM_BAYS; j++ {
+			results[i].bays = append(results[i].bays, Bay{j + 1, make([]Image, 0)})
+		}
+	}
+
+	// group up all the images into row assignments
+	// for each row, evenly distribute images to each bay
+	for i := 0; i < len(results); i++ {
+		step := int(math.Round(float64(len(rows[i])) / NUM_BAYS))
+
+		for j := 0; j < len(rows[i]); j++ {
+			bayIdx := j / step
+			results[i].bays[bayIdx].AppendImage(rows[i][j])
+		}
+	}
+
+	return results
 }
 
 // EM runs the expectation maximization algorithm to find the best row assignment
-func EM(model *Model, init []RowAssignment) []RowAssignment {
+func EM(model *Model, init []RowAssignment, rounds int) []RowAssignment {
+
+	results := init
 
 	// for a fixed number of iterations, run the EM algo
+	for i := 0; i < rounds; i++ {
 
-	// for each row, find the best assignment
+		// for each row, find the best assignment
+		for j := 0; j < len(results); j++ {
+			results[j] = MaxRow(model, results[j])
+		}
 
-	// estimate the model parameters
-	return []RowAssignment{} //TODO finish
+		// estimate the model parameters
+		ExpectedModel(model, results)
+	}
+
+	return results
 }
 
 // MaxRow find the row that maximizes the likelihood under the current model
 func MaxRow(model *Model, row RowAssignment) RowAssignment {
 
+	done := false
+	best := row
+	bestScore := model.RowLogLikelihood(&best)
+
 	// until there is no improvement, greedily try different assignments
+	for !done {
 
-	// generate a collection of assignments
+		done = true
 
-	// evaluate all the assignments and pick the best
+		// generate a collection of assignments
+		candidates := best.GenerateAssignments()
 
-	//if it is an improvement
-	return RowAssignment{} //TODO finish
+		// evaluate all the assignments and pick the best
+		for _, candidate := range candidates {
+
+			score := model.RowLogLikelihood(&candidate)
+
+			//if it is an improvement, remember it and continue
+			if score > bestScore {
+				best = candidate
+				bestScore = score
+				done = false
+			}
+		}
+
+	}
+
+	return best
 }
 
 // ExpectedModel updates the models parameters based on the current assignment
 func ExpectedModel(model *Model, init []RowAssignment) {
-	//TODO finish
+
+	avgEmpty := 0.0
+	avgPost := 0.0
+	total := 0
 
 	// average the number of empty images in all the bays
+	for i := 0; i < len(init); i++ {
+		for j := 0; j < len(init[i].bays); j++ {
+			avgEmpty += float64(init[i].bays[j].NumEmpty())
+			avgPost += float64(init[i].bays[j].NumPosts())
+			total += 1
+		}
+	}
 
 	//average the number of post images in all the bays
+	model.imageLambda = avgEmpty / float64(total)
+	model.postLambda = avgPost / float64(total)
 }
 
 func main() {
