@@ -14,10 +14,13 @@ const NUM_BAYS = 21
 
 // Image a single image
 type Image struct {
-	path    string
-	time    string
-	hasPost bool
-	row     int
+	path      string
+	date      string
+	time      string
+	hasPost   bool
+	row       int
+	cameraNum int
+	direction string
 }
 
 // Bay an assignment of images to a particular bay in a single row
@@ -232,8 +235,11 @@ func LoadPostdata(path string) map[string]bool {
 // LoadRowData reads the CSV file and constructs an array of images
 func LoadRowData(posts map[string]bool, path string) []Image {
 	const pathIdx = 0
-	const timeIdx = 1
+	const dateIdx = 1
+	const timeIdx = 2
 	const rowIdx = 3
+	const cameraIdx = 4
+	const dirIdx = 5
 
 	data, fileErr := os.Open(path)
 
@@ -254,7 +260,8 @@ func LoadRowData(posts map[string]bool, path string) []Image {
 	for i, record := range records {
 		row, _ := strconv.Atoi(record[rowIdx])
 		path := record[pathIdx]
-		newImage := Image{path, record[timeIdx], posts[path], row}
+		camera, _ := strconv.Atoi(record[cameraIdx])
+		newImage := Image{path, record[dateIdx], record[timeIdx], posts[path], row, camera, record[dirIdx]}
 		results[i] = newImage
 	}
 
@@ -296,6 +303,29 @@ func MakeInitialGroups(images []Image) []RowAssignment {
 
 	return results
 }
+
+// InitialModel creates an initial model based on the
+func InitialModel(images []Image) Model {
+
+	// create a set of parameters per row
+	emptyCounts := 0.0
+	postCounts := 0.0
+	denom := float64(NUM_ROWS * NUM_BAYS)
+
+	// for each image, increment the counts
+	for _, image := range images {
+		if image.hasPost {
+			postCounts += 1
+		} else {
+			emptyCounts += 1
+		}
+	}
+
+	// normalize
+	return Model{emptyCounts / denom, postCounts / denom}
+}
+
+// TODO this needs to be redone to have assignments per camera!
 
 // EM runs the expectation maximization algorithm to find the best row assignment
 func EM(model *Model, init []RowAssignment, rounds int) []RowAssignment {
@@ -371,13 +401,47 @@ func ExpectedModel(model *Model, init []RowAssignment) {
 	model.postLambda = avgPost / float64(total)
 }
 
+// ShowRows prints off the row assignments
+func ShowRows(rows []RowAssignment) {
+
+	// print off each row
+	for i, row := range rows {
+		fmt.Printf("%2d | ", i)
+
+		// print off all the bays
+		for _, bay := range row.bays {
+			fmt.Printf("%4d | ", bay.NumImages())
+		}
+
+		fmt.Println()
+	}
+}
+
+// TODO function to write bay predictions to a file
+
 func main() {
 
+	rounds := flag.Int("rounds", 5, "The number of rounds to apply EM")
 	rowFile := flag.String("row_file", "", "The path to the CSV file containing predicted rows")
 	postFile := flag.String("post_file", "", "The path to the CSV file containing predicted posts")
 
 	flag.Parse()
 
-	fmt.Println(*rowFile)
-	fmt.Println(*postFile)
+	// Load the posts
+	posts := LoadPostdata(*postFile)
+
+	// load the row information
+	images := LoadRowData(posts, *rowFile)
+
+	// make an initial assignment
+	model := InitialModel(images)
+
+	// make an initial model
+	start := MakeInitialGroups(images)
+
+	// use EM to correct the assignments
+	result := EM(&model, start, *rounds)
+
+	// show the row assignment
+	ShowRows(result)
 }
