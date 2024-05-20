@@ -9,8 +9,14 @@ import (
 	"strconv"
 )
 
+// major types: Image, Bay, Assignment
+// also Model
+
 const NUM_ROWS = 21
 const NUM_BAYS = 21
+const CAMERAS = 4
+
+type CameraAssignment = []RowAssignment
 
 // Image a single image
 type Image struct {
@@ -117,8 +123,8 @@ func (row *RowAssignment) ReplaceBays(firstIdx int, left Bay, secondIdx int, rig
 }
 
 //GenerateAssignments creates new assignments by moving single images to adjacent bays
-func (row *RowAssignment) GenerateAssignments() []RowAssignment {
-	var results []RowAssignment
+func (row *RowAssignment) GenerateAssignments() CameraAssignment {
+	var results CameraAssignment
 
 	// generate two new assignments per each pair of bays, i.e. move an image from left to right and
 	// from right to left
@@ -163,7 +169,7 @@ func (model *Model) RowLogLikelihood(row *RowAssignment) float64 {
 }
 
 // LogLikelihood computes the score for the whole assignment
-func (model *Model) LogLikelihood(rows []RowAssignment) float64 {
+func (model *Model) LogLikelihood(rows CameraAssignment) float64 {
 	like := 0.0
 
 	for _, row := range rows {
@@ -269,35 +275,41 @@ func LoadRowData(posts map[string]bool, path string) []Image {
 }
 
 // MakeInitialGroups creates an assignment for each row based on the data and the row/bay constraints
-func MakeInitialGroups(images []Image) []RowAssignment {
+func MakeInitialGroups(images []Image) []CameraAssignment {
 
-	rows := make([][]Image, NUM_ROWS)
+	rows := make([][][]Image, CAMERAS, NUM_ROWS)
 
 	// put all the images into their row array
 	for _, image := range images {
 		rowIdx := image.row - 1
-		rows[rowIdx] = append(rows[rowIdx], image)
+		camera := image.cameraNum
+		rows[camera][rowIdx] = append(rows[camera][rowIdx], image)
 	}
 
-	results := make([]RowAssignment, NUM_ROWS)
+	results := make([]CameraAssignment, CAMERAS, NUM_ROWS)
 
 	// make bays for all the rows
-	for i := 0; i < len(results); i++ {
-		results[i].rowNum = i + 1
+	for c := 0; c < CAMERAS; c++ {
+		for i := 0; i < len(results); i++ {
+			results[c][i].rowNum = i + 1
 
-		for j := 0; j < NUM_BAYS; j++ {
-			results[i].bays = append(results[i].bays, Bay{j + 1, make([]Image, 0)})
+			for j := 0; j < NUM_BAYS; j++ {
+				results[c][i].bays = append(results[c][i].bays, Bay{j + 1, make([]Image, 0)})
+			}
 		}
 	}
 
 	// group up all the images into row assignments
 	// for each row, evenly distribute images to each bay
-	for i := 0; i < len(results); i++ {
-		step := int(math.Round(float64(len(rows[i])) / NUM_BAYS))
+	for c := 0; c < CAMERAS; c++ {
 
-		for j := 0; j < len(rows[i]); j++ {
-			bayIdx := j / step
-			results[i].bays[bayIdx].AppendImage(rows[i][j])
+		for i := 0; i < len(results); i++ {
+			step := int(math.Round(float64(len(rows[i])) / NUM_BAYS))
+
+			for j := 0; j < len(rows[i]); j++ {
+				bayIdx := j / step
+				results[c][i].bays[bayIdx].AppendImage(rows[c][i][j])
+			}
 		}
 	}
 
@@ -328,16 +340,18 @@ func InitialModel(images []Image) Model {
 // TODO this needs to be redone to have assignments per camera!
 
 // EM runs the expectation maximization algorithm to find the best row assignment
-func EM(model *Model, init []RowAssignment, rounds int) []RowAssignment {
+func EM(model *Model, init []CameraAssignment, rounds int) []CameraAssignment {
 
 	results := init
 
 	// for a fixed number of iterations, run the EM algo
 	for i := 0; i < rounds; i++ {
 
-		// for each row, find the best assignment
-		for j := 0; j < len(results); j++ {
-			results[j] = MaxRow(model, results[j])
+		for j := 0; j < CAMERAS; j++ {
+			// for each row, find the best assignment
+			for k := 0; k < len(results); k++ {
+				results[j][k] = MaxRow(model, results[j][k])
+			}
 		}
 
 		// estimate the model parameters
@@ -381,18 +395,20 @@ func MaxRow(model *Model, row RowAssignment) RowAssignment {
 }
 
 // ExpectedModel updates the models parameters based on the current assignment
-func ExpectedModel(model *Model, init []RowAssignment) {
+func ExpectedModel(model *Model, init []CameraAssignment) {
 
 	avgEmpty := 0.0
 	avgPost := 0.0
 	total := 0
 
-	// average the number of empty images in all the bays
-	for i := 0; i < len(init); i++ {
-		for j := 0; j < len(init[i].bays); j++ {
-			avgEmpty += float64(init[i].bays[j].NumEmpty())
-			avgPost += float64(init[i].bays[j].NumPosts())
-			total += 1
+	// average the number of empty images in all the bays and cameras
+	for c := 0; c < CAMERAS; c++ {
+		for i := 0; i < len(init[c]); i++ {
+			for j := 0; j < len(init[c][i].bays); j++ {
+				avgEmpty += float64(init[c][i].bays[j].NumEmpty())
+				avgPost += float64(init[c][i].bays[j].NumPosts())
+				total += 1
+			}
 		}
 	}
 
@@ -402,15 +418,22 @@ func ExpectedModel(model *Model, init []RowAssignment) {
 }
 
 // ShowRows prints off the row assignments
-func ShowRows(rows []RowAssignment) {
+func ShowRows(rows []CameraAssignment) {
 
-	// print off each row
-	for i, row := range rows {
-		fmt.Printf("%2d | ", i)
+	for c := 0; c < CAMERAS; c++ {
 
-		// print off all the bays
-		for _, bay := range row.bays {
-			fmt.Printf("%4d | ", bay.NumImages())
+		fmt.Printf("For camera %d\n\n", c+1)
+
+		// print off each row
+		for i, row := range rows[c] {
+			fmt.Printf("%2d | ", i)
+
+			// print off all the bays
+			for _, bay := range row.bays {
+				fmt.Printf("%4d | ", bay.NumImages())
+			}
+
+			fmt.Println()
 		}
 
 		fmt.Println()
