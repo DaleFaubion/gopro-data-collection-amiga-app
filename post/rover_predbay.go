@@ -113,6 +113,36 @@ type RowAssignment struct {
 	bays   []Bay
 }
 
+// NewRowAssignment creates a new row assignment
+func NewRowAssignment(rowNum int) RowAssignment {
+	assignment := RowAssignment{}
+	assignment.rowNum = rowNum
+	assignment.bays = make([]Bay, NUM_BAYS)
+	return assignment
+}
+
+// NewCameraAssignment creates an assignment
+func NewCameraAssignment() CameraAssignment {
+	results := make([]RowAssignment, NUM_ROWS)
+
+	for i := 0; i < NUM_ROWS; i++ {
+		results[i] = NewRowAssignment(i + 1)
+	}
+
+	return results
+}
+
+// NewVineyardAssignment creates a empty assignment for all the rows and bays
+func NewVineyardAssignment() []CameraAssignment {
+	results := make([]CameraAssignment, CAMERAS)
+
+	for i := 0; i < CAMERAS; i++ {
+		results[i] = NewCameraAssignment()
+	}
+
+	return results
+}
+
 // ReplaceBays update the assignment, with a bay, creates a new assignment
 func (row *RowAssignment) ReplaceBays(firstIdx int, left Bay, secondIdx int, right Bay) RowAssignment {
 	newBays := make([]Bay, len(row.bays))
@@ -122,9 +152,20 @@ func (row *RowAssignment) ReplaceBays(firstIdx int, left Bay, secondIdx int, rig
 	return RowAssignment{row.rowNum, newBays}
 }
 
+// NumImages counts up the number of images in the row
+func (row *RowAssignment) NumImages() int {
+	total := 0
+
+	for _, bay := range row.bays {
+		total += bay.NumImages()
+	}
+
+	return total
+}
+
 //GenerateAssignments creates new assignments by moving single images to adjacent bays
-func (row *RowAssignment) GenerateAssignments() CameraAssignment {
-	var results CameraAssignment
+func (row *RowAssignment) GenerateAssignments() []RowAssignment {
+	var results []RowAssignment
 
 	// generate two new assignments per each pair of bays, i.e. move an image from left to right and
 	// from right to left
@@ -186,12 +227,12 @@ func PoissonLogProb(lambda float64, count int) float64 {
 		return math.Log(0.00000000001)
 	} else {
 		// the numerator is lambda^k e^-lambda i.e. in log space: k ln lambda - lambda
-		num := float64(count)*math.Log(lambda) - lambda
-		denom := 0
+		num := (float64(count) * math.Log(lambda)) - lambda
+		denom := 0.0
 
 		// the denominator is the sum of 1 to k i.e. the log of the factorial of the count
 		for i := 1; i <= count; i++ {
-			denom += i
+			denom += math.Log(float64(i))
 		}
 
 		// in log space, the numerator over the denominator is simply subtraction
@@ -200,7 +241,7 @@ func PoissonLogProb(lambda float64, count int) float64 {
 }
 
 // LoadPostData loads the post predictions from a given CSV file
-func LoadPostdata(path string) map[string]bool {
+func LoadPostData(path string) map[string]bool {
 	const pathIdx = 0
 	const postIdx = 2
 	const hasPost = 1
@@ -250,6 +291,7 @@ func LoadRowData(posts map[string]bool, path string) []Image {
 	data, fileErr := os.Open(path)
 
 	if fileErr != nil {
+		fmt.Printf("Cannot open %s: %s\n", path, fileErr)
 		return []Image{}
 	}
 
@@ -259,10 +301,12 @@ func LoadRowData(posts map[string]bool, path string) []Image {
 	records, err := reader.ReadAll()
 
 	if err != nil {
+		fmt.Printf("Cannot create reader for %s: %s\n", path, err)
 		return []Image{}
 	}
 
 	results := make([]Image, len(records))
+
 	for i, record := range records {
 		row, _ := strconv.Atoi(record[rowIdx])
 		path := record[pathIdx]
@@ -277,38 +321,39 @@ func LoadRowData(posts map[string]bool, path string) []Image {
 // MakeInitialGroups creates an assignment for each row based on the data and the row/bay constraints
 func MakeInitialGroups(images []Image) []CameraAssignment {
 
+	// make a data structure of camera, row, and then bay
 	rows := make([][][]Image, CAMERAS, NUM_ROWS)
+
+	for i := range rows {
+		rows[i] = make([][]Image, NUM_ROWS)
+	}
 
 	// put all the images into their row array
 	for _, image := range images {
 		rowIdx := image.row - 1
-		camera := image.cameraNum
+		camera := image.cameraNum - 1
 		rows[camera][rowIdx] = append(rows[camera][rowIdx], image)
 	}
 
-	results := make([]CameraAssignment, CAMERAS, NUM_ROWS)
-
-	// make bays for all the rows
-	for c := 0; c < CAMERAS; c++ {
-		for i := 0; i < len(results); i++ {
-			results[c][i].rowNum = i + 1
-
-			for j := 0; j < NUM_BAYS; j++ {
-				results[c][i].bays = append(results[c][i].bays, Bay{j + 1, make([]Image, 0)})
-			}
-		}
-	}
+	results := NewVineyardAssignment()
 
 	// group up all the images into row assignments
 	// for each row, evenly distribute images to each bay
 	for c := 0; c < CAMERAS; c++ {
 
 		for i := 0; i < len(results); i++ {
-			step := int(math.Round(float64(len(rows[i])) / NUM_BAYS))
 
-			for j := 0; j < len(rows[i]); j++ {
-				bayIdx := j / step
-				results[c][i].bays[bayIdx].AppendImage(rows[c][i][j])
+			// put every "step" size chunk of images into a new bag
+			step := int(math.Round(float64(len(rows[c][i])) / NUM_BAYS))
+
+			// if there are images for this camera/row add them to the output
+			if step > 0 {
+
+				for j := 0; j < len(rows[c][i]); j++ {
+					bayIdx := j / step
+					row := results[c][i]
+					row.bays[bayIdx] = row.bays[bayIdx].AppendImage(rows[c][i][j])
+				}
 			}
 		}
 	}
@@ -336,8 +381,6 @@ func InitialModel(images []Image) Model {
 	// normalize
 	return Model{emptyCounts / denom, postCounts / denom}
 }
-
-// TODO this needs to be redone to have assignments per camera!
 
 // EM runs the expectation maximization algorithm to find the best row assignment
 func EM(model *Model, init []CameraAssignment, rounds int) []CameraAssignment {
@@ -440,21 +483,68 @@ func ShowRows(rows []CameraAssignment) {
 	}
 }
 
-// TODO function to write bay predictions to a file
+// WriteBays write out the pay predictions to the given file path
+func WriteBays(path string, bays []CameraAssignment) {
+	const WEST = "West"
+
+	// open the file
+	file, err := os.Create(path)
+
+	if err != nil {
+		fmt.Printf("Cannot write to %s: %s\n", path, err)
+		os.Exit(1)
+	}
+
+	defer file.Close()
+
+	// create the writer
+	writer := csv.NewWriter(file)
+
+	// write all the bay predictions
+	for c := 0; c < CAMERAS; c++ {
+		for i := 0; i < len(bays[c]); i++ {
+			for j := 0; j < len(bays[c][i].bays); j++ {
+				for k := 0; k < len(bays[c][i].bays[j].images); k++ {
+
+					westDir := 0
+					img := bays[c][i].bays[j].images[k]
+
+					if img.direction == WEST {
+						westDir = 1
+					}
+
+					row := []string{img.path, img.date, img.time, fmt.Sprint(i), fmt.Sprint(j), fmt.Sprint(westDir)}
+					writer.Write(row)
+				}
+			}
+		}
+	}
+}
 
 func main() {
 
 	rounds := flag.Int("rounds", 5, "The number of rounds to apply EM")
 	rowFile := flag.String("row_file", "", "The path to the CSV file containing predicted rows")
 	postFile := flag.String("post_file", "", "The path to the CSV file containing predicted posts")
+	outFile := flag.String("out_file", "", "The path to the CSV file to write with the bay predictions")
 
 	flag.Parse()
 
 	// Load the posts
-	posts := LoadPostdata(*postFile)
+	posts := LoadPostData(*postFile)
+
+	if len(posts) == 0 {
+		fmt.Printf("No posts found in %s\n", *postFile)
+		os.Exit(1)
+	}
 
 	// load the row information
 	images := LoadRowData(posts, *rowFile)
+
+	if len(images) == 0 {
+		fmt.Printf("No images found in %s\n", *rowFile)
+		os.Exit(1)
+	}
 
 	// make an initial assignment
 	model := InitialModel(images)
@@ -467,4 +557,9 @@ func main() {
 
 	// show the row assignment
 	ShowRows(result)
+
+	// if an output file is given, write to it
+	if *outFile != "" {
+		WriteBays(*outFile, result)
+	}
 }
