@@ -177,8 +177,12 @@ func TestRowAssignment_GenerateAssignments(t *testing.T) {
 	second := Bay{}
 	third := Bay{}
 
+	//add two images per bay because GenerateAssignments won't allow for empty bays
+	first = first.AppendImage(SimpleImage())
 	first = first.AppendImage(SimpleImage())
 	second = second.AppendImage(SecondImage())
+	second = second.AppendImage(SecondImage())
+	third = third.AppendImage(ThirdImage())
 	third = third.AppendImage(ThirdImage())
 
 	row := RowAssignment{}
@@ -187,7 +191,7 @@ func TestRowAssignment_GenerateAssignments(t *testing.T) {
 	row.bays = append(row.bays, second)
 	row.bays = append(row.bays, third)
 
-	results := row.GenerateAssignments()
+	results := row.generateAssignments()
 
 	if len(results) != 4 {
 		t.Error("Expected 4 new assignments, got ", len(results))
@@ -240,7 +244,7 @@ func TestMakeInitialGroups(t *testing.T) {
 		}
 	}
 
-	assignments := MakeInitialGroups(images)
+	assignments := makeInitialGroups(images)
 
 	if len(assignments) != 4 {
 		t.Errorf("Number of camera assignments should be 4 but found %d", len(assignments))
@@ -292,7 +296,7 @@ func TestMakeInitialGroups(t *testing.T) {
 
 // NOTE: this function depends upon external files!
 func TestLoadPostData(t *testing.T) {
-	postData := LoadPostData("pred/post-pred/posts-2020-07-20.csv")
+	postData := loadPostData("../pred/post-pred/posts-2020-07-20.csv")
 
 	if len(postData) != 3688 {
 		t.Errorf("File should have 3688 images but %d found\n", len(postData))
@@ -301,8 +305,8 @@ func TestLoadPostData(t *testing.T) {
 
 // NOTE: this function depends upon external files!
 func TestLoadRowData(t *testing.T) {
-	postData := LoadPostData("pred/post-data/all-2023-posts.csv")
-	rowData := LoadRowData(postData, "pred/row-pred/row-pred-2023-07-03.csv")
+	postData := loadPostData("../pred/post-data/all-2023-posts.csv")
+	rowData := loadRowData(postData, "../pred/row-pred/row-pred-2023-07-03.csv")
 
 	if len(rowData) != 9458 {
 		t.Errorf("Row file should have 9458 images but %d found\n", len(rowData))
@@ -337,7 +341,7 @@ func Test_LogProb_lambda3_2(t *testing.T) {
 
 func TestModel_LogLikelihood(t *testing.T) {
 	row := NewRowAssignment(1)
-	model := Model{1.0, 1.0}
+	model := BayModel{1.0, 1.0}
 
 	//add images to each bay
 	for i := 0; i < len(row.bays); i++ {
@@ -345,7 +349,7 @@ func TestModel_LogLikelihood(t *testing.T) {
 		row.bays[i] = row.bays[i].AppendImage(SecondImage())
 	}
 
-	like := model.RowLogLikelihood(&row)
+	like := model.rowLogLikelihood(&row)
 
 	if math.Abs(like+42.0) > .00001 {
 		t.Errorf("The likelihood should be around -42 but is %.4f", like)

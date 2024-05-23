@@ -29,7 +29,7 @@ type Image struct {
 	direction string
 }
 
-// Bay an assignment of images to a particular bay in a single row
+// Bay an ent of images to a particular bay in a single row
 type Bay struct {
 	bayNum int
 	images []Image
@@ -107,21 +107,21 @@ func (bay *Bay) NumImages() int {
 	return len(bay.images)
 }
 
-// RowAssignment the assignment of images to bays in a single row
+// RowAssignment the ent of images to bays in a single row
 type RowAssignment struct {
 	rowNum int
 	bays   []Bay
 }
 
-// NewRowAssignment creates a new row assignment
+// NewRowAssignment creates a new row ent
 func NewRowAssignment(rowNum int) RowAssignment {
-	assignment := RowAssignment{}
-	assignment.rowNum = rowNum
-	assignment.bays = make([]Bay, NUM_BAYS)
-	return assignment
+	ent := RowAssignment{}
+	ent.rowNum = rowNum
+	ent.bays = make([]Bay, NUM_BAYS)
+	return ent
 }
 
-// NewCameraAssignment creates an assignment
+// NewCameraAssignment creates an ent
 func NewCameraAssignment() CameraAssignment {
 	results := make([]RowAssignment, NUM_ROWS)
 
@@ -132,7 +132,7 @@ func NewCameraAssignment() CameraAssignment {
 	return results
 }
 
-// NewVineyardAssignment creates a empty assignment for all the rows and bays
+// NewVineyardAssignment creates a empty ent for all the rows and bays
 func NewVineyardAssignment() []CameraAssignment {
 	results := make([]CameraAssignment, CAMERAS)
 
@@ -143,7 +143,7 @@ func NewVineyardAssignment() []CameraAssignment {
 	return results
 }
 
-// ReplaceBays update the assignment, with a bay, creates a new assignment
+// ReplaceBays update the ent, with a bay, creates a new ent
 func (row *RowAssignment) ReplaceBays(firstIdx int, left Bay, secondIdx int, right Bay) RowAssignment {
 	newBays := make([]Bay, len(row.bays))
 	copy(newBays, row.bays)
@@ -163,11 +163,11 @@ func (row *RowAssignment) NumImages() int {
 	return total
 }
 
-//GenerateAssignments creates new assignments by moving single images to adjacent bays
-func (row *RowAssignment) GenerateAssignments() []RowAssignment {
+//generateAssignments creates new ents by moving single images to adjacent bays
+func (row *RowAssignment) generateAssignments() []RowAssignment {
 	var results []RowAssignment
 
-	// generate two new assignments per each pair of bays, i.e. move an image from left to right and
+	// generate two new ents per each pair of bays, i.e. move an image from left to right and
 	// from right to left
 	for i := 0; i < len(row.bays)-1; i++ {
 		left := row.bays[i]
@@ -189,13 +189,13 @@ func (row *RowAssignment) GenerateAssignments() []RowAssignment {
 	return results
 }
 
-type Model struct {
+type BayModel struct {
 	imageLambda float64
 	postLambda  float64
 }
 
-// RowLogLikelihood computes the likelihood of the row assignment
-func (model *Model) RowLogLikelihood(row *RowAssignment) float64 {
+// RowLogLikelihood computes the likelihood of the row ent
+func (model *BayModel) rowLogLikelihood(row *RowAssignment) float64 {
 
 	like := 0.0
 
@@ -213,12 +213,12 @@ func (model *Model) RowLogLikelihood(row *RowAssignment) float64 {
 	return like
 }
 
-// LogLikelihood computes the score for the whole assignment
-func (model *Model) LogLikelihood(rows CameraAssignment) float64 {
+// LogLikelihood computes the score for the whole ent
+func (model *BayModel) logLikelihood(rows CameraAssignment) float64 {
 	like := 0.0
 
 	for _, row := range rows {
-		like += model.RowLogLikelihood(&row)
+		like += model.rowLogLikelihood(&row)
 	}
 
 	return like
@@ -244,8 +244,8 @@ func PoissonLogProb(lambda float64, count int) float64 {
 	}
 }
 
-// LoadPostData loads the post predictions from a given CSV file
-func LoadPostData(path string) map[string]bool {
+// loadPostData loads the post predictions from a given CSV file
+func loadPostData(path string) map[string]bool {
 	const pathIdx = 0
 	const postIdx = 2
 	const hasPost = 1
@@ -283,8 +283,8 @@ func LoadPostData(path string) map[string]bool {
 	return results
 }
 
-// LoadRowData reads the CSV file and constructs an array of images
-func LoadRowData(posts map[string]bool, path string) []Image {
+// loadRowData reads the CSV file and constructs an array of images
+func loadRowData(posts map[string]bool, path string) []Image {
 	const pathIdx = 0
 	const dateIdx = 1
 	const timeIdx = 2
@@ -322,8 +322,8 @@ func LoadRowData(posts map[string]bool, path string) []Image {
 	return results
 }
 
-// MakeInitialGroups creates an assignment for each row based on the data and the row/bay constraints
-func MakeInitialGroups(images []Image) []CameraAssignment {
+// MakeInitialGroups creates an ent for each row based on the data and the row/bay constraints
+func makeInitialGroups(images []Image) []CameraAssignment {
 
 	// make a data structure of camera, row, and then bay
 	rows := make([][][]Image, CAMERAS)
@@ -344,7 +344,7 @@ func MakeInitialGroups(images []Image) []CameraAssignment {
 
 	results := NewVineyardAssignment()
 
-	// group up all the images into row assignments
+	// group up all the images into row ents
 	// for each row, evenly distribute images to each bay
 	for c := 0; c < CAMERAS; c++ {
 
@@ -370,8 +370,8 @@ func MakeInitialGroups(images []Image) []CameraAssignment {
 	return results
 }
 
-// InitialModel creates an initial model based on the
-func InitialModel(images []Image) Model {
+// initialModel creates an initial model based on the
+func initialModel(images []Image) BayModel {
 
 	// create a set of parameters per row
 	emptyCounts := 0.0
@@ -388,11 +388,11 @@ func InitialModel(images []Image) Model {
 	}
 
 	// normalize
-	return Model{emptyCounts / denom, postCounts / denom}
+	return BayModel{emptyCounts / denom, postCounts / denom}
 }
 
-// EM runs the expectation maximization algorithm to find the best row assignment
-func EM(model *Model, init []CameraAssignment, rounds int) []CameraAssignment {
+// em runs the expectation maximization algorithm to find the best row ent
+func em(model *BayModel, init []CameraAssignment, rounds int) []CameraAssignment {
 
 	results := init
 
@@ -400,38 +400,38 @@ func EM(model *Model, init []CameraAssignment, rounds int) []CameraAssignment {
 	for i := 0; i < rounds; i++ {
 
 		for j := 0; j < CAMERAS; j++ {
-			// for each row, find the best assignment
+			// for each row, find the best ent
 			for k := 0; k < len(results); k++ {
-				results[j][k] = MaxRow(model, results[j][k])
+				results[j][k] = maxRow(model, results[j][k])
 			}
 		}
 
 		// estimate the model parameters
-		ExpectedModel(model, results)
+		expectedModel(model, results)
 	}
 
 	return results
 }
 
-// MaxRow find the row that maximizes the likelihood under the current model
-func MaxRow(model *Model, row RowAssignment) RowAssignment {
+// maxRow find the row that maximizes the likelihood under the current model
+func maxRow(model *BayModel, row RowAssignment) RowAssignment {
 
 	done := false
 	best := row
-	bestScore := model.RowLogLikelihood(&best)
+	bestScore := model.rowLogLikelihood(&best)
 
-	// until there is no improvement, greedily try different assignments
+	// until there is no improvement, greedily try different ents
 	for !done {
 
 		done = true
 
-		// generate a collection of assignments
-		candidates := best.GenerateAssignments()
+		// generate a collection of ents
+		candidates := best.generateAssignments()
 
-		// evaluate all the assignments and pick the best
+		// evaluate all the ents and pick the best
 		for _, candidate := range candidates {
 
-			score := model.RowLogLikelihood(&candidate)
+			score := model.rowLogLikelihood(&candidate)
 
 			//if it is an improvement, remember it and continue
 			if score > bestScore {
@@ -446,8 +446,8 @@ func MaxRow(model *Model, row RowAssignment) RowAssignment {
 	return best
 }
 
-// ExpectedModel updates the models parameters based on the current assignment
-func ExpectedModel(model *Model, init []CameraAssignment) {
+// expectedModel updates the models parameters based on the current ent
+func expectedModel(model *BayModel, init []CameraAssignment) {
 
 	avgEmpty := 0.0
 	avgPost := 0.0
@@ -469,8 +469,8 @@ func ExpectedModel(model *Model, init []CameraAssignment) {
 	model.postLambda = avgPost / float64(total)
 }
 
-// ShowRows prints off the row assignments
-func ShowRows(rows []CameraAssignment) {
+// ShowRows prints off the row ents
+func showRows(rows []CameraAssignment) {
 
 	for c := 0; c < CAMERAS; c++ {
 
@@ -493,7 +493,7 @@ func ShowRows(rows []CameraAssignment) {
 }
 
 // WriteBays write out the pay predictions to the given file path
-func WriteBays(path string, bays []CameraAssignment) {
+func writeBays(path string, bays []CameraAssignment) {
 	const WEST = "West"
 
 	// open the file
@@ -548,7 +548,7 @@ func main() {
 	postFile := flag.Arg(1)
 
 	// Load the posts
-	posts := LoadPostData(postFile)
+	posts := loadPostData(postFile)
 
 	if len(posts) == 0 {
 		fmt.Printf("No posts found in %s\n", postFile)
@@ -556,33 +556,33 @@ func main() {
 	}
 
 	// load the row information
-	images := LoadRowData(posts, rowFile)
+	images := loadRowData(posts, rowFile)
 
 	if len(images) == 0 {
 		fmt.Printf("No images found in %s\n", rowFile)
 		os.Exit(1)
 	}
 
-	// make an initial assignment
-	model := InitialModel(images)
+	// make an initial ent
+	model := initialModel(images)
 
 	// make an initial model
-	start := MakeInitialGroups(images)
+	start := makeInitialGroups(images)
 
 	fmt.Println("Starting Groups")
 
-	ShowRows(start)
+	showRows(start)
 
-	// use EM to correct the assignments
-	result := EM(&model, start, *rounds)
+	// use EM to correct the ents
+	result := em(&model, start, *rounds)
 
 	fmt.Println("Results")
 
-	// show the row assignment
-	ShowRows(result)
+	// show the row ent
+	showRows(result)
 
 	// if an output file is given, write to it
 	if *outFile != "" {
-		WriteBays(*outFile, result)
+		writeBays(*outFile, result)
 	}
 }
