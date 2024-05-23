@@ -173,13 +173,17 @@ func (row *RowAssignment) GenerateAssignments() []RowAssignment {
 		left := row.bays[i]
 		right := row.bays[i+1]
 
-		toLeftLeft, toLeftRight := left.TakeFromStartOf(&right)
-		first := row.ReplaceBays(i, toLeftLeft, i+1, toLeftRight)
-		results = append(results, first)
+		if right.NumImages() > 1 {
+			toLeftLeft, toLeftRight := left.TakeFromStartOf(&right)
+			first := row.ReplaceBays(i, toLeftLeft, i+1, toLeftRight)
+			results = append(results, first)
+		}
 
-		toRightLeft, toRightRight := left.GiveToStartOf(&right)
-		second := row.ReplaceBays(i, toRightLeft, i+1, toRightRight)
-		results = append(results, second)
+		if left.NumImages() > 1 {
+			toRightLeft, toRightRight := left.GiveToStartOf(&right)
+			second := row.ReplaceBays(i, toRightLeft, i+1, toRightRight)
+			results = append(results, second)
+		}
 	}
 
 	return results
@@ -322,7 +326,7 @@ func LoadRowData(posts map[string]bool, path string) []Image {
 func MakeInitialGroups(images []Image) []CameraAssignment {
 
 	// make a data structure of camera, row, and then bay
-	rows := make([][][]Image, CAMERAS, NUM_ROWS)
+	rows := make([][][]Image, CAMERAS)
 
 	for i := range rows {
 		rows[i] = make([][]Image, NUM_ROWS)
@@ -332,7 +336,10 @@ func MakeInitialGroups(images []Image) []CameraAssignment {
 	for _, image := range images {
 		rowIdx := image.row - 1
 		camera := image.cameraNum - 1
-		rows[camera][rowIdx] = append(rows[camera][rowIdx], image)
+
+		if rowIdx < NUM_ROWS {
+			rows[camera][rowIdx] = append(rows[camera][rowIdx], image)
+		}
 	}
 
 	results := NewVineyardAssignment()
@@ -341,16 +348,18 @@ func MakeInitialGroups(images []Image) []CameraAssignment {
 	// for each row, evenly distribute images to each bay
 	for c := 0; c < CAMERAS; c++ {
 
-		for i := 0; i < len(results); i++ {
+		for i := 0; i < len(results[c]); i++ {
 
 			// put every "step" size chunk of images into a new bag
-			step := int(math.Round(float64(len(rows[c][i])) / NUM_BAYS))
+			step := int(math.Ceil(float64(len(rows[c][i])) / NUM_BAYS))
 
 			// if there are images for this camera/row add them to the output
 			if step > 0 {
 
 				for j := 0; j < len(rows[c][i]); j++ {
+
 					bayIdx := j / step
+
 					row := results[c][i]
 					row.bays[bayIdx] = row.bays[bayIdx].AppendImage(rows[c][i][j])
 				}
@@ -523,26 +532,34 @@ func WriteBays(path string, bays []CameraAssignment) {
 
 func main() {
 
+	// Set up the optional flags
 	rounds := flag.Int("rounds", 5, "The number of rounds to apply EM")
-	rowFile := flag.String("row_file", "", "The path to the CSV file containing predicted rows")
-	postFile := flag.String("post_file", "", "The path to the CSV file containing predicted posts")
 	outFile := flag.String("out_file", "", "The path to the CSV file to write with the bay predictions")
 
 	flag.Parse()
 
+	if len(flag.Args()) < 2 {
+		fmt.Printf("Usage: <row file> <post file> [out file]\n")
+		os.Exit(1)
+	}
+
+	// get the position args
+	rowFile := flag.Arg(0)
+	postFile := flag.Arg(1)
+
 	// Load the posts
-	posts := LoadPostData(*postFile)
+	posts := LoadPostData(postFile)
 
 	if len(posts) == 0 {
-		fmt.Printf("No posts found in %s\n", *postFile)
+		fmt.Printf("No posts found in %s\n", postFile)
 		os.Exit(1)
 	}
 
 	// load the row information
-	images := LoadRowData(posts, *rowFile)
+	images := LoadRowData(posts, rowFile)
 
 	if len(images) == 0 {
-		fmt.Printf("No images found in %s\n", *rowFile)
+		fmt.Printf("No images found in %s\n", rowFile)
 		os.Exit(1)
 	}
 
@@ -552,8 +569,14 @@ func main() {
 	// make an initial model
 	start := MakeInitialGroups(images)
 
+	fmt.Println("Starting Groups")
+
+	ShowRows(start)
+
 	// use EM to correct the assignments
 	result := EM(&model, start, *rounds)
+
+	fmt.Println("Results")
 
 	// show the row assignment
 	ShowRows(result)
