@@ -154,20 +154,14 @@ func showAssignments(assignments []Assignment) {
 	for c, assignment := range assignments {
 		fmt.Printf("For camera %d\n", c)
 
-		for i := 0; i < NUM_ROWS; i++ {
-			fmt.Printf("|     %2d    ", i)
-		}
-
-		fmt.Println()
-
-		for _, row := range assignment.rows {
+		for rowIdx, row := range assignment.rows {
 			left, right := row.numPosts()
 			reg := row.numRegular()
 
-			fmt.Printf("| %2d_%2d_%2d ", left, reg, right)
+			fmt.Printf("%2d | %2d + %3d + %2d = %d\n", rowIdx, left, reg, right, row.numImages())
 		}
 
-		fmt.Println("|")
+		fmt.Println()
 	}
 }
 

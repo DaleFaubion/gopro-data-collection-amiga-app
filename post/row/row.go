@@ -98,6 +98,12 @@ func (row *Row) numPosts() (int, int) {
 		index -= 1
 	}
 
+	// check if the row is all posts, if so, divide up the counts between the start and the end
+	if start == len(row.images) {
+		start = len(row.images) / 2
+		end = len(row.images) - start
+	}
+
 	return start, end
 }
 

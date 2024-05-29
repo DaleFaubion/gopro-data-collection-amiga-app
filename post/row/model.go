@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -37,6 +38,10 @@ func (model *Model) em(rounds int, init []Assignment) []Assignment {
 
 		// estimate the parameters
 		model.estimate(best)
+
+		if i%100 == 0 {
+			fmt.Printf("Round %5d: %.4f\n", i, model.logLikelihood(best))
+		}
 	}
 
 	return best
