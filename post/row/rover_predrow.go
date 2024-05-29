@@ -68,15 +68,20 @@ func loadImages(path string, date string) []Image {
 	}
 
 	for _, record := range records {
-		path := record[PATH]
+		imgPath := record[PATH]
 		imgDate := record[DATE]
 		imgTime := record[TIME]
-		camera := cameraNum(path)
+		camera := cameraNum(imgPath)
 		post := record[POST]
+
+		//TODO remove
+		if len(imgPath) < 25 {
+			fmt.Println("Bad path", imgPath)
+		}
 
 		//only include images for the given day
 		if imgDate == date {
-			img := Image{path, imgDate, imgTime, post == "1", -1, camera, ""}
+			img := Image{imgPath, imgDate, imgTime, post == "1", -1, camera, ""}
 			results = append(results, img)
 		}
 
@@ -166,8 +171,6 @@ func writeAssignments(path string, assignments []Assignment) {
 		os.Exit(1)
 	}
 
-	defer file.Close()
-
 	// create a writer
 	writer := csv.NewWriter(file)
 
@@ -176,9 +179,20 @@ func writeAssignments(path string, assignments []Assignment) {
 		for _, row := range assignments[c].rows {
 			for _, img := range row.images {
 				row := []string{img.path, img.date, img.time, fmt.Sprint(img.row), fmt.Sprint(img.cameraNum), img.direction}
-				writer.Write(row)
+				writeErr := writer.Write(row)
+
+				if writeErr != nil {
+					fmt.Println("Error writing row", row)
+				}
 			}
 		}
+	}
+
+	writer.Flush()
+	closeErr := file.Close()
+
+	if closeErr != nil {
+		fmt.Printf("Error closing file: %s", closeErr)
 	}
 }
 
