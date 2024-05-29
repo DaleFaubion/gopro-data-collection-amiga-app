@@ -40,20 +40,11 @@ func cameraNum(path string) int {
 	}
 }
 
-// parseTime finds the time embedded in the path
-func parseTime(path string) string {
-	const TIME = 1
-	parts := strings.Split(path, "/")
-	last := parts[len(parts)-1]
-
-	nameParts := strings.Split(last, "_")
-	return nameParts[TIME]
-}
-
 // loadImages reads a CSV with image metadata
 func loadImages(path string, date string) []Image {
 	const PATH = 0
 	const DATE = 1
+	const TIME = 2
 	const POST = 3
 
 	results := []Image{}
@@ -79,7 +70,7 @@ func loadImages(path string, date string) []Image {
 	for _, record := range records {
 		path := record[PATH]
 		imgDate := record[DATE]
-		imgTime := parseTime(path)
+		imgTime := record[TIME]
 		camera := cameraNum(path)
 		post := record[POST]
 
