@@ -1,9 +1,6 @@
 package main
 
-import (
-	"math"
-	"testing"
-)
+import "testing"
 
 func SimpleImage() Image {
 	img := Image{
@@ -49,7 +46,7 @@ func ThirdImage() Image {
 
 func TestRow_AppendImage_Empty(t *testing.T) {
 	row := Row{}
-	row = row.AppendImage(SimpleImage())
+	row = row.appendImage(SimpleImage())
 
 	if len(row.images) != 1 || row.images[0] != SimpleImage() {
 		t.Error("Image was not added to an empty row")
@@ -60,7 +57,7 @@ func TestRow_AppendImage(t *testing.T) {
 	row := Row{}
 	row.images = append(row.images, SimpleImage())
 
-	row = row.AppendImage(SecondImage())
+	row = row.appendImage(SecondImage())
 
 	if len(row.images) != 2 || row.images[0] != SimpleImage() || row.images[1] != SecondImage() {
 		t.Error("Image was not added to a row with images")
@@ -71,8 +68,8 @@ func TestRow_GiveToStartOf_Empties(t *testing.T) {
 	left := Row{}
 	right := Row{}
 
-	left = left.AppendImage(SimpleImage())
-	left, right = left.GiveToStartOf(&right)
+	left = left.appendImage(SimpleImage())
+	left, right = left.giveToStartOf(&right)
 
 	if len(left.images) != 0 {
 		t.Error("Giving row did not remove image")
@@ -87,11 +84,11 @@ func TestRow_GiveToStartOf(t *testing.T) {
 	left := Row{}
 	right := Row{}
 
-	left = left.AppendImage(SimpleImage())
-	left = left.AppendImage(ThirdImage())
-	right = right.AppendImage(SecondImage())
+	left = left.appendImage(SimpleImage())
+	left = left.appendImage(ThirdImage())
+	right = right.appendImage(SecondImage())
 
-	left, right = left.GiveToStartOf(&right)
+	left, right = left.giveToStartOf(&right)
 
 	if len(left.images) != 1 || left.images[0] != SimpleImage() {
 		t.Error("Giving row does not have the correct images after giveToStartOf")
@@ -104,9 +101,9 @@ func TestRow_GiveToStartOf(t *testing.T) {
 
 func TestRow_HasImages_NonEmpty(t *testing.T) {
 	row := Row{}
-	row = row.AppendImage(SimpleImage())
+	row = row.appendImage(SimpleImage())
 
-	if !row.HasImages() {
+	if !row.hasImages() {
 		t.Error("Row did not have images")
 	}
 }
@@ -114,7 +111,7 @@ func TestRow_HasImages_NonEmpty(t *testing.T) {
 func TestRow_HasImages_Empty(t *testing.T) {
 	row := Row{}
 
-	if row.HasImages() {
+	if row.hasImages() {
 		t.Error("Empty row reported to have images")
 	}
 }
@@ -124,11 +121,11 @@ func TestRow_TakeFromStartOf(t *testing.T) {
 	left := Row{}
 	right := Row{}
 
-	left = left.AppendImage(SimpleImage())
-	right = right.AppendImage(ThirdImage())
-	right = right.AppendImage(SecondImage())
+	left = left.appendImage(SimpleImage())
+	right = right.appendImage(ThirdImage())
+	right = right.appendImage(SecondImage())
 
-	left, right = left.TakeFromStartOf(&right)
+	left, right = left.takeFromStartOf(&right)
 
 	if len(left.images) != 2 || left.images[1] != ThirdImage() {
 		t.Error("The receiving row did not add the image")
@@ -141,59 +138,35 @@ func TestRow_TakeFromStartOf(t *testing.T) {
 
 func TestRow_NumEmpty(t *testing.T) {
 	row := Row{}
-	row = row.AppendImage(SimpleImage())
-	row = row.AppendImage(SecondImage())
-	row = row.AppendImage(ThirdImage())
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(ThirdImage())
 
-	if row.NumEmpty() != 1 {
+	if row.numRegular() != 1 {
 		t.Error("Row did not have the correct number of non-post images")
 	}
 }
 
 func TestRow_NumImages(t *testing.T) {
 	row := Row{}
-	row = row.AppendImage(SimpleImage())
-	row = row.AppendImage(SecondImage())
-	row = row.AppendImage(ThirdImage())
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(ThirdImage())
 
-	if row.NumImages() != 3 {
+	if row.numImages() != 3 {
 		t.Error("Row did not have the correct number of images")
 	}
 }
 
 func TestRow_NumPosts(t *testing.T) {
 	row := Row{}
-	row = row.AppendImage(SimpleImage())
-	row = row.AppendImage(SecondImage())
-	row = row.AppendImage(ThirdImage())
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(ThirdImage())
 
-	if row.NumPosts() != 2 {
-		t.Error("Row did not have the correct number of images with posts")
-	}
-}
+	left, right := row.numPosts()
 
-func Test_LogProb_1(t *testing.T) {
-	prob := PoissonLogProb(1, 1)
-
-	if prob != -1.0 {
-		t.Errorf("Log Poi. prob of 1 with lambda = 1 should be -1 but %f was calculated", prob)
-	}
-}
-
-func Test_LogProb_2(t *testing.T) {
-	const answer = 1.3068528194400546
-	prob := PoissonLogProb(2, 1)
-
-	if math.Abs(prob+answer) > 0.00001 {
-		t.Errorf("Log Poi. prob of 2 with lambda = 1 should be -%f but %f was calculated", answer, prob)
-	}
-}
-
-func Test_LogProb_lambda3_2(t *testing.T) {
-	const answer = 1.4959226032237258
-	prob := PoissonLogProb(3, 2)
-
-	if math.Abs(prob+answer) > 0.00001 {
-		t.Errorf("Log Poi. prob of 1 with lambda = 1 should be -%f but %f was calculated", answer, prob)
+	if left != 0 || right != 2 {
+		t.Errorf("Expected the number of starting posts to be 0 and the ending posts to be 2, but %d and %d was found", left, right)
 	}
 }
