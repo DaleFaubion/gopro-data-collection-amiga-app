@@ -31,6 +31,27 @@ func TestAssignmentGeneration(t *testing.T) {
 	}
 }
 
+func TestGenerateImmutability(t *testing.T) {
+	const factor = 10
+	assignment := newAssignment()
+
+	//add two images to each row
+	for i := 0; i < len(assignment.rows); i++ {
+		for j := 0; j < factor; j++ {
+			assignment.appendImage(i, SimpleImage())
+		}
+	}
+
+	genOne := assignment.generateAssignments()[0]
+
+	genTwo := genOne.generateAssignments()[0]
+
+	// the first row in the two assignments should be different
+	if assignment.rows[0].numImages() == genTwo.rows[0].numImages() {
+		t.Errorf("Expected differing number of images in the two assignments but got %d and %d", assignment.rows[0].numImages(), genTwo.rows[0].numImages())
+	}
+}
+
 func TestShiftLeft(t *testing.T) {
 	const idx = 10
 	const adj = 11
@@ -51,6 +72,10 @@ func TestShiftLeft(t *testing.T) {
 
 	if result.rows[adj].numImages() != 1 {
 		t.Errorf("Expected 1 image, got %d for adjacent row", result.rows[adj].numImages())
+	}
+
+	if result.rows[idx].numImages() == assignment.rows[idx].numImages() {
+		t.Errorf("Original assignment should be unchanged")
 	}
 }
 

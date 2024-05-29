@@ -28,6 +28,7 @@ func (model *Model) em(rounds int, init []Assignment) []Assignment {
 	best := make([]Assignment, len(init))
 	copy(best, init)
 
+	//TODO add check for convergence
 	//for a fixed number of rounds, run the EM algorithms
 	for i := 0; i < rounds; i++ {
 

@@ -89,9 +89,11 @@ func (assignment *Assignment) appendImage(rowIdx int, image Image) {
 
 // update replaces a row in the assignment with a new row
 func (assignment *Assignment) update(index int, row Row) Assignment {
+	newImgs := []Row{}
 	left := assignment.rows[:index]
 	right := assignment.rows[index+1:]
-	results := append(left, row)
+	results := append(newImgs, left...)
+	results = append(results, row)
 	results = append(results, right...)
 	return Assignment{results}
 }
