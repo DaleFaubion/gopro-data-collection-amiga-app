@@ -175,7 +175,7 @@ func writeAssignments(path string, assignments []Assignment) {
 	for c := 0; c < len(assignments); c++ {
 		for _, row := range assignments[c].rows {
 			for _, img := range row.images {
-				row := []string{img.path, img.date, img.time, fmt.Sprint(img.row), fmt.Sprint(img.cameraNum + 1), img.direction}
+				row := []string{img.path, img.date, img.time, fmt.Sprint(img.row), fmt.Sprint(img.cameraNum), img.direction}
 				writer.Write(row)
 			}
 		}
@@ -188,7 +188,7 @@ func main() {
 	// get the commandline arguments
 	// Set up the optional flags
 	rounds := flag.Int("rounds", 1000, "The number of rounds to apply EM")
-	outFile := flag.String("out_file", "", "The path to the CSV file to write with the bay predictions")
+	outFile := flag.String("out", "", "The path to the CSV file to write with the bay predictions")
 
 	flag.Parse()
 
@@ -229,6 +229,7 @@ func main() {
 
 	// write out the results
 	if *outFile != "" {
+		fmt.Println("Writing to ", *outFile)
 		writeAssignments(*outFile, best)
 	}
 }

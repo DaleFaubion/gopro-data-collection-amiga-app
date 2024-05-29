@@ -25,12 +25,15 @@ func NewModel(perRow float64) Model {
 // em performs the expectation-maximization algorithm over all the row assignments, returning the best assignment
 func (model *Model) em(rounds int, init []Assignment) []Assignment {
 
+	i := 0
+	improvement := true
 	best := make([]Assignment, len(init))
+	bestLike := model.logLikelihood(init)
+	currentLike := math.Inf(-1)
 	copy(best, init)
 
-	//TODO add check for convergence
-	//for a fixed number of rounds, run the EM algorithms
-	for i := 0; i < rounds; i++ {
+	//for a fixed number of rounds or until convergence, run the EM algorithms
+	for i < rounds && improvement {
 
 		// predict the best (max) assignment for each camera
 		for c, assignment := range best {
@@ -39,11 +42,22 @@ func (model *Model) em(rounds int, init []Assignment) []Assignment {
 
 		// estimate the parameters
 		model.estimate(best)
+		currentLike = model.logLikelihood(best)
 
-		if i%100 == 0 {
-			fmt.Printf("Round %5d: %.4f\n", i, model.logLikelihood(best))
+		if currentLike > bestLike {
+			bestLike = currentLike
+		} else {
+			improvement = false
 		}
+
+		if i%5 == 0 {
+			fmt.Printf("Round %5d: %.4f\n", i, currentLike)
+		}
+
+		i++
 	}
+
+	fmt.Printf("Round %5d: %.4f\n", i-1, currentLike)
 
 	return best
 }
