@@ -304,12 +304,23 @@ func TestLoadPostData(t *testing.T) {
 }
 
 // NOTE: this function depends upon external files!
-func TestLoadRowData(t *testing.T) {
+/*func TestLoadRowData(t *testing.T) {
 	postData := loadPostData("../pred/post-data/all-2023-posts.csv")
-	rowData := loadRowData(postData, "../pred/row-pred/row-pred-2023-07-03.csv")
+	rowData := loadRowData(postData, "../pred/row-pred-old/row-pred-2023-07-03.csv")
 
 	if len(rowData) != 9458 {
 		t.Errorf("Row file should have 9458 images but %d found\n", len(rowData))
+	}
+}*/
+
+func TestLoadSkipRowData(t *testing.T) {
+	postData := loadPostData("../pred/post-data/all-2023-posts.csv")
+	rowData := loadRowData(postData, "../test-data/row-pred.csv")
+
+	if len(rowData) != 0 {
+		t.Errorf("Row file should have 0 in-bounds images but %d found\n", len(rowData))
+		t.Error("path", rowData[0].path, "date", rowData[0].date, "time", rowData[0].time, "row", rowData[0].row, "camera", rowData[0].cameraNum, "dir", rowData[0].direction)
+		//t.Errorf("Row number %d\n", rowData[0].row)
 	}
 }
 

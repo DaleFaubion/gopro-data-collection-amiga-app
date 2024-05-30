@@ -29,99 +29,7 @@ type Image struct {
 	direction string
 }
 
-// Bay an ent of images to a particular bay in a single row
-type Bay struct {
-	bayNum int
-	images []Image
-}
-
-// AppendImage appends a new image to the bay, returns a new bay
-func (bay *Bay) AppendImage(image Image) Bay {
-	newImages := append(bay.images, image)
-	return Bay{bay.bayNum, newImages}
-}
-
-// PrependImage prepends a new image to the bay, returns a new bay
-func (bay *Bay) PrependImage(image Image) Bay {
-	singleton := []Image{image}
-	newImages := append(singleton, bay.images...)
-	return Bay{bay.bayNum, newImages}
-}
-
-// PopFirst removes and returns the first image, returns a new bay
-func (bay *Bay) PopFirst() (Image, Bay) {
-	first := bay.images[0]
-	rest := bay.images[1:]
-	result := Bay{bay.bayNum, rest}
-	return first, result
-}
-
-// PopLast removes and returns the last image, returns a new bay
-func (bay *Bay) PopLast() (Image, Bay) {
-	last := bay.images[len(bay.images)-1]
-	rest := bay.images[:len(bay.images)-1]
-	result := Bay{bay.bayNum, rest}
-	return last, result
-}
-
-// GiveToStartOf removes an image from the end of this bay and gives it to the start of the other bay, returns
-// two new bays
-func (bay *Bay) GiveToStartOf(other *Bay) (Bay, Bay) {
-	toGive, newLeft := bay.PopLast()
-	newRight := other.PrependImage(toGive)
-	return newLeft, newRight
-}
-
-// TakeFromStartOf takes the first image from the other bay and appends it to this one, returns two new bays
-func (bay *Bay) TakeFromStartOf(other *Bay) (Bay, Bay) {
-	toGive, newRight := other.PopFirst()
-	newLeft := bay.AppendImage(toGive)
-	return newLeft, newRight
-}
-
-// HasImages returns true if there are images in the bay
-func (bay *Bay) HasImages() bool {
-	return len(bay.images) > 0
-}
-
-// NumPosts returns the number of images that contain a post in the bay
-func (bay *Bay) NumPosts() int {
-	count := 0
-
-	for _, image := range bay.images {
-		if image.hasPost {
-			count++
-		}
-	}
-
-	return count
-}
-
-// NumEmpty returns the number of images that do not contain a post in the bay
-func (bay *Bay) NumEmpty() int {
-	return bay.NumImages() - bay.NumPosts()
-}
-
-// NumImages returns the number of images in the bay
-func (bay *Bay) NumImages() int {
-	return len(bay.images)
-}
-
-// RowAssignment the ent of images to bays in a single row
-type RowAssignment struct {
-	rowNum int
-	bays   []Bay
-}
-
-// NewRowAssignment creates a new row ent
-func NewRowAssignment(rowNum int) RowAssignment {
-	ent := RowAssignment{}
-	ent.rowNum = rowNum
-	ent.bays = make([]Bay, NUM_BAYS)
-	return ent
-}
-
-// NewCameraAssignment creates an ent
+// NewCameraAssignment creates an empty assignment for all the rows, for a single camera
 func NewCameraAssignment() CameraAssignment {
 	results := make([]RowAssignment, NUM_ROWS)
 
@@ -141,107 +49,6 @@ func NewVineyardAssignment() []CameraAssignment {
 	}
 
 	return results
-}
-
-// ReplaceBays update the ent, with a bay, creates a new ent
-func (row *RowAssignment) ReplaceBays(firstIdx int, left Bay, secondIdx int, right Bay) RowAssignment {
-	newBays := make([]Bay, len(row.bays))
-	copy(newBays, row.bays)
-	newBays[firstIdx] = left
-	newBays[secondIdx] = right
-	return RowAssignment{row.rowNum, newBays}
-}
-
-// NumImages counts up the number of images in the row
-func (row *RowAssignment) NumImages() int {
-	total := 0
-
-	for _, bay := range row.bays {
-		total += bay.NumImages()
-	}
-
-	return total
-}
-
-//generateAssignments creates new ents by moving single images to adjacent bays
-func (row *RowAssignment) generateAssignments() []RowAssignment {
-	var results []RowAssignment
-
-	// generate two new ents per each pair of bays, i.e. move an image from left to right and
-	// from right to left
-	for i := 0; i < len(row.bays)-1; i++ {
-		left := row.bays[i]
-		right := row.bays[i+1]
-
-		if right.NumImages() > 1 {
-			toLeftLeft, toLeftRight := left.TakeFromStartOf(&right)
-			first := row.ReplaceBays(i, toLeftLeft, i+1, toLeftRight)
-			results = append(results, first)
-		}
-
-		if left.NumImages() > 1 {
-			toRightLeft, toRightRight := left.GiveToStartOf(&right)
-			second := row.ReplaceBays(i, toRightLeft, i+1, toRightRight)
-			results = append(results, second)
-		}
-	}
-
-	return results
-}
-
-type BayModel struct {
-	imageLambda float64
-	postLambda  float64
-}
-
-// RowLogLikelihood computes the likelihood of the row ent
-func (model *BayModel) rowLogLikelihood(row *RowAssignment) float64 {
-
-	like := 0.0
-
-	for _, bay := range row.bays {
-
-		// compute the probability of the regular images
-		reg := PoissonLogProb(model.imageLambda, bay.NumEmpty())
-
-		// compute the probability of the post images
-		post := PoissonLogProb(model.postLambda, bay.NumPosts())
-
-		like += reg + post
-	}
-
-	return like
-}
-
-// LogLikelihood computes the score for the whole ent
-func (model *BayModel) logLikelihood(rows CameraAssignment) float64 {
-	like := 0.0
-
-	for _, row := range rows {
-		like += model.rowLogLikelihood(&row)
-	}
-
-	return like
-}
-
-// PoissonLogProb computes the log probability of a count under a Poisson distribution
-func PoissonLogProb(lambda float64, count int) float64 {
-	if count <= 0 {
-		// use a very small probability instead of zero
-		return math.Log(0.00000000001)
-	} else {
-		// the numerator is lambda^k e^-lambda i.e. in log space: k ln lambda - lambda
-		num := (float64(count) * math.Log(lambda)) - lambda
-		denom := 0.0
-
-		// the denominator is the sum of 1 to k i.e. the log of the factorial of the count
-		for i := 1; i <= count; i++ {
-			denom += math.Log(float64(i))
-		}
-
-		// in log space, the numerator over the denominator is simply subtraction
-		return num - float64(denom)
-	}
 }
 
 // loadPostData loads the post predictions from a given CSV file
@@ -283,6 +90,12 @@ func loadPostData(path string) map[string]bool {
 	return results
 }
 
+// validRows returns true if the row number is within the bounds of the block i.e. a couple row 0 and 22 are actually
+// of other blocks
+func validRows(rowIdx int) bool {
+	return rowIdx > 0 && rowIdx <= NUM_ROWS
+}
+
 // loadRowData reads the CSV file and constructs an array of images
 func loadRowData(posts map[string]bool, path string) []Image {
 	const pathIdx = 0
@@ -309,14 +122,17 @@ func loadRowData(posts map[string]bool, path string) []Image {
 		return []Image{}
 	}
 
-	results := make([]Image, len(records))
+	var results []Image
 
-	for i, record := range records {
+	for _, record := range records {
 		row, _ := strconv.Atoi(record[rowIdx])
-		path := record[pathIdx]
-		camera, _ := strconv.Atoi(record[cameraIdx])
-		newImage := Image{path, record[dateIdx], record[timeIdx], posts[path], row, camera, record[dirIdx]}
-		results[i] = newImage
+
+		if validRows(row) {
+			imgPath := record[pathIdx]
+			camera, _ := strconv.Atoi(record[cameraIdx])
+			newImage := Image{imgPath, record[dateIdx], record[timeIdx], posts[imgPath], row, camera, record[dirIdx]}
+			results = append(results, newImage)
+		}
 	}
 
 	return results
@@ -370,105 +186,6 @@ func makeInitialGroups(images []Image) []CameraAssignment {
 	return results
 }
 
-// initialModel creates an initial model based on the
-func initialModel(images []Image) BayModel {
-
-	// create a set of parameters per row
-	emptyCounts := 0.0
-	postCounts := 0.0
-	denom := float64(NUM_ROWS * NUM_BAYS)
-
-	// for each image, increment the counts
-	for _, image := range images {
-		if image.hasPost {
-			postCounts += 1
-		} else {
-			emptyCounts += 1
-		}
-	}
-
-	// normalize
-	return BayModel{emptyCounts / denom, postCounts / denom}
-}
-
-// em runs the expectation maximization algorithm to find the best row ent
-func em(model *BayModel, init []CameraAssignment, rounds int) []CameraAssignment {
-
-	results := init
-
-	// for a fixed number of iterations, run the EM algo
-	for i := 0; i < rounds; i++ {
-
-		for j := 0; j < CAMERAS; j++ {
-			// for each row, find the best ent
-			for k := 0; k < len(results); k++ {
-				results[j][k] = maxRow(model, results[j][k])
-			}
-		}
-
-		// estimate the model parameters
-		expectedModel(model, results)
-	}
-
-	return results
-}
-
-// maxRow find the row that maximizes the likelihood under the current model
-func maxRow(model *BayModel, row RowAssignment) RowAssignment {
-
-	done := false
-	best := row
-	bestScore := model.rowLogLikelihood(&best)
-
-	// until there is no improvement, greedily try different ents
-	for !done {
-
-		done = true
-
-		// generate a collection of ents
-		candidates := best.generateAssignments()
-
-		// evaluate all the ents and pick the best
-		for _, candidate := range candidates {
-
-			score := model.rowLogLikelihood(&candidate)
-
-			//if it is an improvement, remember it and continue
-			if score > bestScore {
-				best = candidate
-				bestScore = score
-				done = false
-			}
-		}
-
-	}
-
-	return best
-}
-
-// expectedModel updates the models parameters based on the current ent
-func expectedModel(model *BayModel, init []CameraAssignment) {
-
-	avgEmpty := 0.0
-	avgPost := 0.0
-	total := 0
-
-	// average the number of empty images in all the bays and cameras
-	for c := 0; c < CAMERAS; c++ {
-		for i := 0; i < len(init[c]); i++ {
-			for j := 0; j < len(init[c][i].bays); j++ {
-				avgEmpty += float64(init[c][i].bays[j].NumEmpty())
-				avgPost += float64(init[c][i].bays[j].NumPosts())
-				total += 1
-			}
-		}
-	}
-
-	//average the number of post images in all the bays
-	model.imageLambda = avgEmpty / float64(total)
-	model.postLambda = avgPost / float64(total)
-}
-
 // ShowRows prints off the row ents
 func showRows(rows []CameraAssignment) {
 
@@ -504,8 +221,6 @@ func writeBays(path string, bays []CameraAssignment) {
 		os.Exit(1)
 	}
 
-	defer file.Close()
-
 	// create the writer
 	writer := csv.NewWriter(file)
 
@@ -528,18 +243,25 @@ func writeBays(path string, bays []CameraAssignment) {
 			}
 		}
 	}
+
+	writer.Flush()
+	closeErr := file.Close()
+
+	if closeErr != nil {
+		fmt.Println("Error closing file: ", closeErr)
+	}
 }
 
 func main() {
 
 	// Set up the optional flags
-	rounds := flag.Int("rounds", 5, "The number of rounds to apply EM")
-	outFile := flag.String("out_file", "", "The path to the CSV file to write with the bay predictions")
+	rounds := flag.Int("rounds", 500, "The number of rounds to apply EM")
+	outFile := flag.String("out", "", "The path to the CSV file to write with the bay predictions")
 
 	flag.Parse()
 
 	if len(flag.Args()) < 2 {
-		fmt.Printf("Usage: <row file> <post file> [out file]\n")
+		fmt.Printf("Usage: <row file> <post file>\n")
 		os.Exit(1)
 	}
 
@@ -574,7 +296,7 @@ func main() {
 	showRows(start)
 
 	// use EM to correct the ents
-	result := em(&model, start, *rounds)
+	result := model.em(start, *rounds)
 
 	fmt.Println("Results")
 
