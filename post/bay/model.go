@@ -111,15 +111,15 @@ func (model *BayModel) maxRow(row RowAssignment) RowAssignment {
 	best := row
 	bestScore := model.rowLogLikelihood(&best)
 
-	// until there is no improvement, greedily try different ents
+	// until there is no improvement, greedily try different candiates
 	for !done {
 
 		done = true
 
-		// generate a collection of ents
+		// generate a collection of candidates
 		candidates := best.generateAssignments()
 
-		// evaluate all the ents and pick the best
+		// evaluate all the candidates and pick the best
 		for _, candidate := range candidates {
 
 			score := model.rowLogLikelihood(&candidate)
@@ -166,7 +166,7 @@ func initialModel(images []Image) BayModel {
 	// create a set of parameters per row
 	emptyCounts := 0.0
 	postCounts := 0.0
-	denom := float64(NUM_ROWS * NUM_BAYS)
+	denom := float64(NUM_ROWS * NUM_BAYS * CAMERAS)
 
 	// for each image, increment the counts
 	for _, image := range images {

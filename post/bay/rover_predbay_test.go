@@ -41,7 +41,7 @@ func ThirdImage() Image {
 		true,
 		1,
 		3,
-		"West",
+		"East",
 	}
 
 	return img
@@ -256,6 +256,7 @@ func TestMakeInitialGroups(t *testing.T) {
 	for c := 0; c < CAMERAS; c++ {
 		for i := 0; i < NUM_BAYS; i++ {
 			total += assignments[c][0].bays[i].NumImages()
+			total += assignments[c][1].bays[i].NumImages()
 		}
 	}
 
@@ -285,6 +286,11 @@ func TestMakeInitialGroups(t *testing.T) {
 		rows := assignments[i]
 		row := rows[0]
 
+		//camera 1 has a different orientation so the images end up in a different row
+		if i == 0 {
+			row = rows[1]
+		}
+
 		for j, bay := range row.bays {
 
 			if bay.NumImages() != perBayNum {
@@ -301,19 +307,50 @@ func TestLoadPostData(t *testing.T) {
 	if len(postData) != 3688 {
 		t.Errorf("File should have 3688 images but %d found\n", len(postData))
 	}
+
+	posts := 0
+
+	for _, post := range postData {
+		if post {
+			posts++
+		}
+	}
+
+	if posts == 0 {
+		t.Errorf("Some posts should have been loaded")
+	}
 }
 
 // NOTE: this function depends upon external files!
-/*func TestLoadRowData(t *testing.T) {
-	postData := loadPostData("../pred/post-data/all-2023-posts.csv")
+func TestLoadRowData(t *testing.T) {
+	postData := loadPostData("../pred/post-pred/all-2023-posts.csv")
 	rowData := loadRowData(postData, "../pred/row-pred-old/row-pred-2023-07-03.csv")
+
+	if len(postData) != 99770 {
+		t.Errorf("Post file should have 99770 images but %d found\n", len(postData))
+	}
 
 	if len(rowData) != 9458 {
 		t.Errorf("Row file should have 9458 images but %d found\n", len(rowData))
 	}
-}*/
 
-func TestLoadSkipRowData(t *testing.T) {
+	//check that the correct number of post images: 6608 (maybe 6658?)
+	posts := 0
+
+	for _, img := range rowData {
+		if img.hasPost {
+			posts++
+		}
+	}
+
+	if posts != 6608 {
+		t.Errorf("Expected 6658 images with posts but found %d\n", posts)
+		t.Error()
+	}
+}
+
+//TODO moved the logic to skip to edge rows to makeInitialGroups
+/*func TestLoadSkipRowData(t *testing.T) {
 	postData := loadPostData("../pred/post-data/all-2023-posts.csv")
 	rowData := loadRowData(postData, "../test-data/row-pred.csv")
 
@@ -322,7 +359,7 @@ func TestLoadSkipRowData(t *testing.T) {
 		t.Error("path", rowData[0].path, "date", rowData[0].date, "time", rowData[0].time, "row", rowData[0].row, "camera", rowData[0].cameraNum, "dir", rowData[0].direction)
 		//t.Errorf("Row number %d\n", rowData[0].row)
 	}
-}
+}*/
 
 func Test_LogProb_1(t *testing.T) {
 	prob := PoissonLogProb(1, 1)

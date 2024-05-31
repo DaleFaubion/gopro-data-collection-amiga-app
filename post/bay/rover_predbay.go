@@ -9,12 +9,17 @@ import (
 	"strconv"
 )
 
+//TODO need to make the model have posts on each side like row model
+//TODO need to check/test that post information is being loaded
+
 // major types: Image, Bay, Assignment
 // also Model
 
 const NUM_ROWS = 21
 const NUM_BAYS = 21
 const CAMERAS = 4
+const WEST = "West"
+const EAST = "East"
 
 type CameraAssignment = []RowAssignment
 
@@ -54,14 +59,15 @@ func NewVineyardAssignment() []CameraAssignment {
 // loadPostData loads the post predictions from a given CSV file
 func loadPostData(path string) map[string]bool {
 	const pathIdx = 0
-	const postIdx = 2
-	const hasPost = 1
+	const postIdx = 3
+	const hasPost = "1"
 
 	data, fileErr := os.Open(path)
 
 	//return nothing on error
 	if fileErr != nil {
-		return make(map[string]bool)
+		fmt.Println("Cannot open posts file: ", path, " Error: ", fileErr)
+		os.Exit(1)
 	}
 
 	defer data.Close()
@@ -72,19 +78,16 @@ func loadPostData(path string) map[string]bool {
 
 	// return nothing on error
 	if err != nil {
-		return make(map[string]bool)
+		fmt.Println("Cannot parse posts file: ", path, "Error: ", err)
+		os.Exit(1)
 	}
 
 	results := make(map[string]bool)
 
 	// build a map from path name to bool (has post or not)
 	for _, record := range records {
-		path := record[pathIdx]
-		post, postErr := strconv.Atoi(record[postIdx])
-
-		if postErr != nil {
-			results[path] = post == hasPost
-		}
+		imgPath := record[pathIdx]
+		results[imgPath] = record[postIdx] == hasPost
 	}
 
 	return results
@@ -127,15 +130,17 @@ func loadRowData(posts map[string]bool, path string) []Image {
 	for _, record := range records {
 		row, _ := strconv.Atoi(record[rowIdx])
 
-		if validRows(row) {
-			imgPath := record[pathIdx]
-			camera, _ := strconv.Atoi(record[cameraIdx])
-			newImage := Image{imgPath, record[dateIdx], record[timeIdx], posts[imgPath], row, camera, record[dirIdx]}
-			results = append(results, newImage)
-		}
+		imgPath := record[pathIdx]
+		camera, _ := strconv.Atoi(record[cameraIdx])
+		newImage := Image{imgPath, record[dateIdx], record[timeIdx], posts[imgPath], row, camera, record[dirIdx]}
+		results = append(results, newImage)
 	}
 
 	return results
+}
+
+func isLeftCamera(cameraIdx int) bool {
+	return cameraIdx == 1 || cameraIdx == 2
 }
 
 // MakeInitialGroups creates an ent for each row based on the data and the row/bay constraints
@@ -153,7 +158,17 @@ func makeInitialGroups(images []Image) []CameraAssignment {
 		rowIdx := image.row - 1
 		camera := image.cameraNum - 1
 
-		if rowIdx < NUM_ROWS {
+		// unpack images into their own rows based on orientation
+		if image.direction == WEST {
+			//the left cameras are only on odd rows, move this image to the otherwise empty next even row
+			if isLeftCamera(image.cameraNum) {
+				rowIdx++
+			} else {
+				rowIdx--
+			}
+		}
+
+		if 0 <= rowIdx && rowIdx < NUM_ROWS {
 			rows[camera][rowIdx] = append(rows[camera][rowIdx], image)
 		}
 	}
@@ -195,11 +210,11 @@ func showRows(rows []CameraAssignment) {
 
 		// print off each row
 		for i, row := range rows[c] {
-			fmt.Printf("%2d | ", i)
+			fmt.Printf("%2d|", i)
 
 			// print off all the bays
 			for _, bay := range row.bays {
-				fmt.Printf("%4d | ", bay.NumImages())
+				fmt.Printf("%2d+%2d=%2d|", bay.NumPosts(), bay.NumEmpty(), bay.NumImages())
 			}
 
 			fmt.Println()
@@ -207,6 +222,11 @@ func showRows(rows []CameraAssignment) {
 
 		fmt.Println()
 	}
+}
+
+//showModel print off the model's parameters
+func showModel(model BayModel) {
+	fmt.Printf("Bay Model: Post: %.4f, No Post: %.4f\n", model.postLambda, model.imageLambda)
 }
 
 // WriteBays write out the pay predictions to the given file path
@@ -285,22 +305,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	// make an initial ent
-	model := initialModel(images)
-
 	// make an initial model
 	start := makeInitialGroups(images)
 
-	fmt.Println("Starting Groups")
+	// make an initial assignments
+	model := initialModel(images)
 
+	fmt.Println("Starting Groups")
+	showModel(model)
 	showRows(start)
 
-	// use EM to correct the ents
+	// use EM to correct the assignments
 	result := model.em(start, *rounds)
 
 	fmt.Println("Results")
+	showModel(model)
 
-	// show the row ent
+	// show the row assignments
 	showRows(result)
 
 	// if an output file is given, write to it
