@@ -55,25 +55,42 @@ func (bay *Bay) HasImages() bool {
 	return len(bay.images) > 0
 }
 
-// NumPosts returns the number of images that contain a post in the bay
-func (bay *Bay) NumPosts() int {
-	count := 0
-
-	for _, image := range bay.images {
-		if image.hasPost {
-			count++
-		}
-	}
-
-	return count
-}
-
 // NumEmpty returns the number of images that do not contain a post in the bay
 func (bay *Bay) NumEmpty() int {
-	return bay.NumImages() - bay.NumPosts()
+	start, end := bay.NumPosts()
+	return bay.NumImages() - start - end
 }
 
 // NumImages returns the number of images in the bay
 func (bay *Bay) NumImages() int {
 	return len(bay.images)
+}
+
+// NumPosts returns the number of images that contain a post in the both the start and end of a bay
+func (bay *Bay) NumPosts() (int, int) {
+	start := 0
+	end := 0
+	index := 0
+
+	// count all the starting images with posts
+	for index < len(bay.images) && bay.images[index].hasPost {
+		start += 1
+		index += 1
+	}
+
+	//count all the end images with posts
+	index = len(bay.images) - 1
+
+	for index >= 0 && bay.images[index].hasPost {
+		end += 1
+		index -= 1
+	}
+
+	// check if the bay is all posts, if so, divide up the counts between the start and the end
+	if start == len(bay.images) {
+		start = len(bay.images) / 2
+		end = len(bay.images) - start
+	}
+
+	return start, end
 }

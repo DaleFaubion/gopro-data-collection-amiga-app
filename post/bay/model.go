@@ -6,8 +6,9 @@ import (
 )
 
 type BayModel struct {
+	startLambda float64
 	imageLambda float64
-	postLambda  float64
+	endLambda   float64
 }
 
 // RowLogLikelihood computes the likelihood of the row ent
@@ -17,13 +18,17 @@ func (model *BayModel) rowLogLikelihood(row *RowAssignment) float64 {
 
 	for _, bay := range row.bays {
 
+		start, end := bay.NumPosts()
+
 		// compute the probability of the regular images
 		reg := PoissonLogProb(model.imageLambda, bay.NumEmpty())
 
 		// compute the probability of the post images
-		post := PoissonLogProb(model.postLambda, bay.NumPosts())
+		startLike := PoissonLogProb(model.startLambda, start)
 
-		like += reg + post
+		endLike := PoissonLogProb(model.endLambda, end)
+
+		like += reg + startLike + endLike
 	}
 
 	return like
@@ -111,7 +116,7 @@ func (model *BayModel) maxRow(row RowAssignment) RowAssignment {
 	best := row
 	bestScore := model.rowLogLikelihood(&best)
 
-	// until there is no improvement, greedily try different candiates
+	// until there is no improvement, greedily try different candidates
 	for !done {
 
 		done = true
@@ -141,15 +146,18 @@ func (model *BayModel) maxRow(row RowAssignment) RowAssignment {
 func (model *BayModel) expectedModel(init []CameraAssignment) {
 
 	avgEmpty := 0.0
-	avgPost := 0.0
+	avgStart := 0.0
+	avgEnd := 0.0
 	total := 0
 
 	// average the number of empty images in all the bays and cameras
 	for c := 0; c < CAMERAS; c++ {
 		for i := 0; i < len(init[c]); i++ {
-			for j := 0; j < len(init[c][i].bays); j++ {
-				avgEmpty += float64(init[c][i].bays[j].NumEmpty())
-				avgPost += float64(init[c][i].bays[j].NumPosts())
+			for _, bay := range init[c][i].bays {
+				start, end := bay.NumPosts()
+				avgEmpty += float64(bay.NumEmpty())
+				avgStart += float64(start)
+				avgEnd += float64(end)
 				total += 1
 			}
 		}
@@ -157,7 +165,8 @@ func (model *BayModel) expectedModel(init []CameraAssignment) {
 
 	//average the number of post images in all the bays
 	model.imageLambda = avgEmpty / float64(total)
-	model.postLambda = avgPost / float64(total)
+	model.startLambda = avgStart / float64(total)
+	model.endLambda = avgEnd / float64(total)
 }
 
 // initialModel creates an initial model based on the
@@ -166,7 +175,7 @@ func initialModel(images []Image) BayModel {
 	// create a set of parameters per row
 	emptyCounts := 0.0
 	postCounts := 0.0
-	denom := float64(NUM_ROWS * NUM_BAYS * CAMERAS)
+	total := float64(NUM_ROWS * NUM_BAYS * CAMERAS)
 
 	// for each image, increment the counts
 	for _, image := range images {
@@ -177,8 +186,11 @@ func initialModel(images []Image) BayModel {
 		}
 	}
 
+	postLambda := (postCounts / 2) / total
+	emptyLambda := emptyCounts / total
+
 	// normalize
-	return BayModel{emptyCounts / denom, postCounts / denom}
+	return BayModel{postLambda, emptyLambda, postLambda}
 }
 
 // PoissonLogProb computes the log probability of a count under a Poisson distribution

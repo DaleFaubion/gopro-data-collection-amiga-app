@@ -167,7 +167,9 @@ func TestBay_NumPosts(t *testing.T) {
 	bay = bay.AppendImage(SecondImage())
 	bay = bay.AppendImage(ThirdImage())
 
-	if bay.NumPosts() != 2 {
+	start, end := bay.NumPosts()
+
+	if start+end != 2 {
 		t.Error("Bay did not have the correct number of images with posts")
 	}
 }
@@ -389,17 +391,18 @@ func Test_LogProb_lambda3_2(t *testing.T) {
 
 func TestModel_LogLikelihood(t *testing.T) {
 	row := NewRowAssignment(1)
-	model := BayModel{1.0, 1.0}
+	model := BayModel{1.0, 1.0, 1.0}
 
 	//add images to each bay
 	for i := 0; i < len(row.bays); i++ {
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
 		row.bays[i] = row.bays[i].AppendImage(SimpleImage())
 		row.bays[i] = row.bays[i].AppendImage(SecondImage())
 	}
 
 	like := model.rowLogLikelihood(&row)
 
-	if math.Abs(like+42.0) > .00001 {
-		t.Errorf("The likelihood should be around -42 but is %.4f", like)
+	if math.Abs(like+63.0) > .00001 {
+		t.Errorf("The likelihood should be around -63 but is %.4f", like)
 	}
 }

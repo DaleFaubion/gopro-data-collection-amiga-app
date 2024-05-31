@@ -10,7 +10,6 @@ import (
 )
 
 //TODO need to make the model have posts on each side like row model
-//TODO need to check/test that post information is being loaded
 
 // major types: Image, Bay, Assignment
 // also Model
@@ -214,7 +213,8 @@ func showRows(rows []CameraAssignment) {
 
 			// print off all the bays
 			for _, bay := range row.bays {
-				fmt.Printf("%2d+%2d=%2d|", bay.NumPosts(), bay.NumEmpty(), bay.NumImages())
+				start, end := bay.NumPosts()
+				fmt.Printf("%2d+%2d+%2d=%2d|", start, bay.NumEmpty(), end, bay.NumImages())
 			}
 
 			fmt.Println()
@@ -226,7 +226,7 @@ func showRows(rows []CameraAssignment) {
 
 //showModel print off the model's parameters
 func showModel(model BayModel) {
-	fmt.Printf("Bay Model: Post: %.4f, No Post: %.4f\n", model.postLambda, model.imageLambda)
+	fmt.Printf("Bay Model: Start: %.4f, Mid: %.4f, End: %.4f\n", model.startLambda, model.imageLambda, model.endLambda)
 }
 
 // WriteBays write out the pay predictions to the given file path
