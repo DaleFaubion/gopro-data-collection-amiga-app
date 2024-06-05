@@ -35,9 +35,12 @@ class Model(nn.Module):
 			train_data.shuffle()
 			
 			# for each training batch, make a prediction, measure the loss, and update
-			for inst, target in train_data.aug_iter():
+			for inst, target in train_data.no_aug_iter():
 				self.zero_grad()
 				pred = self(inst.cuda())
+
+				#TODO remove
+				#print(target)
 
 				loss = self.loss_function(pred, target.cuda())
 				total_loss += loss.cpu().data.item()
@@ -85,16 +88,18 @@ class Mk5(Model):
 
 		self.sequential = nn.Sequential(
 			#nn.InstanceNorm2d(3),
-			nn.BatchNorm2d(3),
+			#nn.BatchNorm2d(3),
 			nn.Conv2d(3, hidden, 5, 2, 2),
 			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0),
 			nn.Conv2d(hidden, hidden, 5, 2, 2),
 			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0),
+			nn.BatchNorm2d(hidden),
 			nn.Conv2d(hidden, hidden, 5, 2, 2),
 			nn.ReLU(),
 			nn.AvgPool2d(2, 2, 0),
+			nn.BatchNorm2d(hidden),
 			nn.Conv2d(hidden, hidden, 5, 1, 1),
 			nn.ReLU())
 		self.mlp= nn.Sequential(nn.Linear(70 * hidden, hidden),
@@ -115,3 +120,113 @@ class Mk5(Model):
 
 		return tensor
 
+class VGG16(Model):
+
+	def __init__(self, hidden):
+		super().__init__()
+
+		self.class_weights = t.tensor([1.0, 1.5])
+
+		self.hidden = hidden
+		self.sequential = nn.Sequential(
+			nn.BatchNorm2d(3),
+			nn.Conv2d(3, hidden, 3, 1, 2),
+			nn.ReLU(),
+			nn.Conv2d(hidden, hidden, 3, 1, 2),
+			nn.ReLU(),
+			nn.MaxPool2d(2, 2, 1),
+			nn.BatchNorm2d(hidden),
+
+			nn.Conv2d(hidden, hidden, 3, 1, 2),
+			nn.ReLU(),
+			nn.Conv2d(hidden, hidden, 3, 2, 2),
+			nn.ReLU(),
+			nn.MaxPool2d(2, 2, 1),
+			nn.BatchNorm2d(hidden),
+
+			nn.Conv2d(hidden, hidden, 3, 1, 2),
+			nn.ReLU(),
+			nn.Conv2d(hidden, hidden, 3, 1, 2),
+			nn.ReLU(),
+			nn.Conv2d(hidden, hidden, 3, 2, 2),
+			nn.ReLU(),
+			nn.MaxPool2d(2, 2, 1),
+			nn.BatchNorm2d(hidden),
+
+			nn.Conv2d(hidden, hidden, 3, 1, 2),
+			nn.ReLU(),
+			nn.Conv2d(hidden, hidden, 3, 1, 2),
+			nn.ReLU(),
+			nn.Conv2d(hidden, hidden, 3, 2, 2),
+			nn.ReLU(),
+			nn.MaxPool2d(2, 2, 1),
+			nn.BatchNorm2d(hidden),
+
+			nn.Conv2d(hidden, hidden, 3, 1, 2),
+			nn.ReLU(),
+			nn.Conv2d(hidden, hidden, 3, 1, 2),
+			nn.ReLU(),
+			nn.Conv2d(hidden, hidden, 3, 2, 2),
+			nn.ReLU(),
+			nn.MaxPool2d(2, 2, 1),
+			nn.BatchNorm2d(hidden))
+		self.sequential2 = nn.Sequential(nn.Linear(20*hidden, hidden),
+			nn.ReLU(),
+			nn.Linear(hidden, 2))
+		self.loss_function = nn.CrossEntropyLoss(self.class_weights)
+
+	def forward(self, tensor):
+		"""
+		Applies the model to the given tensor
+		"""
+		batch, _, _, _ = tensor.size()
+		tensor = self.sequential(tensor)
+		tensor = t.reshape(tensor, (batch, 20 * self.hidden))
+		tensor = self.sequential2(tensor)
+
+		return tensor
+
+class VGG8(Model):
+
+	def __init__(self, hidden):
+		super().__init__()
+
+		self.class_weights = t.tensor([1.0, 1.5])
+
+		self.hidden = hidden
+		self.sequential = nn.Sequential(
+										nn.Conv2d(3, hidden, 3, 1, 2),
+										nn.ReLU(),
+										nn.Conv2d(hidden, hidden, 3, 2, 2),
+										nn.ReLU(),
+										nn.MaxPool2d(2, 2, 1),
+										nn.BatchNorm2d(hidden),
+										nn.Conv2d(hidden, hidden, 3, 1, 2),
+										nn.ReLU(),
+										nn.Conv2d(hidden, hidden, 3, 2, 2),
+										nn.ReLU(),
+										nn.MaxPool2d(2, 2, 1),
+										nn.BatchNorm2d(hidden),
+										nn.Conv2d(hidden, hidden, 3, 1, 2),
+										nn.ReLU(),
+										nn.Conv2d(hidden, hidden, 3, 1, 2),
+										nn.ReLU(),
+										nn.Conv2d(hidden, hidden, 3, 2, 2),
+										nn.ReLU(),
+										nn.MaxPool2d(2, 2, 1),
+										nn.BatchNorm2d(hidden))
+		self.sequential2 = nn.Sequential(nn.Linear(180*hidden, hidden),
+										 nn.ReLU(),
+										 nn.Linear(hidden, 2))
+		self.loss_function = nn.CrossEntropyLoss(self.class_weights)
+
+	def forward(self, tensor):
+		"""
+		Applies the model to the given tensor
+		"""
+		batch, _, _, _ = tensor.size()
+		tensor = self.sequential(tensor)
+		tensor = t.reshape(tensor, (batch, 180 * self.hidden))
+		tensor = self.sequential2(tensor)
+
+		return tensor

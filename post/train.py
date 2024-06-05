@@ -11,11 +11,11 @@ import numpy as np
 from torchvision import transforms as tt
 from torchvision.transforms import functional as tf
 
-from postmodel import Mk5
+from postmodel import Mk5, VGG16, VGG8
 from quant import make_predictions, overall_f1, class_f1_scores, NAMES, ibatch, write_errors
 
 Options = namedtuple("Options", ["hidden", "batch_size", "epochs", "min_epochs", 
-	"learning_rate", "reg", "seed", "model_file"])
+	"learning_rate", "reg", "seed", "model_file", "use_vgg"])
 
 TRAIN_PROP = .70
 DEV_PROP = .1 / (1.0 - TRAIN_PROP)
@@ -39,7 +39,12 @@ def main(anno_file_path, options):
 	print("Dev", dev.counts(), sep="\n")
 	print("Testing", test.counts(), sep="\n")
 
-	model = Mk5(options.hidden)
+	if options.use_vgg:
+		print("Using VGG")
+		model = VGG16(options.hidden)
+	else:
+		print("Using LeNet")
+		model = Mk5(options.hidden)
 
 	print("Training Model")
 	print("Number of parameters", model.num_parameters())
@@ -95,9 +100,10 @@ class Dataset:
 		self.names = data
 		self.aug = tt.Compose([
 								 #tt.RandomRotation(10),
-								 tt.RandomHorizontalFlip(),
+								 tt.RandomHorizontalFlip()
 								 #tt.RandomPerspective(.1)  #causes warning
-								 #tt.ColorJitter(brightness=0.5)
+								 #tt.ColorJitter(brightness=0.5),
+                                 #tt.RandomAffine(0, scale=(.8, 1.2))
 								 #tt.GaussianBlur((5,5), (0.001, .5))
 								])
 
@@ -127,13 +133,13 @@ class Dataset:
 
 	def augment_data(self, img):
 		
-		img = self.aug(img)
+		#img = self.aug(img)
 		
 		# sample a random brightness factor
-		brightness = uniform(.5, 1.75)
+		#brightness = uniform(.5, 1.75)
 
-		return tf.adjust_brightness(img, brightness)
-		#return img
+		#return tf.adjust_brightness(img, brightness)
+		return img
 
 
 	def load_data(self, augment=False):
@@ -161,10 +167,12 @@ class Dataset:
 		Returns the image as a tensor
 		"""
 		# make into a tensor and put the channels in font to match
-		# pytorch's convension (resize and cnn)
+		# pytorch's convention (resize and cnn)
 		return t.tensor(np.array(pil_img), dtype=t.float).permute(2, 0, 1)
 
-	
+	def no_aug_iter(self):
+		return self.load_data(False)
+
 	def flat_iter(self):
 		return self.annos
 
@@ -250,12 +258,13 @@ if __name__ == "__main__":
 	parser.add_argument("-seed", type=int, default=42, \
 		help="Random seed")
 
+	parser.add_argument("-vgg16", action="store_true", help="Use a VGG-16 model")
 
 	parser.add_argument("-o", default="best_model", help="The name of the model file")
 
 	args = parser.parse_args()
 
 	opts = Options(args.hidden, args.batch_size, args.epochs, args.min_epochs, \
-		args.learning_rate, args.regularizer, args.seed, args.o + ".p")
+		args.learning_rate, args.regularizer, args.seed, args.o + ".p", args.vgg16)
 
 	main(args.annotation_file, opts)
