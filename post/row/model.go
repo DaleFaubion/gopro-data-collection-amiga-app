@@ -66,15 +66,23 @@ func (model *Model) em(rounds int, init []Assignment) []Assignment {
 func (model *Model) maxAssignment(start Assignment) Assignment {
 	best := start
 	bestLike := model.assignmentLogLikelihood(&start)
+	done := false
 
-	for _, candidate := range start.generateAssignments() {
+	for !done {
 
-		like := model.assignmentLogLikelihood(&candidate)
+		done = true
 
-		if like > bestLike {
-			best = candidate
-			bestLike = like
+		for _, candidate := range start.generateAssignments() {
+
+			like := model.assignmentLogLikelihood(&candidate)
+
+			if like > bestLike {
+				best = candidate
+				bestLike = like
+				done = false
+			}
 		}
+
 	}
 
 	return best
