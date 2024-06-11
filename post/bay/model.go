@@ -11,22 +11,40 @@ type BayModel struct {
 	endLambda   float64
 }
 
+const VINES_PER_BAY = 5.0
+const LAST_BAY_VINES = 4.0
+
+func scaleLast(mean float64) float64 {
+	return (mean / VINES_PER_BAY) * LAST_BAY_VINES
+}
+
 // RowLogLikelihood computes the likelihood of the row ent
 func (model *BayModel) rowLogLikelihood(row *RowAssignment) float64 {
 
 	like := 0.0
 
-	for _, bay := range row.bays {
+	for i, bay := range row.bays {
+
+		// scale down the expected images for the last bay
+		startMean := model.startLambda
+		middleMean := model.imageLambda
+		endMean := model.endLambda
+
+		if i == NUM_BAYS-1 {
+			startMean = scaleLast(startMean)
+			middleMean = scaleLast(middleMean)
+			endMean = scaleLast(endMean)
+		}
 
 		start, end := bay.NumPosts()
 
 		// compute the probability of the regular images
-		reg := PoissonLogProb(model.imageLambda, bay.NumEmpty())
+		reg := PoissonLogProb(middleMean, bay.NumEmpty())
 
 		// compute the probability of the post images
-		startLike := PoissonLogProb(model.startLambda, start)
+		startLike := PoissonLogProb(startMean, start)
 
-		endLike := PoissonLogProb(model.endLambda, end)
+		endLike := PoissonLogProb(endMean, end)
 
 		like += reg + startLike + endLike
 	}

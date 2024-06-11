@@ -7,11 +7,22 @@ type RowAssignment struct {
 }
 
 // NewRowAssignment creates a new row ent
-func NewRowAssignment(rowNum int) RowAssignment {
-	ent := RowAssignment{}
-	ent.rowNum = rowNum
-	ent.bays = make([]Bay, NUM_BAYS)
-	return ent
+func NewRowAssignment(rowNum int, reverse bool) RowAssignment {
+	assignment := RowAssignment{}
+	assignment.rowNum = rowNum
+	assignment.bays = make([]Bay, NUM_BAYS)
+
+	// initialize the bay number
+	for i := 0; i < NUM_BAYS; i++ {
+
+		if reverse {
+			assignment.bays[i].bayNum = NUM_BAYS - i
+		} else {
+			assignment.bays[i].bayNum = i + 1
+		}
+	}
+
+	return assignment
 }
 
 // ReplaceBays update the ent, with a bay, creates a new ent

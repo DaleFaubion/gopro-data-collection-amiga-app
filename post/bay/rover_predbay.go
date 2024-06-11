@@ -17,6 +17,7 @@ import (
 const NUM_ROWS = 21
 const NUM_BAYS = 21
 const CAMERAS = 4
+const CAMERA_SPLIT = 2
 const WEST = "West"
 const EAST = "East"
 
@@ -38,7 +39,13 @@ func NewCameraAssignment() CameraAssignment {
 	results := make([]RowAssignment, NUM_ROWS)
 
 	for i := 0; i < NUM_ROWS; i++ {
-		results[i] = NewRowAssignment(i + 1)
+
+		row := i + 1
+
+		// since the goes south on odd rows and north on even rows, flip the bay ordering on even rows
+		reverseBays := row%2 == 0
+
+		results[i] = NewRowAssignment(i+1, reverseBays)
 	}
 
 	return results
@@ -174,7 +181,7 @@ func makeInitialGroups(images []Image) []CameraAssignment {
 
 	results := NewVineyardAssignment()
 
-	// group up all the images into row ents
+	// group up all the images into row assignments
 	// for each row, evenly distribute images to each bay
 	for c := 0; c < CAMERAS; c++ {
 
@@ -244,20 +251,36 @@ func writeBays(path string, bays []CameraAssignment) {
 	// create the writer
 	writer := csv.NewWriter(file)
 
+	// write out the header
+	header := []string{"path", "date", "time", "camera", "row", "bay", "direction"}
+	writer.Write(header)
+
 	// write all the bay predictions
 	for c := 0; c < CAMERAS; c++ {
-		for i := 0; i < len(bays[c]); i++ {
-			for j := 0; j < len(bays[c][i].bays); j++ {
-				for k := 0; k < len(bays[c][i].bays[j].images); k++ {
 
-					westDir := 0
-					img := bays[c][i].bays[j].images[k]
+		// write out each row
+		for i := 0; i < len(bays[c]); i++ {
+
+			currentRow := bays[c][i]
+
+			//write out each bay
+			for j := 0; j < len(currentRow.bays); j++ {
+
+				currentBay := currentRow.bays[j]
+
+				//write out all the images
+				for k := 0; k < len(currentBay.images); k++ {
+					img := currentBay.images[k]
+
+					// zero is the ID for East
+					dir := "0"
 
 					if img.direction == WEST {
-						westDir = 1
+						dir = "1"
 					}
 
-					row := []string{img.path, img.date, img.time, fmt.Sprint(i), fmt.Sprint(j), fmt.Sprint(westDir)}
+					//i = row, j = bay
+					row := []string{img.path, img.date, img.time, fmt.Sprint(img.cameraNum), fmt.Sprint(img.row), fmt.Sprint(currentBay.bayNum), dir}
 					writer.Write(row)
 				}
 			}
@@ -317,6 +340,8 @@ func main() {
 
 	// use EM to correct the assignments
 	result := model.em(start, *rounds)
+
+	// update the bay assignments
 
 	fmt.Println("Results")
 	showModel(model)
