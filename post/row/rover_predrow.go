@@ -10,7 +10,7 @@ import (
 
 //rows 0 and 22 (zero-based indexing) are out of the block
 
-const NUM_ROWS = 23
+const NUM_ROWS = 22
 const NUM_CAMERAS = 4
 
 const EAST = "East"
@@ -38,6 +38,15 @@ func cameraNum(path string) int {
 	} else {
 		return 4
 	}
+}
+
+//parseTime extracts the timestamp from the file path
+func parseTime(path string) string {
+	const timeIdx = 1
+	paths := strings.Split(path, "/")
+	filename := paths[len(paths)-1]
+	parts := strings.Split(filename, "_")
+	return parts[timeIdx]
 }
 
 // loadImages reads a CSV with image metadata
@@ -74,9 +83,9 @@ func loadImages(path string, date string) []Image {
 		camera := cameraNum(imgPath)
 		post := record[POST]
 
-		//TODO remove
-		if len(imgPath) < 25 {
-			fmt.Println("Bad path", imgPath)
+		// parse the time out of the path name if no time was specified
+		if imgTime == "" {
+			imgTime = parseTime(imgPath)
 		}
 
 		//only include images for the given day
@@ -124,6 +133,7 @@ func calcDirection(camera int, row int) string {
 }
 
 // calcRow determines the actual row based on the camera and assigned row
+// row - is the row index i.e. starts at zero
 func calcRow(camera int, row int) int {
 	if startsEast(camera) {
 		// cameras will only see every other row and there is the zero-indexing issue, hence the initially east facing
@@ -138,9 +148,14 @@ func calcRow(camera int, row int) int {
 		if row%2 == 0 {
 			return row
 		} else {
-			return row - 1
+			return row + 1
 		}
 	}
+}
+
+// showModel prints out the model
+func showModel(model Model) {
+	fmt.Printf("Model (%.2f)  (%.2f) (%.2f)\n", model.LeftPost, model.ImgProb, model.RightPost)
 }
 
 // showAssignments displays all the assignments
@@ -153,8 +168,10 @@ func showAssignments(assignments []Assignment) {
 		for rowIdx, row := range assignment.rows {
 			left, right := row.numPosts()
 			reg := row.numRegular()
+			rowNum := calcRow(c, rowIdx)
+			dir := calcDirection(c, rowIdx)
 
-			fmt.Printf("%2d | %2d + %3d + %2d = %d\n", rowIdx, left, reg, right, row.numImages())
+			fmt.Printf("%2d %s | %2d + %3d(%d) + %2d = %d\n", rowNum, dir, left, reg, row.numBadPosts(), right, row.numImages())
 		}
 
 		fmt.Println()
@@ -174,11 +191,22 @@ func writeAssignments(path string, assignments []Assignment) {
 	// create a writer
 	writer := csv.NewWriter(file)
 
+	// write out a header row
+	header := []string{"path", "date", "time", "row", "camera", "direction", "post"}
+	writer.Write(header)
+
 	//write out all the predicted rows
 	for c := 0; c < len(assignments); c++ {
 		for _, row := range assignments[c].rows {
 			for _, img := range row.images {
-				row := []string{img.path, img.date, img.time, fmt.Sprint(img.row), fmt.Sprint(img.cameraNum), img.direction}
+
+				post := "1"
+
+				if !img.hasPost {
+					post = "0"
+				}
+
+				row := []string{img.path, img.date, img.time, fmt.Sprint(img.row), fmt.Sprint(img.cameraNum), img.direction, post}
 				writeErr := writer.Write(row)
 
 				if writeErr != nil {
@@ -221,22 +249,31 @@ func main() {
 	// make the initial assignments
 	start := makeInitialAssignment(postData)
 
-	regularImages := 0
+	initProb := 0.0
+	size := 0
+	total := 0
 
-	for _, image := range postData {
-		if !image.hasPost {
-			regularImages++
+	for _, assignment := range start {
+		for _, row := range assignment.rows {
+			initProb += float64(row.numRegular()) / float64(row.numImages())
+			size += row.numImages()
+			total++
 		}
 	}
 
 	// make the initial model
-	model := NewModel(float64(regularImages) / float64(NUM_ROWS))
+	model := NewModel(initProb/float64(total), float64(size)/float64(total))
+
+	showModel(model)
 
 	// run EM
 	best := model.em(*rounds, start)
 
 	// update images based on the assignments
 	updateImages(best)
+
+	// diplay the model
+	showModel(model)
 
 	// display the results
 	showAssignments(best)

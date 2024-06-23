@@ -107,10 +107,24 @@ func (row *Row) numPosts() (int, int) {
 	return start, end
 }
 
+// numBadPosts returns the number of images that contain a post that are neither at the beginning nor at the end of the row
+func (row *Row) numBadPosts() int {
+	posts := row.numImages() - row.numRegular()
+	left, right := row.numPosts()
+	return posts - left - right
+}
+
 // numEmpty returns the number of images that do not contain a post in the row
 func (row *Row) numRegular() int {
-	leftPosts, rightPosts := row.numPosts()
-	return row.numImages() - leftPosts - rightPosts
+	count := 0
+
+	for _, img := range row.images {
+		if !img.hasPost {
+			count++
+		}
+	}
+
+	return count
 }
 
 // NumImages returns the number of images in the row

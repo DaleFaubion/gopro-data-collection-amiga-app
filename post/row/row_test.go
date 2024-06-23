@@ -170,3 +170,71 @@ func TestRow_NumPosts(t *testing.T) {
 		t.Errorf("Expected the number of starting posts to be 0 and the ending posts to be 2, but %d and %d was found", left, right)
 	}
 }
+
+func TestRow_NumBadPosts_WithBad(t *testing.T) {
+	row := Row{}
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SimpleImage())
+
+	row = row.appendImage(SecondImage())
+
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SimpleImage())
+
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+
+	bad := row.numBadPosts()
+
+	if bad != 1 {
+		t.Errorf("The number of bad posts should be 1, but %d was found", bad)
+	}
+}
+func TestRow_NumBadPosts_NoBad(t *testing.T) {
+	row := Row{}
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SimpleImage())
+
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+
+	bad := row.numBadPosts()
+
+	if bad != 0 {
+		t.Errorf("The number of bad posts should be 0, but %d was found", bad)
+	}
+}
+
+func TestRow_NumPosts_Bookends(t *testing.T) {
+	row := Row{}
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SimpleImage())
+	row = row.appendImage(SimpleImage())
+
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+	row = row.appendImage(SecondImage())
+
+	left, right := row.numPosts()
+
+	if left != 3 || right != 3 {
+		t.Errorf("The number of posts at the start and end should be 3, but %d and %d was found", left, right)
+	}
+}

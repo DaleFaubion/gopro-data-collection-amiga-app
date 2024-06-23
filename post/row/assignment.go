@@ -1,8 +1,6 @@
 package main
 
-import (
-	"sort"
-)
+import "sort"
 
 /*
 This file defines an assignment, a pictures determined to be part of individual rows, along with associated

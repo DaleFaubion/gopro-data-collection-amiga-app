@@ -6,21 +6,26 @@ import (
 )
 
 type Model struct {
-	LeftPost   float64
-	RegularImg float64
-	RightPost  float64
+	LeftPost  float64 //lambda (expected mean) of posts starting the row
+	ImgProb   float64 //the probability of a picture being a regular picture (no post) given it is in the middle
+	RightPost float64 //lambda of posts at the end of the row
+	RowSize   float64 //the expected number of images in a row
 }
 
 // NewModel creates a new model
-func NewModel(perRow float64) Model {
+func NewModel(prob float64, expectedRow float64) Model {
 	model := Model{
 		1.0,
-		perRow,
+		prob,
 		1.0,
+		expectedRow,
 	}
 
 	return model
 }
+
+// EPS actually a constant
+var EPS = math.Log(0.00000000001)
 
 // em performs the expectation-maximization algorithm over all the row assignments, returning the best assignment
 func (model *Model) em(rounds int, init []Assignment) []Assignment {
@@ -72,7 +77,7 @@ func (model *Model) maxAssignment(start Assignment) Assignment {
 
 		done = true
 
-		for _, candidate := range start.generateAssignments() {
+		for _, candidate := range best.generateAssignments() {
 
 			like := model.assignmentLogLikelihood(&candidate)
 
@@ -93,7 +98,7 @@ func (model *Model) rowLogLikelihood(row *Row) float64 {
 	left, right := row.numPosts()
 	regular := row.numRegular()
 
-	return PoissonLogProb(model.LeftPost, left) + PoissonLogProb(model.RightPost, right) + PoissonLogProb(model.RegularImg, regular)
+	return PoissonLogProb(model.LeftPost, left) + PoissonLogProb(model.RightPost, right) + BinomialLogProb(row.numImages(), regular, model.ImgProb) + PoissonLogProb(model.RowSize, row.numImages())
 }
 
 // assignmentLogLikelihood computes the log likelihood of the whole assignment
@@ -122,18 +127,19 @@ func (model *Model) logLikelihood(overall []Assignment) float64 {
 func (model *Model) estimate(overall []Assignment) {
 	left := 0
 	right := 0
-	regular := 0
+	prob := 0.0
+	rowSize := 0.0
 	groups := 0
 
 	// count up the number of groups of posts
 	for _, assignment := range overall {
 		for _, row := range assignment.rows {
 			leftPosts, rightPosts := row.numPosts()
-			regCount := row.numRegular()
 
 			left += leftPosts
 			right += rightPosts
-			regular += regCount
+			prob += 1.0 - (float64(row.numBadPosts()) / float64(row.numImages()))
+			rowSize += float64(row.numImages())
 			groups += 1
 		}
 	}
@@ -141,27 +147,51 @@ func (model *Model) estimate(overall []Assignment) {
 	total := float64(groups)
 
 	//update the model parameters
-	model.LeftPost = float64(left) / total
-	model.RightPost = float64(right) / total
-	model.RegularImg = float64(regular) / total
+	model.LeftPost = math.Max(float64(left)/total, 1.0)
+	model.RightPost = math.Max(float64(right)/total, 1.0)
+	model.ImgProb = prob / total
+	model.RowSize = rowSize / total
 }
 
 // PoissonLogProb computes the log probability of a count under a Poisson distribution
 func PoissonLogProb(lambda float64, count int) float64 {
 	if count <= 0 {
 		// use a very small probability instead of zero
-		return math.Log(0.00000000001)
+		return EPS
 	} else {
 		// the numerator is lambda^k e^-lambda i.e. in log space: k ln lambda - lambda
 		num := (float64(count) * math.Log(lambda)) - lambda
-		denom := 0.0
 
 		// the denominator is the sum of 1 to k i.e. the log of the factorial of the count
-		for i := 1; i <= count; i++ {
-			denom += math.Log(float64(i))
-		}
+		denom := logFactorial(count)
 
 		// in log space, the numerator over the denominator is simply subtraction
-		return num - float64(denom)
+		return num - denom
 	}
+}
+
+// BinomialLogProb computes the log probability of a sequence of pictures according to a binomial distribution
+// pics is the total i.e. n
+// noPosts is the number of "successes"
+// prob is "p" according to a standard binomial distribution
+func BinomialLogProb(pics int, noPosts int, prob float64) float64 {
+	if pics <= 0 {
+		return EPS
+	} else {
+		return logNChooseK(pics, noPosts) + (float64(noPosts) * math.Log(prob)) + (float64(pics-noPosts) * math.Log(1.0-prob))
+	}
+}
+
+// logNChooseK computes the binomial coefficient in log space
+func logNChooseK(n int, k int) float64 {
+	return logFactorial(n) - logFactorial(k) - logFactorial(n-k)
+}
+
+//logFactorial computes the factorial but in log space
+func logFactorial(n int) float64 {
+	denom := 0.0
+	for i := 1; i <= n; i++ {
+		denom += math.Log(float64(i))
+	}
+	return denom
 }
