@@ -234,13 +234,14 @@ def row_iter(camera: int):
 
 		direction = EAST if direction == WEST else WEST
 
+		if camera in [3,4]:
+			row += 2
+
 		yield row, direction
 		
 		direction = EAST if direction == WEST else WEST
 
-		if row == 0 and camera in [3,4]:
-			row += 1
-		else:
+		if camera in [1,2]:
 			row += 2
 
 def get_camera(path: str) -> int:
