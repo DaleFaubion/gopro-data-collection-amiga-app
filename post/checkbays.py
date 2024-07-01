@@ -5,6 +5,7 @@ bay predictions CSV file rover data i.e. 4 cameras
 """
 
 import tkinter as tk
+from tkinter import ttk
 from PIL import Image
 from PIL.ImageTk import PhotoImage
 from argparse import ArgumentParser
@@ -16,6 +17,8 @@ DEFAULT_ROW = 1
 DEFAULT_BAY = 1
 DEFAULT_CAMERA = 1
 PATH_IDX = 0
+WEST = "West"
+EAST = "East"
 
 NUM_FIELD_START = 3
 
@@ -65,6 +68,7 @@ class ImageViewer:
 		self.prev_button.pack(side=tk.LEFT)
 
 		# add entries for camera, row, and bay
+		# camera entry
 		self.cam_label = tk.Label(self.root, text="Camera:")
 		self.cam_label.pack(side=tk.LEFT)
 
@@ -72,6 +76,8 @@ class ImageViewer:
 		self.camera.bind("<Return>", lambda _: self.go_to_image())
 		self.camera.pack(side=tk.LEFT)
 
+
+		# row entry
 		self.row_label = tk.Label(self.root, text="Row:")
 		self.row_label.pack(side=tk.LEFT)
 
@@ -79,6 +85,8 @@ class ImageViewer:
 		self.row.bind("<Return>", lambda _: self.go_to_image())
 		self.row.pack(side=tk.LEFT)
 
+
+		# bay entry
 		self.bay_label = tk.Label(self.root, text="Bay:")
 		self.bay_label.pack(side=tk.LEFT)
 
@@ -86,13 +94,21 @@ class ImageViewer:
 		self.bay.bind("<Return>", lambda _: self.go_to_image())
 		self.bay.pack(side=tk.LEFT)
 
+
+		# direction entry
+		self.dir_label = tk.Label(self.root, text="Direction:")
+		self.dir_label.pack(side=tk.LEFT)
+		self.combo = ttk.Combobox(root, values=["East", "West"])
+		self.combo.pack(side=tk.LEFT)
+
+
 		# jump to the image in specified by entry boxes	
 		self.jump_button = tk.Button(self.root, text="Go-To", command=self.go_to_image)
 		self.jump_button.pack(side=tk.LEFT)
 		
 		# add button to move the next image
 		self.next_button = tk.Button(self.root, text='Next >>', command=self.show_next_image)
-		self.next_button.pack(side=tk.RIGHT)
+		self.next_button.pack(side=tk.LEFT)
 		
 		self.show_image()
 		
@@ -112,6 +128,7 @@ class ImageViewer:
 		self.update_entry(self.camera, image_data.camera)
 		self.update_entry(self.row, image_data.row)
 		self.update_entry(self.bay, image_data.bay)
+		self.update_entry(self.combo, WEST if image_data.west_dir else EAST)
 
 	def update_entry(self, entry, value):
 		"""
@@ -129,6 +146,7 @@ class ImageViewer:
 		camera = int(self.camera.get())
 		row = int(self.row.get())
 		bay = int(self.bay.get())
+		direction = self.combo.get() == WEST
 
 		# select the images
 		self.select_images(camera)
@@ -136,7 +154,7 @@ class ImageViewer:
 		try:
 			# lookup the new index
 			self.current_image_index = [i for i, img in enumerate(self.selection) 	
-				if img.row == row and img.bay == bay][0]
+				if img.row == row and img.bay == bay and img.west_dir == direction][0]
 		except IndexError:
 			self.current_image_index = 0
 		
