@@ -38,6 +38,7 @@ class ImageViewer:
 		# a list of images that are marked as row endpoints
 		self.tags: Set[Image] = set()
 		self.date = date
+		self.last_tag: int = 0
 
 		self.load_images(csv_file)
 		self.select_images(DEFAULT_CAMERA)
@@ -118,6 +119,7 @@ class ImageViewer:
 		
 		tagged = int(self.tag.get())
 		current = self.selection[self.current_image_index]
+		self.last_tag = self.current_image_index
 
 		if tagged:
 			if current not in self.tags:
@@ -171,7 +173,7 @@ class ImageViewer:
 		self.image_label.image = photo
 		tagged = image_data in self.tags
 
-		self.root.title(f"{image_data.local_path} Tagged:{tagged} Idx:{self.current_image_index}")
+		self.root.title(f"{image_data.local_path} Tagged:{tagged} Idx:{self.current_image_index} Last tag:{self.last_tag} #tags:{len(self.tags)}")
 
 		self.update_entry(self.camera, image_data.camera)
 		self.update_entry(self.tag, int(image_data in self.tags))
