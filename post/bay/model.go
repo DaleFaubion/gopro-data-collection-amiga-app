@@ -17,6 +17,13 @@ const LAST_BAY_VINES = 4.0
 
 var EPS = math.Log(0.00000000001)
 
+func NewBayModel(mean float64, noPostProb float64) BayModel {
+	means := [SECTIONS]float64{mean, mean, mean}
+	probs := [SECTIONS]float64{1.0 - noPostProb, noPostProb, 1.0 - noPostProb}
+
+	return BayModel{means, probs}
+}
+
 func scaleLast(mean float64) float64 {
 	return (mean / VINES_PER_BAY) * LAST_BAY_VINES
 }
@@ -41,6 +48,9 @@ func (model *BayModel) rowLogLikelihood(row *RowAssignment) float64 {
 func (model *BayModel) bayLogLikelihood(bay *Bay, partition []int) float64 {
 	like := 0.0
 
+	// add the end of the bay as the final endpoint
+	partition = append(partition, bay.NumImages())
+
 	for i := 0; i < len(partition)-1; i++ {
 		like += model.sectionLogLike(bay, i, partition[i], partition[i+1])
 	}
@@ -50,15 +60,16 @@ func (model *BayModel) bayLogLikelihood(bay *Bay, partition []int) float64 {
 
 // maxSectionAssignment computes the assignment of images to sections (0,1,2) (start, middle, end)
 // using a dynamic program
+// the partition array return
 func (model *BayModel) maxSectionAssignment(bay *Bay) []int {
 	const MIDDLE = 1
 	n := bay.NumImages()
 
 	// early exit for special cases
 	if n == 0 {
-		return make([]int, 0)
+		return []int{}
 	} else if n == 1 {
-		return make([]int, 2)
+		return []int{0, 1}
 	}
 
 	results := make([]int, SECTIONS)
@@ -74,7 +85,7 @@ func (model *BayModel) maxSectionAssignment(bay *Bay) []int {
 
 	//initialize the base case
 	for i := 0; i < n; i++ {
-		table[0][i] = model.sectionLogLike(bay, 0, 0, i)
+		table[0][i] = model.sectionLogLike(bay, 0, 0, i+1)
 		bestPivots[0][i] = 0
 	}
 
@@ -100,7 +111,7 @@ func (model *BayModel) maxSectionAssignment(bay *Bay) []int {
 			//iterate over all possible intermediate cut-offs
 			//start at the second number to guarantee enough images for previous sections
 			for j := 1; j < i; j++ {
-				prob := model.sectionLogLike(bay, 1, j, i) + table[s-1][j]
+				prob := model.sectionLogLike(bay, s, j, i+1) + table[s-1][j-1] //j-1, since the table is inclusive, not exclusive
 
 				if prob > bestProb {
 					bestProb = prob
@@ -122,13 +133,8 @@ func (model *BayModel) maxSectionAssignment(bay *Bay) []int {
 }
 
 // sectionLogLike computes the log-likelihood of a section of a bay i.e beginning, middle, or end
-// the start and end indices are inclusive
+// the start index is include and the end is exclusive
 func (model *BayModel) sectionLogLike(bay *Bay, sectionIdx int, start int, end int) float64 {
-
-	// determine how many images are in the window, add 1 to account for zero-based indexing
-	total := end - start + 1
-	noPostCount := 0
-
 	countMean := model.count[sectionIdx]
 
 	// the last bay has fewer vines, scale the expected mean accordingly
@@ -136,12 +142,7 @@ func (model *BayModel) sectionLogLike(bay *Bay, sectionIdx int, start int, end i
 		countMean = scaleLast(countMean)
 	}
 
-	//count up the number of images without a post
-	for i := start; i <= end; i++ {
-		if !bay.images[i].hasPost {
-			noPostCount++
-		}
-	}
+	noPostCount, total := countPosts(bay.images, start, end)
 
 	return PoissonLogProb(model.count[sectionIdx], total) + BinomialLogProb(total, noPostCount, model.composition[sectionIdx])
 }
@@ -306,7 +307,7 @@ func countPosts(images []Image, start int, end int) (int, int) {
 	noPosts := 0
 	total := 0
 
-	for i := start; i <= end; i++ {
+	for i := start; i < end; i++ {
 		if !images[i].hasPost {
 			noPosts++
 		}

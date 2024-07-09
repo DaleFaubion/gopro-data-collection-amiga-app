@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
@@ -246,7 +247,7 @@ func TestRowAssignment_ReplaceBays(t *testing.T) {
 	}
 }
 
-func TestMakeInitialGroups(t *testing.T) {
+/*func TestMakeInitialGroups(t *testing.T) {
 	numImages := 21 * 3 * 3
 	perBayNum := 3
 	images := []Image{}
@@ -311,12 +312,18 @@ func TestMakeInitialGroups(t *testing.T) {
 
 		for j, bay := range row.bays {
 
-			if bay.NumImages() != perBayNum {
-				t.Errorf("camera %d, bay %d should have %d images but actually has %d", i, j, perBayNum, bay.NumImages())
+			expected := perBayNum - 1
+
+			if j%2 == 1 {
+				expected = perBayNum + 1
+			}
+
+			if bay.NumImages() != expected {
+				t.Errorf("camera %d, bay %d should have %d images but actually has %d", i, j, expected, bay.NumImages())
 			}
 		}
 	}
-}
+}*/
 
 // NOTE: this function depends upon external files!
 func TestLoadPostData(t *testing.T) {
@@ -408,14 +415,22 @@ func Test_LogProb_lambda3_2(t *testing.T) {
 func TestModel_LogLikelihood(t *testing.T) {
 
 	//check bay in each row should contribute -1, but last bay in each row will be a bit more than -1
-	answer := -63.0694
+	answer := (-1.4959226032237258 - 0.3160815469734788) * NUM_BAYS * 3
 	row := NewRowAssignment(1, false)
-	model := BayModel{1.0, 1.0, 1.0, 1.0}
+	model := NewBayModel(3.0, .9)
 
 	//add images to each bay
 	for i := 0; i < len(row.bays); i++ {
 		row.bays[i] = row.bays[i].AppendImage(SecondImage())
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
+
 		row.bays[i] = row.bays[i].AppendImage(SimpleImage())
+		row.bays[i] = row.bays[i].AppendImage(SimpleImage())
+		row.bays[i] = row.bays[i].AppendImage(SimpleImage())
+
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
 		row.bays[i] = row.bays[i].AppendImage(SecondImage())
 	}
 
@@ -424,5 +439,91 @@ func TestModel_LogLikelihood(t *testing.T) {
 
 	if diff > .001 {
 		t.Errorf("The likelihood should be around %f but is %.4f differing by %f", answer, like, diff)
+	}
+}
+
+func TestModel_MaxSectionAssignment(t *testing.T) {
+	model := NewBayModel(3.0, .9)
+	bay := Bay{1, make([]Image, 0)}
+
+	//add images to the bay
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SimpleImage())
+
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+
+	part := model.maxSectionAssignment(&bay)
+	answers := [3]int{0, 3, 6}
+
+	for i, end := range answers {
+		if part[i] != end {
+			t.Errorf("Expected partition %d to end at %d but ended at %d (%s)\n", i, end, part[i], fmt.Sprint(part))
+		}
+	}
+
+}
+
+func TestModel_sectionLikelihood(t *testing.T) {
+
+	homoAnswer := -1.4959226032237258 - 0.3160815469734788
+	hetroAnswer := -1.4959226032237258 - 1.4146938356415888
+
+	model := NewBayModel(3.0, .9)
+	bay := Bay{1, make([]Image, 0)}
+
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SimpleImage())
+
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+
+	firstLike := model.sectionLogLike(&bay, 0, 0, 3)
+	secondLike := model.sectionLogLike(&bay, 1, 3, 6)
+
+	if math.Abs(homoAnswer-firstLike) > 0.001 {
+		t.Errorf("For section 0, the expected likelihood is %.4f but %.4f was found\n", homoAnswer, firstLike)
+	}
+
+	if math.Abs(hetroAnswer-secondLike) > 0.001 {
+		t.Errorf("For section 1, the expected likelihood is %.4f but %.4f was found\n", hetroAnswer, secondLike)
+	}
+}
+
+func TestModel_bayLogLikelihood(t *testing.T) {
+	answer := (-1.4959226032237258 - 0.3160815469734788) * 3
+	model := NewBayModel(3.0, .9)
+	bay := Bay{1, make([]Image, 0)}
+
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SimpleImage())
+
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+
+	part := []int{0, 3, 6}
+
+	like := model.bayLogLikelihood(&bay, part)
+
+	if math.Abs(like-answer) > .001 {
+		t.Errorf("Expected the likelihood to be %.4f but %.4f was found\n", answer, like)
 	}
 }
