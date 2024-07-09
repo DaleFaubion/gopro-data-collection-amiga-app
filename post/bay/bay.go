@@ -66,6 +66,21 @@ func (bay *Bay) NumImages() int {
 	return len(bay.images)
 }
 
+// MiddlePosts returns the number of posts in the middle of a bay i.e. likely mistakes in post-prediction
+func (bay *Bay) MiddlePosts() int {
+
+	total := 0
+
+	for _, img := range bay.images {
+		if img.hasPost {
+			total++
+		}
+	}
+
+	left, right := bay.NumPosts()
+	return total - left - right
+}
+
 // NumPosts returns the number of images that contain a post in the both the start and end of a bay
 func (bay *Bay) NumPosts() (int, int) {
 	start := 0

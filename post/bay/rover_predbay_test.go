@@ -174,6 +174,22 @@ func TestBay_NumPosts(t *testing.T) {
 	}
 }
 
+func TestBay_MiddlePosts(t *testing.T) {
+	answer := 1
+	bay := Bay{}
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SecondImage())
+
+	middle := bay.MiddlePosts()
+
+	if middle != answer {
+		t.Errorf("The number of middle posts was expected to be %d but %d was found", answer, middle)
+	}
+}
+
 func TestRowAssignment_GenerateAssignments(t *testing.T) {
 	first := Bay{}
 	second := Bay{}
@@ -390,8 +406,11 @@ func Test_LogProb_lambda3_2(t *testing.T) {
 }
 
 func TestModel_LogLikelihood(t *testing.T) {
-	row := NewRowAssignment(1)
-	model := BayModel{1.0, 1.0, 1.0}
+
+	//check bay in each row should contribute -1, but last bay in each row will be a bit more than -1
+	answer := -63.0694
+	row := NewRowAssignment(1, false)
+	model := BayModel{1.0, 1.0, 1.0, 1.0}
 
 	//add images to each bay
 	for i := 0; i < len(row.bays); i++ {
@@ -401,8 +420,9 @@ func TestModel_LogLikelihood(t *testing.T) {
 	}
 
 	like := model.rowLogLikelihood(&row)
+	diff := math.Abs(like - answer)
 
-	if math.Abs(like+63.0) > .00001 {
-		t.Errorf("The likelihood should be around -63 but is %.4f", like)
+	if diff > .001 {
+		t.Errorf("The likelihood should be around %f but is %.4f differing by %f", answer, like, diff)
 	}
 }

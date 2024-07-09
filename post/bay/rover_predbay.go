@@ -9,11 +9,6 @@ import (
 	"strconv"
 )
 
-//TODO need to make the model have posts on each side like row model
-
-// major types: Image, Bay, Assignment
-// also Model
-
 const NUM_ROWS = 21
 const NUM_BAYS = 21
 const CAMERAS = 4
@@ -152,6 +147,8 @@ func isLeftCamera(cameraIdx int) bool {
 // MakeInitialGroups creates an ent for each row based on the data and the row/bay constraints
 func makeInitialGroups(images []Image) []CameraAssignment {
 
+	const MAX_BAY = NUM_BAYS - 1
+
 	// make a data structure of camera, row, and then bay
 	rows := make([][][]Image, CAMERAS)
 
@@ -187,19 +184,26 @@ func makeInitialGroups(images []Image) []CameraAssignment {
 
 		for i := 0; i < len(results[c]); i++ {
 
-			// put every "step" size chunk of images into a new bag
-			step := int(math.Ceil(float64(len(rows[c][i])) / NUM_BAYS))
+			rowImages := rows[c][i]
 
-			// if there are images for this camera/row add them to the output
-			if step > 0 {
+			//by adding "step" amount, the extra images (remainder) will be evenly spread out across bays
+			step := float64(NUM_BAYS) / float64(len(rowImages))
+			index := 0.0
 
-				for j := 0; j < len(rows[c][i]); j++ {
+			for j := 0; j < len(rowImages); j++ {
 
-					bayIdx := j / step
+				index += step
 
-					row := results[c][i]
-					row.bays[bayIdx] = row.bays[bayIdx].AppendImage(rows[c][i][j])
+				//round down to the integer index
+				bayIdx := int(math.Floor(index))
+
+				//put extras on the end and/or avoid an extra bay
+				if bayIdx > MAX_BAY {
+					bayIdx = MAX_BAY
 				}
+
+				row := results[c][i]
+				row.bays[bayIdx] = row.bays[bayIdx].AppendImage(rows[c][i][j])
 			}
 		}
 	}
@@ -214,16 +218,36 @@ func showRows(rows []CameraAssignment) {
 
 		fmt.Printf("For camera %d\n\n", c+1)
 
+		//print off the header
+		fmt.Printf("    |")
+
+		for i := 1; i <= NUM_BAYS; i++ {
+			fmt.Printf("%5d    |", i)
+		}
+		fmt.Println()
+
 		// print off each row
 		for i, row := range rows[c] {
-			fmt.Printf("%2d|", i)
+			realRow := calcRow(c, i)
 
-			// print off all the bays
-			for _, bay := range row.bays {
-				start, end := bay.NumPosts()
-				fmt.Printf("%2d+%2d+%2d=%2d|", start, bay.NumEmpty(), end, bay.NumImages())
+			dir := "E"
+			if calcDirection(c, i) == WEST {
+				dir = "W"
 			}
 
+			fmt.Printf("%2d %s|", realRow, dir)
+
+			for i := 0; i < len(row.bays); i++ {
+
+				index := i
+
+				if dir == "W" {
+					index = len(row.bays) - 1 - i
+				}
+				bay := row.bays[index]
+				start, end := bay.NumPosts()
+				fmt.Printf("%2d+%2d+%2d |", start, bay.NumEmpty(), end)
+			}
 			fmt.Println()
 		}
 
@@ -231,9 +255,55 @@ func showRows(rows []CameraAssignment) {
 	}
 }
 
+// calcRow determines the actual row based on the camera and assigned row
+// row - is the row index i.e. starts at zero
+func calcRow(camera int, row int) int {
+	if startsEast(camera) {
+		// cameras will only see every other row and there is the zero-indexing issue, hence the initially east facing
+		// cameras will progress 1 1 3 3 5 5 7 7 9 9 i.e. all the odd rows with alternating orientation
+		if row%2 == 0 {
+			return row + 1
+		} else {
+			return row
+		}
+	} else {
+		// initially west facing cameras will progress 0 0 2 2 4 4 etc
+		if row%2 == 0 {
+			return row
+		} else {
+			return row + 1
+		}
+	}
+}
+
+// startsEast returns true if the camera (0,1,2,3) initially has an eastward orientation
+func startsEast(camera int) bool {
+	return camera == 0 || camera == 1
+}
+
+// calcDirection determines the direction the image was oriented based on the camera and row
+func calcDirection(camera int, row int) string {
+
+	isEven := row%2 == 0
+
+	// the rover always started south with camera in the following position:
+	// 1  ^  3
+	// 2     4
+	// for the second row, the rover faced the north, hence the orientation flips every other row
+	if (isEven && startsEast(camera)) || (!isEven && !startsEast(camera)) {
+		return EAST
+	} else {
+		return WEST
+	}
+}
+
 //showModel print off the model's parameters
 func showModel(model BayModel) {
-	fmt.Printf("Bay Model: Start: %.4f, Mid: %.4f, End: %.4f\n", model.startLambda, model.imageLambda, model.endLambda)
+	fmt.Println("Bay Model")
+
+	for s := 0; s < len(model.composition); s++ {
+		fmt.Printf("Section %d: mean %.4f, prop %.4f\n", s, model.count[s], model.composition[s])
+	}
 }
 
 // WriteBays write out the pay predictions to the given file path
@@ -252,7 +322,7 @@ func writeBays(path string, bays []CameraAssignment) {
 	writer := csv.NewWriter(file)
 
 	// write out the header
-	header := []string{"path", "date", "time", "camera", "row", "bay", "direction"}
+	header := []string{"path", "date", "time", "camera", "row", "bay", "direction", "has_post"}
 	writer.Write(header)
 
 	// write all the bay predictions
@@ -274,13 +344,18 @@ func writeBays(path string, bays []CameraAssignment) {
 
 					// zero is the ID for East
 					dir := "0"
-
 					if img.direction == WEST {
 						dir = "1"
 					}
 
+					// include the post information
+					post := "0"
+					if img.hasPost {
+						post = "1"
+					}
+
 					//i = row, j = bay
-					row := []string{img.path, img.date, img.time, fmt.Sprint(img.cameraNum), fmt.Sprint(img.row), fmt.Sprint(currentBay.bayNum), dir}
+					row := []string{img.path, img.date, img.time, fmt.Sprint(img.cameraNum), fmt.Sprint(img.row), fmt.Sprint(currentBay.bayNum), dir, post}
 					writer.Write(row)
 				}
 			}

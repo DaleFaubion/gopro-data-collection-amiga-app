@@ -6,13 +6,16 @@ import (
 )
 
 type BayModel struct {
-	startLambda float64
-	imageLambda float64
-	endLambda   float64
+	count       [SECTIONS]float64
+	composition [SECTIONS]float64
 }
 
+const SECTIONS = 3
+const MAX_SECTION = 2
 const VINES_PER_BAY = 5.0
 const LAST_BAY_VINES = 4.0
+
+var EPS = math.Log(0.00000000001)
 
 func scaleLast(mean float64) float64 {
 	return (mean / VINES_PER_BAY) * LAST_BAY_VINES
@@ -23,33 +26,124 @@ func (model *BayModel) rowLogLikelihood(row *RowAssignment) float64 {
 
 	like := 0.0
 
-	for i, bay := range row.bays {
+	for _, bay := range row.bays {
 
-		// scale down the expected images for the last bay
-		startMean := model.startLambda
-		middleMean := model.imageLambda
-		endMean := model.endLambda
-
-		if i == NUM_BAYS-1 {
-			startMean = scaleLast(startMean)
-			middleMean = scaleLast(middleMean)
-			endMean = scaleLast(endMean)
+		if bay.NumImages() > 0 {
+			partition := model.maxSectionAssignment(&bay)
+			like += model.bayLogLikelihood(&bay, partition)
 		}
-
-		start, end := bay.NumPosts()
-
-		// compute the probability of the regular images
-		reg := PoissonLogProb(middleMean, bay.NumEmpty())
-
-		// compute the probability of the post images
-		startLike := PoissonLogProb(startMean, start)
-
-		endLike := PoissonLogProb(endMean, end)
-
-		like += reg + startLike + endLike
 	}
 
 	return like
+}
+
+//bayLogLikelihood computes the log likelihood of the bay, give then partition of the images
+func (model *BayModel) bayLogLikelihood(bay *Bay, partition []int) float64 {
+	like := 0.0
+
+	for i := 0; i < len(partition)-1; i++ {
+		like += model.sectionLogLike(bay, i, partition[i], partition[i+1])
+	}
+
+	return like
+}
+
+// maxSectionAssignment computes the assignment of images to sections (0,1,2) (start, middle, end)
+// using a dynamic program
+func (model *BayModel) maxSectionAssignment(bay *Bay) []int {
+	const MIDDLE = 1
+	n := bay.NumImages()
+
+	// early exit for special cases
+	if n == 0 {
+		return make([]int, 0)
+	} else if n == 1 {
+		return make([]int, 2)
+	}
+
+	results := make([]int, SECTIONS)
+
+	//initialize the DP table
+	table := make([][]float64, SECTIONS)
+	bestPivots := make([][]int, SECTIONS)
+
+	for i := 0; i < SECTIONS; i++ {
+		table[i] = make([]float64, n)
+		bestPivots[i] = make([]int, n)
+	}
+
+	//initialize the base case
+	for i := 0; i < n; i++ {
+		table[0][i] = model.sectionLogLike(bay, 0, 0, i)
+		bestPivots[0][i] = 0
+	}
+
+	//compute the probabilities for the middle section
+	//iterate over all possible endpoints
+	//start at the section number to guarantee an image for the starting section
+	for s := 1; s < SECTIONS; s++ {
+
+		start := s
+
+		//just skip all the intermediate calculations for the last section since all the images need to be used
+		if s == MAX_SECTION {
+			start = n - 1
+		}
+
+		//for each image in the bay calculate the probability of ending in the current state
+		for i := start; i < n; i++ {
+
+			bestProb := math.Inf(-1)
+			bestIdx := s - 1
+
+			//calculate the best transition point from the previous section
+			//iterate over all possible intermediate cut-offs
+			//start at the second number to guarantee enough images for previous sections
+			for j := 1; j < i; j++ {
+				prob := model.sectionLogLike(bay, 1, j, i) + table[s-1][j]
+
+				if prob > bestProb {
+					bestProb = prob
+					bestIdx = j
+				}
+			}
+
+			table[s][i] = bestProb
+			bestPivots[s][i] = bestIdx
+		}
+	}
+
+	//rewind the max-predictions to find the best split points
+	//pick the best split point for the final section
+	results[MAX_SECTION] = bestPivots[MAX_SECTION][n-1]
+	results[MIDDLE] = bestPivots[MIDDLE][results[MAX_SECTION]-1]
+
+	return results
+}
+
+// sectionLogLike computes the log-likelihood of a section of a bay i.e beginning, middle, or end
+// the start and end indices are inclusive
+func (model *BayModel) sectionLogLike(bay *Bay, sectionIdx int, start int, end int) float64 {
+
+	// determine how many images are in the window, add 1 to account for zero-based indexing
+	total := end - start + 1
+	noPostCount := 0
+
+	countMean := model.count[sectionIdx]
+
+	// the last bay has fewer vines, scale the expected mean accordingly
+	if bay.bayNum == NUM_BAYS {
+		countMean = scaleLast(countMean)
+	}
+
+	//count up the number of images without a post
+	for i := start; i <= end; i++ {
+		if !bay.images[i].hasPost {
+			noPostCount++
+		}
+	}
+
+	return PoissonLogProb(model.count[sectionIdx], total) + BinomialLogProb(total, noPostCount, model.composition[sectionIdx])
 }
 
 // LogLikelihood computes the score for the whole ent
@@ -163,59 +257,82 @@ func (model *BayModel) maxRow(row RowAssignment) RowAssignment {
 // expectedModel updates the models parameters based on the current ent
 func (model *BayModel) expectedModel(init []CameraAssignment) {
 
-	avgEmpty := 0.0
-	avgStart := 0.0
-	avgEnd := 0.0
+	var counts [SECTIONS]float64
+	var props [SECTIONS]float64
 	total := 0
 
 	// average the number of empty images in all the bays and cameras
 	for c := 0; c < CAMERAS; c++ {
 		for i := 0; i < len(init[c]); i++ {
 			for _, bay := range init[c][i].bays {
-				start, end := bay.NumPosts()
-				avgEmpty += float64(bay.NumEmpty())
-				avgStart += float64(start)
-				avgEnd += float64(end)
-				total += 1
+
+				partition := model.maxSectionAssignment(&bay)
+
+				// for each section, estimate the number of images and the % of no-post images
+				for s := 0; s < len(partition); s++ {
+					end := -1
+
+					//the last section gets all the remaining images
+					if s == len(partition)-1 {
+						end = len(bay.images) - 1
+					} else {
+						end = partition[s+1]
+					}
+
+					posts, numImages := countPosts(bay.images, partition[s], end)
+
+					counts[s] += float64(numImages)
+					props[s] += float64(posts) / float64(numImages)
+					total++
+				}
 			}
 		}
 	}
 
+	norm := float64(total) / SECTIONS
+
 	//average the number of post images in all the bays
-	model.imageLambda = avgEmpty / float64(total)
-	model.startLambda = avgStart / float64(total)
-	model.endLambda = avgEnd / float64(total)
+	for s := 0; s < SECTIONS; s++ {
+		counts[s] = counts[s] / norm
+		props[s] = props[s] / norm
+	}
+
+	model.count = counts
+	model.composition = props
+}
+
+// countPosts returns the number non-posts and total images in a window
+func countPosts(images []Image, start int, end int) (int, int) {
+	noPosts := 0
+	total := 0
+
+	for i := start; i <= end; i++ {
+		if !images[i].hasPost {
+			noPosts++
+		}
+		total++
+	}
+
+	return noPosts, total
 }
 
 // initialModel creates an initial model based on the
 func initialModel(images []Image) BayModel {
 
-	// create a set of parameters per row
-	emptyCounts := 0.0
-	postCounts := 0.0
-	total := float64(NUM_ROWS * NUM_BAYS * CAMERAS)
+	const STARTING_PROB = .9
+	mean := float64(len(images)) / float64(NUM_ROWS*NUM_BAYS*CAMERAS*SECTIONS)
 
-	// for each image, increment the counts
-	for _, image := range images {
-		if image.hasPost {
-			postCounts += 1
-		} else {
-			emptyCounts += 1
-		}
-	}
+	probs := [SECTIONS]float64{1.0 - STARTING_PROB, STARTING_PROB, 1.0 - STARTING_PROB}
+	counts := [SECTIONS]float64{mean, mean, mean}
 
-	postLambda := (postCounts / 2) / total
-	emptyLambda := emptyCounts / total
-
-	// normalize
-	return BayModel{postLambda, emptyLambda, postLambda}
+	return BayModel{counts, probs}
 }
 
 // PoissonLogProb computes the log probability of a count under a Poisson distribution
 func PoissonLogProb(lambda float64, count int) float64 {
 	if count <= 0 {
 		// use a very small probability instead of zero
-		return math.Log(0.00000000001)
+		return EPS
 	} else {
 		// the numerator is lambda^k e^-lambda i.e. in log space: k ln lambda - lambda
 		num := (float64(count) * math.Log(lambda)) - lambda
@@ -227,6 +344,32 @@ func PoissonLogProb(lambda float64, count int) float64 {
 		}
 
 		// in log space, the numerator over the denominator is simply subtraction
-		return num - float64(denom)
+		return num - denom
 	}
+}
+
+// BinomialLogProb computes the log probability of a sequence of pictures according to a binomial distribution
+// pics is the total i.e. n
+// noPosts is the number of "successes"
+// prob is "p" according to a standard binomial distribution
+func BinomialLogProb(pics int, noPosts int, prob float64) float64 {
+	if pics <= 0 {
+		return EPS
+	} else {
+		return logNChooseK(pics, noPosts) + (float64(noPosts) * math.Log(prob)) + (float64(pics-noPosts) * math.Log(1.0-prob))
+	}
+}
+
+// logNChooseK computes the binomial coefficient in log space
+func logNChooseK(n int, k int) float64 {
+	return logFactorial(n) - logFactorial(k) - logFactorial(n-k)
+}
+
+//logFactorial computes the factorial but in log space
+func logFactorial(n int) float64 {
+	denom := 0.0
+	for i := 1; i <= n; i++ {
+		denom += math.Log(float64(i))
+	}
+	return denom
 }
