@@ -21,6 +21,7 @@ WEST = "West"
 EAST = "East"
 
 NUM_FIELD_START = 3
+SHORT_FIELDS = 7
 
 PREFIX = "/srv/projects/vinetech/images/crawford-beck/block09"
 REPLACE = "remote"
@@ -49,6 +50,9 @@ class ImageViewer:
 					second = [int(f) for f in row[NUM_FIELD_START:]]
 
 					first[PATH_IDX] = first[PATH_IDX].replace(PREFIX, REPLACE)
+
+					if len(row) == SHORT_FIELDS:
+						row.append(0)
 
 					self.image_list.append(ImageMeta(*(first + second)))
 
@@ -117,13 +121,14 @@ class ImageViewer:
 		image_data = self.selection[self.current_image_index]
 		image = Image.open(image_data.path)
 		image = image.resize((800, 600))
+		has_post = image_data.post == 1
 
 		photo = PhotoImage(image)
 
 		self.image_label.configure(image=photo)
 		self.image_label.image = photo
 
-		self.root.title(f"{image_data.path}")
+		self.root.title(f"{image_data.path} has post: {has_post}")
 
 		self.update_entry(self.camera, image_data.camera)
 		self.update_entry(self.row, image_data.row)
@@ -183,6 +188,7 @@ class ImageMeta:
 	row: int
 	bay: int
 	west_dir: bool
+	post: bool
 
 
 if __name__ == "__main__":
