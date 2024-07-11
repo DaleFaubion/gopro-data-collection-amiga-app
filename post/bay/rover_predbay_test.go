@@ -447,15 +447,15 @@ func TestModel_MaxSectionAssignment(t *testing.T) {
 	bay := Bay{1, make([]Image, 0)}
 
 	//add images to the bay
-	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage()) //0
 	bay = bay.AppendImage(SecondImage())
 	bay = bay.AppendImage(SecondImage())
 
-	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SimpleImage()) //3
 	bay = bay.AppendImage(SimpleImage())
 	bay = bay.AppendImage(SimpleImage())
 
-	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage()) //6
 	bay = bay.AppendImage(SecondImage())
 	bay = bay.AppendImage(SecondImage())
 
@@ -467,7 +467,87 @@ func TestModel_MaxSectionAssignment(t *testing.T) {
 			t.Errorf("Expected partition %d to end at %d but ended at %d (%s)\n", i, end, part[i], fmt.Sprint(part))
 		}
 	}
+}
 
+func TestModel_MaxSectionNoise(t *testing.T) {
+	model := NewBayModel(3.0, .9)
+	bay := Bay{1, make([]Image, 0)}
+
+	//add images to the bay
+	bay = bay.AppendImage(SecondImage()) //0
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+
+	bay = bay.AppendImage(SimpleImage()) //3
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SimpleImage())
+
+	bay = bay.AppendImage(SecondImage()) //6
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SecondImage())
+
+	part := model.maxSectionAssignment(&bay)
+	answers := [3]int{0, 3, 6}
+
+	for i, end := range answers {
+		if part[i] != end {
+			t.Errorf("Expected partition %d to end at %d but ended at %d (%s)\n", i, end, part[i], fmt.Sprint(part))
+		}
+	}
+}
+
+func TestModel_MaxSectionMoreNoise(t *testing.T) {
+	model := NewBayModel(3.0, .9)
+	bay := Bay{1, make([]Image, 0)}
+
+	//add images to the bay
+	bay = bay.AppendImage(SecondImage()) //0
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+
+	bay = bay.AppendImage(SimpleImage()) //3
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SimpleImage())
+
+	bay = bay.AppendImage(SecondImage()) //6
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SimpleImage())
+
+	part := model.maxSectionAssignment(&bay)
+	answers := [3]int{0, 3, 6}
+
+	for i, end := range answers {
+		if part[i] != end {
+			t.Errorf("Expected partition %d to end at %d but ended at %d (%s)\n", i, end, part[i], fmt.Sprint(part))
+		}
+	}
+}
+
+func TestModel_MaxSectionYetMoreNoise(t *testing.T) {
+	model := NewBayModel(3.0, .9)
+	bay := Bay{1, make([]Image, 0)}
+
+	//add images to the bay
+	bay = bay.AppendImage(SecondImage()) //0
+	bay = bay.AppendImage(SecondImage()) //1
+	bay = bay.AppendImage(SecondImage()) //2
+
+	bay = bay.AppendImage(SimpleImage()) //3
+	bay = bay.AppendImage(SimpleImage()) //4
+	bay = bay.AppendImage(SecondImage()) //5
+
+	bay = bay.AppendImage(SecondImage()) //6
+	bay = bay.AppendImage(SecondImage()) //7
+	bay = bay.AppendImage(SimpleImage()) //8
+
+	part := model.maxSectionAssignment(&bay)
+	answers := [3]int{0, 3, 5}
+
+	for i, end := range answers {
+		if part[i] != end {
+			t.Errorf("Expected partition %d to end at %d but ended at %d (%s)\n", i, end, part[i], fmt.Sprint(part))
+		}
+	}
 }
 
 func TestModel_sectionLikelihood(t *testing.T) {
@@ -525,5 +605,45 @@ func TestModel_bayLogLikelihood(t *testing.T) {
 
 	if math.Abs(like-answer) > .001 {
 		t.Errorf("Expected the likelihood to be %.4f but %.4f was found\n", answer, like)
+	}
+}
+
+func TestModel_ExpectedModel(t *testing.T) {
+	row := NewRowAssignment(1, false)
+	model := NewBayModel(3.0, .9)
+
+	//add images to each bay
+	for i := 0; i < len(row.bays); i++ {
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
+
+		row.bays[i] = row.bays[i].AppendImage(SimpleImage())
+		row.bays[i] = row.bays[i].AppendImage(SimpleImage())
+		row.bays[i] = row.bays[i].AppendImage(SimpleImage())
+
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
+		row.bays[i] = row.bays[i].AppendImage(SecondImage())
+	}
+
+	data := make([]CameraAssignment, 1)
+	data[0] = make([]RowAssignment, 1)
+	data[0][0] = row
+
+	model.expectedModel(data)
+
+	for i, lambda := range model.count {
+		if math.Abs(lambda-3.0) > .0001 {
+			t.Errorf("Expected Poisson parameter to be 3.0 but it was %f for section %d\n", lambda, i)
+		}
+	}
+
+	expectedProb := []float64{0.0, 1.0, 0.0}
+
+	for i, prob := range model.composition {
+		if math.Abs(prob-expectedProb[i]) > .0001 {
+			t.Errorf("Expected a non-post probability of %.4f but %.4f was found for section %d\n", expectedProb[i], prob, i)
+		}
 	}
 }

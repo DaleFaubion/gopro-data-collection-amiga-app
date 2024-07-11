@@ -177,6 +177,8 @@ func (model *BayModel) em(init []CameraAssignment, rounds int) []CameraAssignmen
 	best := init
 	bestLike := model.vineyardLogLikelihood(init)
 
+	fmt.Printf("Starting likelihood: %.4f\n", bestLike)
+
 	// for a fixed number of iterations, run the EM algo
 	for i < rounds && improved {
 
@@ -189,7 +191,10 @@ func (model *BayModel) em(init []CameraAssignment, rounds int) []CameraAssignmen
 
 		// estimate the model parameters
 		model.expectedModel(next)
+
 		currentLike := model.vineyardLogLikelihood(next)
+
+		fmt.Printf("Round %2d likelihood %.4f\n", i, currentLike)
 
 		//only keep the changes if it is an improvement
 		if currentLike > bestLike {
@@ -199,14 +204,14 @@ func (model *BayModel) em(init []CameraAssignment, rounds int) []CameraAssignmen
 			improved = false
 		}
 
-		if i%5 == 0 {
+		/*if i%5 == 0 {
 			fmt.Printf("Round %d: %.4f\n", i, currentLike)
-		}
+		}*/
 
 		i++
 	}
 
-	fmt.Printf("Round %d: %.4f\n", i-1, bestLike)
+	fmt.Printf("Final Round %d: %.4f\n", i-1, bestLike)
 
 	return best
 }
@@ -263,7 +268,7 @@ func (model *BayModel) expectedModel(init []CameraAssignment) {
 	total := 0
 
 	// average the number of empty images in all the bays and cameras
-	for c := 0; c < CAMERAS; c++ {
+	for c := 0; c < len(init); c++ {
 		for i := 0; i < len(init[c]); i++ {
 			for _, bay := range init[c][i].bays {
 
@@ -275,15 +280,18 @@ func (model *BayModel) expectedModel(init []CameraAssignment) {
 
 					//the last section gets all the remaining images
 					if s == len(partition)-1 {
-						end = len(bay.images) - 1
+						end = len(bay.images)
 					} else {
 						end = partition[s+1]
 					}
 
-					posts, numImages := countPosts(bay.images, partition[s], end)
+					noPosts, numImages := countPosts(bay.images, partition[s], end)
 
 					counts[s] += float64(numImages)
-					props[s] += float64(posts) / float64(numImages)
+
+					if numImages > 0 {
+						props[s] += float64(noPosts) / float64(numImages)
+					}
 					total++
 				}
 			}
@@ -296,6 +304,7 @@ func (model *BayModel) expectedModel(init []CameraAssignment) {
 	for s := 0; s < SECTIONS; s++ {
 		counts[s] = counts[s] / norm
 		props[s] = props[s] / norm
+
 	}
 
 	model.count = counts
