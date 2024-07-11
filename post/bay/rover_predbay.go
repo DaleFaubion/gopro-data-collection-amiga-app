@@ -297,15 +297,6 @@ func calcDirection(camera int, row int) string {
 	}
 }
 
-//showModel print off the model's parameters
-func showModel(model BayModel) {
-	fmt.Println("Bay Model")
-
-	for s := 0; s < len(model.composition); s++ {
-		fmt.Printf("Section %d: mean %.4f, prop %.4f\n", s, model.count[s], model.composition[s])
-	}
-}
-
 // WriteBays write out the pay predictions to the given file path
 func writeBays(path string, bays []CameraAssignment) {
 	const WEST = "West"
@@ -407,19 +398,18 @@ func main() {
 	start := makeInitialGroups(images)
 
 	// make an initial assignments
-	model := initialModel(images)
+	//model := initialDPModel(images)
+	model := initialPoissonModel(images)
 
 	fmt.Println("Starting Groups")
-	showModel(model)
+	model.Show()
 	showRows(start)
 
 	// use EM to correct the assignments
-	result := model.em(start, *rounds)
-
-	// update the bay assignments
+	result := em(&model, start, *rounds)
 
 	fmt.Println("Results")
-	showModel(model)
+	model.Show()
 
 	// show the row assignments
 	showRows(result)

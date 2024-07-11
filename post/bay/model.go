@@ -5,9 +5,21 @@ import (
 	"math"
 )
 
-type BayModel struct {
+type Model interface {
+	ExpectedModel(init []CameraAssignment)
+	RowLogLikelihood(row *RowAssignment) float64
+	Show()
+}
+
+type DPModel struct {
 	count       [SECTIONS]float64
 	composition [SECTIONS]float64
+}
+
+type PoissonModel struct {
+	startLambda float64
+	imageLambda float64
+	endLambda   float64
 }
 
 const SECTIONS = 3
@@ -17,11 +29,11 @@ const LAST_BAY_VINES = 4.0
 
 var EPS = math.Log(0.00000000001)
 
-func NewBayModel(mean float64, noPostProb float64) BayModel {
+func NewDPModel(mean float64, noPostProb float64) DPModel {
 	means := [SECTIONS]float64{mean, mean, mean}
 	probs := [SECTIONS]float64{1.0 - noPostProb, noPostProb, 1.0 - noPostProb}
 
-	return BayModel{means, probs}
+	return DPModel{means, probs}
 }
 
 func scaleLast(mean float64) float64 {
@@ -29,7 +41,41 @@ func scaleLast(mean float64) float64 {
 }
 
 // RowLogLikelihood computes the likelihood of the row ent
-func (model *BayModel) rowLogLikelihood(row *RowAssignment) float64 {
+func (model *PoissonModel) RowLogLikelihood(row *RowAssignment) float64 {
+
+	like := 0.0
+
+	for i, bay := range row.bays {
+
+		// scale down the expected images for the last bay
+		startMean := model.startLambda
+		middleMean := model.imageLambda
+		endMean := model.endLambda
+
+		if i == NUM_BAYS-1 {
+			startMean = scaleLast(startMean)
+			middleMean = scaleLast(middleMean)
+			endMean = scaleLast(endMean)
+		}
+
+		start, end := bay.NumPosts()
+
+		// compute the probability of the regular images
+		reg := PoissonLogProb(middleMean, bay.NumEmpty())
+
+		// compute the probability of the post images
+		startLike := PoissonLogProb(startMean, start)
+
+		endLike := PoissonLogProb(endMean, end)
+
+		like += reg + startLike + endLike
+	}
+
+	return like
+}
+
+// RowLogLikelihood computes the likelihood of the row ent
+func (model *DPModel) RowLogLikelihood(row *RowAssignment) float64 {
 
 	like := 0.0
 
@@ -45,7 +91,7 @@ func (model *BayModel) rowLogLikelihood(row *RowAssignment) float64 {
 }
 
 //bayLogLikelihood computes the log likelihood of the bay, give then partition of the images
-func (model *BayModel) bayLogLikelihood(bay *Bay, partition []int) float64 {
+func (model *DPModel) bayLogLikelihood(bay *Bay, partition []int) float64 {
 	like := 0.0
 
 	// add the end of the bay as the final endpoint
@@ -61,7 +107,7 @@ func (model *BayModel) bayLogLikelihood(bay *Bay, partition []int) float64 {
 // maxSectionAssignment computes the assignment of images to sections (0,1,2) (start, middle, end)
 // using a dynamic program
 // the partition array return
-func (model *BayModel) maxSectionAssignment(bay *Bay) []int {
+func (model *DPModel) maxSectionAssignment(bay *Bay) []int {
 	const MIDDLE = 1
 	n := bay.NumImages()
 
@@ -134,7 +180,7 @@ func (model *BayModel) maxSectionAssignment(bay *Bay) []int {
 
 // sectionLogLike computes the log-likelihood of a section of a bay i.e beginning, middle, or end
 // the start index is include and the end is exclusive
-func (model *BayModel) sectionLogLike(bay *Bay, sectionIdx int, start int, end int) float64 {
+func (model *DPModel) sectionLogLike(bay *Bay, sectionIdx int, start int, end int) float64 {
 	countMean := model.count[sectionIdx]
 
 	// the last bay has fewer vines, scale the expected mean accordingly
@@ -148,34 +194,34 @@ func (model *BayModel) sectionLogLike(bay *Bay, sectionIdx int, start int, end i
 }
 
 // LogLikelihood computes the score for the whole ent
-func (model *BayModel) logLikelihood(rows CameraAssignment) float64 {
+func logLikelihood(model Model, rows CameraAssignment) float64 {
 	like := 0.0
 
 	for _, row := range rows {
-		like += model.rowLogLikelihood(&row)
+		like += model.RowLogLikelihood(&row)
 	}
 
 	return like
 }
 
 // vineyardLogLikelihood computes the log-likelihood over the whole vineyard assignment
-func (model *BayModel) vineyardLogLikelihood(vineyard []CameraAssignment) float64 {
+func vineyardLogLikelihood(model Model, vineyard []CameraAssignment) float64 {
 	like := 0.0
 
 	for _, assignment := range vineyard {
-		like += model.logLikelihood(assignment)
+		like += logLikelihood(model, assignment)
 	}
 
 	return like
 }
 
 // em runs the expectation maximization algorithm to find the best row ent
-func (model *BayModel) em(init []CameraAssignment, rounds int) []CameraAssignment {
+func em(model Model, init []CameraAssignment, rounds int) []CameraAssignment {
 
 	improved := true
 	i := 0
 	best := init
-	bestLike := model.vineyardLogLikelihood(init)
+	bestLike := vineyardLogLikelihood(model, init)
 
 	fmt.Printf("Starting likelihood: %.4f\n", bestLike)
 
@@ -186,13 +232,13 @@ func (model *BayModel) em(init []CameraAssignment, rounds int) []CameraAssignmen
 
 		// for each camera, produce the best assignment
 		for j := 0; j < CAMERAS; j++ {
-			next = append(next, model.maxAssignment(best[j]))
+			next = append(next, maxAssignment(model, best[j]))
 		}
 
 		// estimate the model parameters
-		model.expectedModel(next)
+		model.ExpectedModel(next)
 
-		currentLike := model.vineyardLogLikelihood(next)
+		currentLike := vineyardLogLikelihood(model, next)
 
 		fmt.Printf("Round %2d likelihood %.4f\n", i, currentLike)
 
@@ -217,22 +263,22 @@ func (model *BayModel) em(init []CameraAssignment, rounds int) []CameraAssignmen
 }
 
 // maxAssignment create the maximum likelihood assignment of images under the current model
-func (model *BayModel) maxAssignment(assignment CameraAssignment) CameraAssignment {
+func maxAssignment(model Model, assignment CameraAssignment) CameraAssignment {
 	var newRows []RowAssignment
 
 	for _, row := range assignment {
-		newRows = append(newRows, model.maxRow(row))
+		newRows = append(newRows, maxRow(model, row))
 	}
 
 	return newRows
 }
 
 // maxRow find the row that maximizes the likelihood under the current model
-func (model *BayModel) maxRow(row RowAssignment) RowAssignment {
+func maxRow(model Model, row RowAssignment) RowAssignment {
 
 	done := false
 	best := row
-	bestScore := model.rowLogLikelihood(&best)
+	bestScore := model.RowLogLikelihood(&best)
 
 	// until there is no improvement, greedily try different candidates
 	for !done {
@@ -245,7 +291,7 @@ func (model *BayModel) maxRow(row RowAssignment) RowAssignment {
 		// evaluate all the candidates and pick the best
 		for _, candidate := range candidates {
 
-			score := model.rowLogLikelihood(&candidate)
+			score := model.RowLogLikelihood(&candidate)
 
 			//if it is an improvement, remember it and continue
 			if score > bestScore {
@@ -261,7 +307,34 @@ func (model *BayModel) maxRow(row RowAssignment) RowAssignment {
 }
 
 // expectedModel updates the models parameters based on the current ent
-func (model *BayModel) expectedModel(init []CameraAssignment) {
+func (model *PoissonModel) ExpectedModel(init []CameraAssignment) {
+
+	avgEmpty := 0.0
+	avgStart := 0.0
+	avgEnd := 0.0
+	total := 0
+
+	// average the number of empty images in all the bays and cameras
+	for c := 0; c < CAMERAS; c++ {
+		for i := 0; i < len(init[c]); i++ {
+			for _, bay := range init[c][i].bays {
+				start, end := bay.NumPosts()
+				avgEmpty += float64(bay.NumEmpty())
+				avgStart += float64(start)
+				avgEnd += float64(end)
+				total += 1
+			}
+		}
+	}
+
+	//average the number of post images in all the bays
+	model.imageLambda = avgEmpty / float64(total)
+	model.startLambda = avgStart / float64(total)
+	model.endLambda = avgEnd / float64(total)
+}
+
+// expectedModel updates the models parameters based on the current ent
+func (model *DPModel) ExpectedModel(init []CameraAssignment) {
 
 	var counts [SECTIONS]float64
 	var props [SECTIONS]float64
@@ -327,7 +400,7 @@ func countPosts(images []Image, start int, end int) (int, int) {
 }
 
 // initialModel creates an initial model based on the
-func initialModel(images []Image) BayModel {
+func initialDPModel(images []Image) DPModel {
 
 	const STARTING_PROB = .9
 	mean := float64(len(images)) / float64(NUM_ROWS*NUM_BAYS*CAMERAS*SECTIONS)
@@ -335,7 +408,46 @@ func initialModel(images []Image) BayModel {
 	probs := [SECTIONS]float64{1.0 - STARTING_PROB, STARTING_PROB, 1.0 - STARTING_PROB}
 	counts := [SECTIONS]float64{mean, mean, mean}
 
-	return BayModel{counts, probs}
+	return DPModel{counts, probs}
+}
+
+// initialModel creates an initial model based on the
+func initialPoissonModel(images []Image) PoissonModel {
+
+	// create a set of parameters per row
+	emptyCounts := 0.0
+	postCounts := 0.0
+	total := float64(NUM_ROWS * NUM_BAYS * CAMERAS)
+
+	// for each image, increment the counts
+	for _, image := range images {
+		if image.hasPost {
+			postCounts += 1
+		} else {
+			emptyCounts += 1
+		}
+	}
+
+	postLambda := (postCounts / 2) / total
+	emptyLambda := emptyCounts / total
+
+	// normalize
+	return PoissonModel{postLambda, emptyLambda, postLambda}
+}
+
+//Show prints off the model's parameters
+func (model *DPModel) Show() {
+	fmt.Println("DP Bay Model")
+
+	for s := 0; s < len(model.composition); s++ {
+		fmt.Printf("Section %d: mean %.4f, prop %.4f\n", s, model.count[s], model.composition[s])
+	}
+}
+
+//Show prints off the model's parameters
+func (model *PoissonModel) Show() {
+	fmt.Printf("Poisson Bay Model\n")
+	fmt.Printf("Start: %.4f, Middle: %.4f, End: %.4f\n", model.startLambda, model.imageLambda, model.endLambda)
 }
 
 // PoissonLogProb computes the log probability of a count under a Poisson distribution

@@ -417,7 +417,7 @@ func TestModel_LogLikelihood(t *testing.T) {
 	//check bay in each row should contribute -1, but last bay in each row will be a bit more than -1
 	answer := (-1.4959226032237258 - 0.3160815469734788) * NUM_BAYS * 3
 	row := NewRowAssignment(1, false)
-	model := NewBayModel(3.0, .9)
+	model := NewDPModel(3.0, .9)
 
 	//add images to each bay
 	for i := 0; i < len(row.bays); i++ {
@@ -434,7 +434,7 @@ func TestModel_LogLikelihood(t *testing.T) {
 		row.bays[i] = row.bays[i].AppendImage(SecondImage())
 	}
 
-	like := model.rowLogLikelihood(&row)
+	like := model.RowLogLikelihood(&row)
 	diff := math.Abs(like - answer)
 
 	if diff > .001 {
@@ -443,7 +443,7 @@ func TestModel_LogLikelihood(t *testing.T) {
 }
 
 func TestModel_MaxSectionAssignment(t *testing.T) {
-	model := NewBayModel(3.0, .9)
+	model := NewDPModel(3.0, .9)
 	bay := Bay{1, make([]Image, 0)}
 
 	//add images to the bay
@@ -470,7 +470,7 @@ func TestModel_MaxSectionAssignment(t *testing.T) {
 }
 
 func TestModel_MaxSectionNoise(t *testing.T) {
-	model := NewBayModel(3.0, .9)
+	model := NewDPModel(3.0, .9)
 	bay := Bay{1, make([]Image, 0)}
 
 	//add images to the bay
@@ -497,7 +497,7 @@ func TestModel_MaxSectionNoise(t *testing.T) {
 }
 
 func TestModel_MaxSectionMoreNoise(t *testing.T) {
-	model := NewBayModel(3.0, .9)
+	model := NewDPModel(3.0, .9)
 	bay := Bay{1, make([]Image, 0)}
 
 	//add images to the bay
@@ -524,7 +524,7 @@ func TestModel_MaxSectionMoreNoise(t *testing.T) {
 }
 
 func TestModel_MaxSectionYetMoreNoise(t *testing.T) {
-	model := NewBayModel(3.0, .9)
+	model := NewDPModel(3.0, .9)
 	bay := Bay{1, make([]Image, 0)}
 
 	//add images to the bay
@@ -555,7 +555,7 @@ func TestModel_sectionLikelihood(t *testing.T) {
 	homoAnswer := -1.4959226032237258 - 0.3160815469734788
 	hetroAnswer := -1.4959226032237258 - 1.4146938356415888
 
-	model := NewBayModel(3.0, .9)
+	model := NewDPModel(3.0, .9)
 	bay := Bay{1, make([]Image, 0)}
 
 	bay = bay.AppendImage(SecondImage())
@@ -584,7 +584,7 @@ func TestModel_sectionLikelihood(t *testing.T) {
 
 func TestModel_bayLogLikelihood(t *testing.T) {
 	answer := (-1.4959226032237258 - 0.3160815469734788) * 3
-	model := NewBayModel(3.0, .9)
+	model := NewDPModel(3.0, .9)
 	bay := Bay{1, make([]Image, 0)}
 
 	bay = bay.AppendImage(SecondImage())
@@ -610,7 +610,7 @@ func TestModel_bayLogLikelihood(t *testing.T) {
 
 func TestModel_ExpectedModel(t *testing.T) {
 	row := NewRowAssignment(1, false)
-	model := NewBayModel(3.0, .9)
+	model := NewDPModel(3.0, .9)
 
 	//add images to each bay
 	for i := 0; i < len(row.bays); i++ {
@@ -631,7 +631,7 @@ func TestModel_ExpectedModel(t *testing.T) {
 	data[0] = make([]RowAssignment, 1)
 	data[0][0] = row
 
-	model.expectedModel(data)
+	model.ExpectedModel(data)
 
 	for i, lambda := range model.count {
 		if math.Abs(lambda-3.0) > .0001 {
