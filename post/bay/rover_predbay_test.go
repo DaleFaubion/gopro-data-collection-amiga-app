@@ -36,7 +36,7 @@ func SecondImage() Image {
 
 func ThirdImage() Image {
 	img := Image{
-		"test/pic/foo2.jpg",
+		"test/pic/foo3.jpg",
 		"2024-05-21",
 		"13:024:00",
 		true,
@@ -46,6 +46,82 @@ func ThirdImage() Image {
 	}
 
 	return img
+}
+
+func NoPostImage() Image {
+	img := Image{
+		"test/pic/foo4.jpg",
+		"2024-07-21",
+		"13:024:00",
+		false,
+		1,
+		3,
+		"East",
+	}
+
+	return img
+}
+
+func TestBay_PopLast_Single(t *testing.T) {
+	bay := Bay{}
+	bay = bay.AppendImage(SimpleImage())
+
+	_, newBay := bay.PopLast()
+
+	if newBay.NumImages() != 0 {
+		t.Errorf("Expected new bay to be empty but found %d images\n", newBay.NumImages())
+	}
+
+	if bay.NumImages() != 1 {
+		t.Errorf("Expected old bay to have a single image but found %d\n", bay.NumImages())
+	}
+}
+
+func TestBay_PopLast_Two(t *testing.T) {
+
+	bay := Bay{}
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SecondImage())
+
+	_, newBay := bay.PopLast()
+
+	if newBay.NumImages() != 1 {
+		t.Errorf("Expected new bay to have a single image but found %d images\n", newBay.NumImages())
+	}
+
+	if newBay.images[0] != SimpleImage() {
+		t.Errorf("Wrong image remaining in the new bay\n")
+	}
+
+	if bay.NumImages() != 2 {
+		t.Errorf("Expected old bay to have a single image but found %d\n", bay.NumImages())
+	}
+
+	if bay.images[1] != SecondImage() || bay.images[0] != SimpleImage() {
+		t.Errorf("Wrong image remaining in the old bay\n")
+	}
+}
+
+func TestBay_PopLast_DoublePop(t *testing.T) {
+
+	bay := Bay{}
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SecondImage())
+
+	_, middleBay := bay.PopLast()
+	_, newBay := middleBay.PopLast()
+
+	if middleBay.NumImages() != 1 {
+		t.Errorf("Expected the intermediate bay to have 1 image but is has %d\n", middleBay.NumImages())
+	}
+
+	if bay.NumImages() != 2 {
+		t.Errorf("Expected the original bay to have 2 images but it has %d\n", bay.NumImages())
+	}
+
+	if newBay.NumImages() != 0 {
+		t.Errorf("Expected new bay to have no images but it has %d\n", newBay.NumImages())
+	}
 }
 
 func TestBay_AppendImage_Empty(t *testing.T) {
@@ -65,6 +141,26 @@ func TestBay_AppendImage(t *testing.T) {
 
 	if len(bay.images) != 2 || bay.images[0] != SimpleImage() || bay.images[1] != SecondImage() {
 		t.Error("Image was not added to a bay with images")
+	}
+}
+
+func TestBay_AppendImage_MultipleImages(t *testing.T) {
+	left := Bay{}
+	left = left.AppendImage(SecondImage())
+	left = left.AppendImage(SimpleImage())
+	left = left.AppendImage(SimpleImage())
+	left = left.AppendImage(NoPostImage())
+
+	expected := []Image{SecondImage(), SimpleImage(), SimpleImage(), NoPostImage()}
+
+	if left.NumImages() != len(expected) {
+		t.Errorf("Expected %d images but found %d\n", len(expected), left.NumImages())
+	}
+
+	for i := 0; i < len(expected); i++ {
+		if left.images[i] != expected[i] {
+			t.Errorf("At %d, found %s, expected %s\n", i, fmt.Sprint(left.images[i]), fmt.Sprint(expected[i]))
+		}
 	}
 }
 
@@ -100,6 +196,41 @@ func TestBay_GiveToStartOf(t *testing.T) {
 
 	if len(right.images) != 2 || right.images[0] != ThirdImage() || right.images[1] != SecondImage() {
 		t.Error("Receiving bay did not add image")
+	}
+}
+
+func TestBay_GiveToStartOf_MultipleMove(t *testing.T) {
+	left := Bay{}
+	right := Bay{}
+	left = left.AppendImage(SecondImage())
+	left = left.AppendImage(SimpleImage())
+	left = left.AppendImage(SimpleImage())
+	left = left.AppendImage(NoPostImage())
+
+	start := []Image{SecondImage(), SimpleImage(), SimpleImage(), NoPostImage()}
+
+	if left.NumImages() != len(start) {
+		t.Errorf("Images not properly appended to giving bay to start with: %d\n", len(left.images))
+	}
+
+	for i := 0; i < len(start); i++ {
+		if left.images[i] != start[i] {
+			t.Errorf("Expected %s but found %s\n", fmt.Sprint(left.images[i]), fmt.Sprint(start[i]))
+		}
+	}
+
+	left, right = left.GiveToStartOf(&right)
+
+	if left.NumImages() != 1 && left.images[0] != SecondImage() {
+		t.Errorf("Giving bay does not have the single post image left: (%d) %s\n", left.NumImages(), fmt.Sprint(left.images))
+	}
+
+	if right.NumImages() != 3 {
+		t.Errorf("Not enough image were transfered to the receiving bay\n")
+	}
+
+	if right.NumImages() == 3 && right.images[2] != NoPostImage() {
+		t.Errorf("Receiving bay does not have the images in the correct order\n")
 	}
 }
 

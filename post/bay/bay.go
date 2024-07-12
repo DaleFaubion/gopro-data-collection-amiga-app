@@ -40,6 +40,13 @@ func (bay *Bay) PopLast() (Image, Bay) {
 func (bay *Bay) GiveToStartOf(other *Bay) (Bay, Bay) {
 	toGive, newLeft := bay.PopLast()
 	newRight := other.PrependImage(toGive)
+
+	//move until the next post image
+	for !toGive.hasPost && newLeft.NumImages() > 1 {
+		toGive, newLeft = newLeft.PopLast()
+		newRight = newRight.PrependImage(toGive)
+	}
+
 	return newLeft, newRight
 }
 
@@ -47,6 +54,13 @@ func (bay *Bay) GiveToStartOf(other *Bay) (Bay, Bay) {
 func (bay *Bay) TakeFromStartOf(other *Bay) (Bay, Bay) {
 	toGive, newRight := other.PopFirst()
 	newLeft := bay.AppendImage(toGive)
+
+	//move until to the next post image
+	for !toGive.hasPost && newRight.NumImages() > 1 {
+		toGive, newRight = newRight.PopFirst()
+		newLeft = newLeft.AppendImage(toGive)
+	}
+
 	return newLeft, newRight
 }
 

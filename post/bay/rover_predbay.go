@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"sort"
 	"strconv"
 )
 
@@ -203,8 +204,13 @@ func makeInitialGroups(images []Image) []CameraAssignment {
 				}
 
 				row := results[c][i]
-				row.bays[bayIdx] = row.bays[bayIdx].AppendImage(rows[c][i][j])
+				row.bays[bayIdx] = row.bays[bayIdx].AppendImage(rowImages[j])
 			}
+
+			//sort the images
+			sort.Slice(rowImages, func(i, j int) bool {
+				return rowImages[i].time < rowImages[j].time
+			})
 		}
 	}
 
@@ -402,8 +408,9 @@ func main() {
 	model := initialPoissonModel(images)
 
 	fmt.Println("Starting Groups")
-	model.Show()
 	showRows(start)
+	model.Show()
+	fmt.Println()
 
 	// use EM to correct the assignments
 	result := em(&model, start, *rounds)

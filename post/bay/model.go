@@ -241,6 +241,8 @@ func em(model Model, init []CameraAssignment, rounds int) []CameraAssignment {
 		currentLike := vineyardLogLikelihood(model, next)
 
 		fmt.Printf("Round %2d likelihood %.4f\n", i, currentLike)
+		model.Show()
+		fmt.Println()
 
 		//only keep the changes if it is an improvement
 		if currentLike > bestLike {
@@ -257,7 +259,7 @@ func em(model Model, init []CameraAssignment, rounds int) []CameraAssignment {
 		i++
 	}
 
-	fmt.Printf("Final Round %d: %.4f\n", i-1, bestLike)
+	fmt.Printf("Best Round %d: %.4f\n", i-2, bestLike)
 
 	return best
 }
@@ -447,7 +449,7 @@ func (model *DPModel) Show() {
 //Show prints off the model's parameters
 func (model *PoissonModel) Show() {
 	fmt.Printf("Poisson Bay Model\n")
-	fmt.Printf("Start: %.4f, Middle: %.4f, End: %.4f\n", model.startLambda, model.imageLambda, model.endLambda)
+	fmt.Printf("Params: %.4f, Middle: %.4f, End: %.4f\n", model.startLambda, model.imageLambda, model.endLambda)
 }
 
 // PoissonLogProb computes the log probability of a count under a Poisson distribution
