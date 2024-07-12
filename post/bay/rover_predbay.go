@@ -404,8 +404,8 @@ func main() {
 	start := makeInitialGroups(images)
 
 	// make an initial assignments
-	//model := initialDPModel(images)
-	model := initialPoissonModel(images)
+	model := initialDPModel(images)
+	//model := initialPoissonModel(images)
 
 	fmt.Println("Starting Groups")
 	showRows(start)

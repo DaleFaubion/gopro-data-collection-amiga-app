@@ -20,6 +20,7 @@ type PoissonModel struct {
 	startLambda float64
 	imageLambda float64
 	endLambda   float64
+	noPostProb  float64
 }
 
 const SECTIONS = 3
@@ -59,9 +60,10 @@ func (model *PoissonModel) RowLogLikelihood(row *RowAssignment) float64 {
 		}
 
 		start, end := bay.NumPosts()
+		middle := bay.MiddlePosts()
 
 		// compute the probability of the regular images
-		reg := PoissonLogProb(middleMean, bay.NumEmpty())
+		reg := sectionLogLikelihood(middleMean, model.noPostProb, bay.NumEmpty()-middle, bay.NumImages())
 
 		// compute the probability of the post images
 		startLike := PoissonLogProb(startMean, start)
@@ -190,7 +192,7 @@ func (model *DPModel) sectionLogLike(bay *Bay, sectionIdx int, start int, end in
 
 	noPostCount, total := countPosts(bay.images, start, end)
 
-	return PoissonLogProb(model.count[sectionIdx], total) + BinomialLogProb(total, noPostCount, model.composition[sectionIdx])
+	return sectionLogLikelihood(model.count[sectionIdx], model.composition[sectionIdx], noPostCount, total)
 }
 
 // LogLikelihood computes the score for the whole ent
@@ -308,12 +310,13 @@ func maxRow(model Model, row RowAssignment) RowAssignment {
 	return best
 }
 
-// expectedModel updates the models parameters based on the current ent
+// expectedModel updates the models parameters based on the current assignment
 func (model *PoissonModel) ExpectedModel(init []CameraAssignment) {
 
 	avgEmpty := 0.0
 	avgStart := 0.0
 	avgEnd := 0.0
+	avgNoPost := 0.0
 	total := 0
 
 	// average the number of empty images in all the bays and cameras
@@ -324,6 +327,9 @@ func (model *PoissonModel) ExpectedModel(init []CameraAssignment) {
 				avgEmpty += float64(bay.NumEmpty())
 				avgStart += float64(start)
 				avgEnd += float64(end)
+				if bay.NumEmpty() > 0 {
+					avgNoPost += float64(bay.NumEmpty()-bay.MiddlePosts()) / float64(bay.NumEmpty())
+				}
 				total += 1
 			}
 		}
@@ -333,6 +339,7 @@ func (model *PoissonModel) ExpectedModel(init []CameraAssignment) {
 	model.imageLambda = avgEmpty / float64(total)
 	model.startLambda = avgStart / float64(total)
 	model.endLambda = avgEnd / float64(total)
+	model.noPostProb = avgNoPost / float64(total)
 }
 
 // expectedModel updates the models parameters based on the current ent
@@ -416,6 +423,8 @@ func initialDPModel(images []Image) DPModel {
 // initialModel creates an initial model based on the
 func initialPoissonModel(images []Image) PoissonModel {
 
+	const NO_POST_INIT = .9
+
 	// create a set of parameters per row
 	emptyCounts := 0.0
 	postCounts := 0.0
@@ -434,7 +443,7 @@ func initialPoissonModel(images []Image) PoissonModel {
 	emptyLambda := emptyCounts / total
 
 	// normalize
-	return PoissonModel{postLambda, emptyLambda, postLambda}
+	return PoissonModel{postLambda, emptyLambda, postLambda, NO_POST_INIT}
 }
 
 //Show prints off the model's parameters
@@ -449,7 +458,13 @@ func (model *DPModel) Show() {
 //Show prints off the model's parameters
 func (model *PoissonModel) Show() {
 	fmt.Printf("Poisson Bay Model\n")
-	fmt.Printf("Params: %.4f, Middle: %.4f, End: %.4f\n", model.startLambda, model.imageLambda, model.endLambda)
+	fmt.Printf("Params: %.4f, Middle: %.4f, Prob: %.4f, End: %.4f\n", model.startLambda, model.imageLambda, model.noPostProb, model.endLambda)
+}
+
+// sectionLogLikelihood combines the poisson and binomial distributions to model both count and composition of
+// each section
+func sectionLogLikelihood(mean float64, noPostProb float64, noPostCount int, total int) float64 {
+	return PoissonLogProb(mean, total) + BinomialLogProb(total, noPostCount, noPostProb)
 }
 
 // PoissonLogProb computes the log probability of a count under a Poisson distribution
