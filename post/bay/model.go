@@ -11,6 +11,8 @@ type Model interface {
 	Show()
 }
 
+//TODO make a non-probability model i.e. penalties for mismatching bays, missing starting or ending posts, etc
+
 type DPModel struct {
 	count       [SECTIONS]float64
 	composition [SECTIONS]float64

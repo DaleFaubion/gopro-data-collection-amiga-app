@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
-	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -186,33 +185,96 @@ func makeInitialGroups(images []Image) []CameraAssignment {
 		for i := 0; i < len(results[c]); i++ {
 
 			rowImages := rows[c][i]
+			newRow := results[c][i]
 
-			//by adding "step" amount, the extra images (remainder) will be evenly spread out across bays
-			step := float64(NUM_BAYS) / float64(len(rowImages))
-			index := 0.0
+			//find all the best split points
+			splitPoints := findSplitPoints(rowImages)
 
+			//skip the first split point, it should be the start of the first bay
+			splitIdx := 1
+			bay := 0
+
+			//assign the images to the
 			for j := 0; j < len(rowImages); j++ {
-
-				index += step
-
-				//round down to the integer index
-				bayIdx := int(math.Floor(index))
-
-				//put extras on the end and/or avoid an extra bay
-				if bayIdx > MAX_BAY {
-					bayIdx = MAX_BAY
+				//advance to the next split point if the current images is past it
+				if j > splitPoints[splitIdx] {
+					splitIdx++
+					bay++
 				}
 
-				row := results[c][i]
-				row.bays[bayIdx] = row.bays[bayIdx].AppendImage(rowImages[j])
+				newRow.bays[bay] = newRow.bays[bay].AppendImage(rowImages[j])
 			}
-
-			//sort the images
-			sort.Slice(rowImages, func(i, j int) bool {
-				return rowImages[i].time < rowImages[j].time
-			})
 		}
 	}
+
+	return results
+}
+
+//findSplitPoints finds the indexes	to use to break up the row into initial bays
+func findSplitPoints(images []Image) []int {
+
+	type Group struct {
+		start int
+		end   int
+	}
+
+	var splits []Group
+	var results []int
+	start := 0
+	i := 0
+
+	//return an empty array if no images were given
+	if len(images) == 0 {
+		return results
+	}
+
+	//find the first image with a post
+	for i < len(images) && !images[i].hasPost {
+		i++
+	}
+
+	//go through all the images and find the groups of images with posts
+	for i < len(images) {
+
+		//mark the start of the group
+		start = i
+
+		//find the end of the group
+		for i < len(images) && images[i].hasPost {
+			i++
+		}
+
+		//add the group
+		splits = append(splits, Group{start, i - 1})
+
+		//skip past all the non-post images
+		for i < len(images) && !images[i].hasPost {
+			i++
+		}
+	}
+
+	//sort the groups by size descending
+	sort.Slice(splits, func(i, j int) bool {
+		left := splits[i].end - splits[i].start
+		right := splits[j].end - splits[j].start
+		return left > right
+	})
+
+	//pick the top groups based on size
+	splits = splits[:NUM_BAYS+1]
+
+	//sort the remaining groups based on starting index
+	sort.Slice(splits, func(i, j int) bool {
+		return splits[i].start < splits[j].start
+	})
+
+	//make the results, the midpoint of each group
+	for _, group := range splits {
+		results = append(results, (group.start+group.end)/2)
+	}
+
+	//make the last split the end of the images
+	results[len(results)-1] = len(images) - 1
 
 	return results
 }
@@ -406,6 +468,8 @@ func main() {
 	// make an initial assignments
 	model := initialDPModel(images)
 	//model := initialPoissonModel(images)
+
+	model.ExpectedModel(start)
 
 	fmt.Println("Starting Groups")
 	showRows(start)
