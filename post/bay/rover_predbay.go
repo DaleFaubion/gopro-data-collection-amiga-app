@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -187,6 +188,9 @@ func makeInitialGroups(images []Image) []CameraAssignment {
 			rowImages := rows[c][i]
 			newRow := results[c][i]
 
+			//TODO remove?
+			fmt.Printf("Initial groups for camera %d, row %d\n", c, i)
+
 			//find all the best split points
 			splitPoints := findSplitPoints(rowImages)
 
@@ -260,8 +264,26 @@ func findSplitPoints(images []Image) []int {
 		return left > right
 	})
 
-	//pick the top groups based on size
-	splits = splits[:NUM_BAYS+1]
+	//TODO remove?
+	fmt.Printf("Number of splits %d for %d images\n", len(splits), len(images))
+
+	//pick the top groups based on size if there are enough
+	if len(splits) > NUM_BAYS {
+		splits = splits[:NUM_BAYS+1]
+	} else {
+		splits = make([]Group, NUM_BAYS)
+
+		step := float64(len(images)) / float64(NUM_BAYS)
+		current := step
+
+		// do evenly-spaced splits
+		for i := 0; i < len(splits); i++ {
+			index := int(math.Floor(current))
+			splits[i].start = index
+			splits[i].end = index
+			current += step
+		}
+	}
 
 	//sort the remaining groups based on starting index
 	sort.Slice(splits, func(i, j int) bool {
