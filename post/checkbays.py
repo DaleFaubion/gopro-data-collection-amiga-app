@@ -9,9 +9,10 @@ from tkinter import ttk
 from PIL import Image
 from PIL.ImageTk import PhotoImage
 from argparse import ArgumentParser
-from csv import reader
+from csv import reader, writer
 from dataclasses import dataclass
 from typing import List
+import os.path as op
 
 DEFAULT_ROW = 1
 DEFAULT_BAY = 1
@@ -23,6 +24,7 @@ EAST = "East"
 NUM_FIELD_START = 3
 SHORT_FIELDS = 7
 
+EXT = "-updated"
 PREFIX = "/srv/projects/vinetech/images/crawford-beck/block09"
 REPLACE = "remote"
 
@@ -36,6 +38,11 @@ class ImageViewer:
 
 		self.load_images(csv_file)
 		self.select_images(DEFAULT_CAMERA)
+
+		path, filename = op.split(csv_file)
+		prefix, suffix = op.splitext(filename)
+
+		self.output_file = op.join(path, prefix + EXT + suffix)
 
 		self.create_widgets()
 		
@@ -109,7 +116,11 @@ class ImageViewer:
 		# jump to the image in specified by entry boxes	
 		self.jump_button = tk.Button(self.root, text="Go-To", command=self.go_to_image)
 		self.jump_button.pack(side=tk.LEFT)
-		
+	
+		# updates the CSV with the current bay information
+		self.update_button = tk.Button(self.root, text="Update", command=self.update_bay)
+		self.update_button.pack(side=tk.LEFT)
+
 		# add button to move the next image
 		self.next_button = tk.Button(self.root, text='Next >>', command=self.show_next_image)
 		self.next_button.pack(side=tk.LEFT)
@@ -178,6 +189,33 @@ class ImageViewer:
 			self.current_image_index = 0
 		self.show_image()
 
+	def update_bay(self):
+		"""
+		Updates the image with the current bay information
+		"""
+		header = ["path", "date", "time", "camera", "row", "bay", "direction", "has_post"]
+
+		# get the bay information from the form
+		newBay = int(self.bay.get())
+
+		# update the image object
+		image_data = self.selection[self.current_image_index]
+		image_data.bay = newBay
+
+		#TODO maybe this needs to be connected to its own button so this isn't done too much
+		# write the updated CSV
+		with open(self.output_file, "w") as out_file:
+
+			out = writer(out_file)
+
+			for img in self.image_list:
+			
+				# is there a better way to do this?
+				data = [img.path, img.img_date, img.img_time, str(img.camera),
+					str(img.row), str(img.bay), str(int(img.west_dir)), 
+					str(int(img.post))]
+
+				out.writerow(data)
 
 @dataclass
 class ImageMeta:
