@@ -109,7 +109,7 @@ func (model *DPModel) bayLogLikelihood(bay *Bay, partition []int) float64 {
 }
 
 // maxSectionAssignment computes the assignment of images to sections (0,1,2) (start, middle, end)
-// using a dynamic program
+// using a dynamic program (forward-pass HMM-like algorithm)
 // the partition array return
 func (model *DPModel) maxSectionAssignment(bay *Bay) []int {
 	const MIDDLE = 1
@@ -124,18 +124,21 @@ func (model *DPModel) maxSectionAssignment(bay *Bay) []int {
 
 	results := make([]int, SECTIONS)
 
+	//do the backwards pass
+	back := model.backwardsPass(bay)
+
 	//initialize the DP table
-	table := make([][]float64, SECTIONS)
+	forward := make([][]float64, SECTIONS)
 	bestPivots := make([][]int, SECTIONS)
 
 	for i := 0; i < SECTIONS; i++ {
-		table[i] = make([]float64, n)
+		forward[i] = make([]float64, n)
 		bestPivots[i] = make([]int, n)
 	}
 
 	//initialize the base case
 	for i := 0; i < n; i++ {
-		table[0][i] = model.sectionLogLike(bay, 0, 0, i+1)
+		forward[0][i] = model.sectionLogLike(bay, 0, 0, i+1)
 		bestPivots[0][i] = 0
 	}
 
@@ -152,6 +155,7 @@ func (model *DPModel) maxSectionAssignment(bay *Bay) []int {
 		}
 
 		//for each image in the bay calculate the probability of ending in the current state
+		//start 'i' at the section index since at least one image is needed for each section
 		for i := start; i < n; i++ {
 
 			bestProb := math.Inf(-1)
@@ -160,8 +164,14 @@ func (model *DPModel) maxSectionAssignment(bay *Bay) []int {
 			//calculate the best transition point from the previous section
 			//iterate over all possible intermediate cut-offs
 			//start at the second number to guarantee enough images for previous sections
-			for j := 1; j < i; j++ {
-				prob := model.sectionLogLike(bay, s, j, i+1) + table[s-1][j-1] //j-1, since the table is inclusive, not exclusive
+			for j := s; j < i; j++ {
+				//j-1, since the table is inclusive, not exclusive
+				prob := model.sectionLogLike(bay, s, j, i+1) + forward[s-1][j-1]
+
+				//include the backwards prob, if there are images remaining in the sequence
+				if i+1 < n {
+					prob += back[s+1][i+1]
+				}
 
 				if prob > bestProb {
 					bestProb = prob
@@ -169,7 +179,7 @@ func (model *DPModel) maxSectionAssignment(bay *Bay) []int {
 				}
 			}
 
-			table[s][i] = bestProb
+			forward[s][i] = bestProb
 			bestPivots[s][i] = bestIdx
 		}
 	}
@@ -180,6 +190,59 @@ func (model *DPModel) maxSectionAssignment(bay *Bay) []int {
 	results[MIDDLE] = bestPivots[MIDDLE][results[MAX_SECTION]-1]
 
 	return results
+}
+
+//backwardsPass does an HMM-like backwards pass to compute the log-probability of being in a given section (state)
+//after seeing some images
+func (model *DPModel) backwardsPass(bay *Bay) [][]float64 {
+
+	const LAST = 2
+
+	n := bay.NumImages()
+	table := make([][]float64, SECTIONS)
+
+	//initialize the table for each section
+	for i := 0; i < len(table); i++ {
+		table[i] = make([]float64, n)
+	}
+
+	//initialize the DP table, covers the first section/state
+	for i := n - 1; i >= 0; i-- {
+		table[LAST][i] = model.sectionLogLike(bay, LAST, i, n)
+	}
+
+	//go through the sequence of images backwards, computing the probability of being in each section
+	//minus 2 because of the off by one nature of indices and because we want to start in the second state
+	for s := SECTIONS - 2; s >= 0; s-- {
+
+		start := n - 2
+
+		//for the last section, only the probability of the final image needs to be calculated
+		if s == 0 {
+			start = 0
+		}
+
+		//for each image find the probability of ending in section 's' after seeing image 'i'
+		for i := start; i >= 0; i-- {
+
+			bestProb := math.Inf(-1)
+
+			//calculate the best transition point from the previous section
+			//iterate over all possible intermediate cut-offs
+			//start at the second number to guarantee enough images for previous sections
+			for j := n - 2 - s; j > i; j-- {
+				prob := model.sectionLogLike(bay, s, i, j+1) + table[s+1][j+1]
+
+				if prob > bestProb {
+					bestProb = prob
+				}
+			}
+
+			table[s][i] = bestProb
+		}
+	}
+
+	return table
 }
 
 // sectionLogLike computes the log-likelihood of a section of a bay i.e beginning, middle, or end
@@ -256,10 +319,6 @@ func em(model Model, init []CameraAssignment, rounds int) []CameraAssignment {
 			improved = false
 		}
 
-		/*if i%5 == 0 {
-			fmt.Printf("Round %d: %.4f\n", i, currentLike)
-		}*/
-
 		i++
 	}
 
@@ -312,7 +371,7 @@ func maxRow(model Model, row RowAssignment) RowAssignment {
 	return best
 }
 
-// expectedModel updates the models parameters based on the current assignment
+// ExpectedModel updates the models parameters based on the current assignment
 func (model *PoissonModel) ExpectedModel(init []CameraAssignment) {
 
 	avgEmpty := 0.0
@@ -344,7 +403,7 @@ func (model *PoissonModel) ExpectedModel(init []CameraAssignment) {
 	model.noPostProb = avgNoPost / float64(total)
 }
 
-// expectedModel updates the models parameters based on the current ent
+// ExpectedModel updates the models parameters based on the current ent
 func (model *DPModel) ExpectedModel(init []CameraAssignment) {
 
 	var counts [SECTIONS]float64
@@ -388,7 +447,6 @@ func (model *DPModel) ExpectedModel(init []CameraAssignment) {
 	for s := 0; s < SECTIONS; s++ {
 		counts[s] = counts[s] / norm
 		props[s] = props[s] / norm
-
 	}
 
 	model.count = counts
@@ -417,7 +475,8 @@ func initialDPModel(images []Image) DPModel {
 	mean := float64(len(images)) / float64(NUM_ROWS*NUM_BAYS*CAMERAS*SECTIONS)
 
 	probs := [SECTIONS]float64{1.0 - STARTING_PROB, STARTING_PROB, 1.0 - STARTING_PROB}
-	counts := [SECTIONS]float64{mean, mean, mean}
+	//counts := [SECTIONS]float64{mean, mean, mean}
+	counts := [SECTIONS]float64{1.0, mean, 1.0}
 
 	return DPModel{counts, probs}
 }

@@ -10,6 +10,8 @@ import (
 	"strconv"
 )
 
+//TODO change search algorithm to move boundaries between post groups (sequences of images with posts)
+
 const NUM_ROWS = 21
 const NUM_BAYS = 21
 const CAMERAS = 4
@@ -179,17 +181,14 @@ func makeInitialGroups(images []Image) []CameraAssignment {
 
 	results := NewVineyardAssignment()
 
-	// group up all the images into row assignments
-	// for each row, evenly distribute images to each bay
+	//for each camera and row, group up the images based on whether they have a post
+	//make the initial groups based on the clusters of posts
 	for c := 0; c < CAMERAS; c++ {
 
 		for i := 0; i < len(results[c]); i++ {
 
 			rowImages := rows[c][i]
 			newRow := results[c][i]
-
-			//TODO remove?
-			fmt.Printf("Initial groups for camera %d, row %d\n", c, i)
 
 			//find all the best split points
 			splitPoints := findSplitPoints(rowImages)
@@ -198,7 +197,7 @@ func makeInitialGroups(images []Image) []CameraAssignment {
 			splitIdx := 1
 			bay := 0
 
-			//assign the images to the
+			//assign the images to each bay
 			for j := 0; j < len(rowImages); j++ {
 				//advance to the next split point if the current images is past it
 				if j > splitPoints[splitIdx] {
@@ -214,6 +213,29 @@ func makeInitialGroups(images []Image) []CameraAssignment {
 	return results
 }
 
+// markEnds guarantees that the first and last image in each row is marked as having a post to help the
+// algorithm to fix the row and bay assignments
+func markEnds(assignments []CameraAssignment) {
+
+	// for each camera and row, make sure the first and last images are marked as having a post
+	for _, assignment := range assignments {
+		for _, row := range assignment {
+			firstBay := row.bays[0]
+			lastBay := row.bays[len(row.bays)-1]
+
+			//mark the very first and last bays as having a post
+			if len(firstBay.images) > 0 {
+				firstBay.images[0].hasPost = true
+			}
+
+			if len(lastBay.images) > 0 {
+				lastBay.images[len(lastBay.images)-1].hasPost = true
+			}
+		}
+	}
+}
+
+//TODO the split points are not correct, there is an edge case with the first and last bay - the last bay should have a single post
 //findSplitPoints finds the indexes	to use to break up the row into initial bays
 func findSplitPoints(images []Image) []int {
 
@@ -264,17 +286,20 @@ func findSplitPoints(images []Image) []int {
 		return left > right
 	})
 
-	//TODO remove?
-	fmt.Printf("Number of splits %d for %d images\n", len(splits), len(images))
+	//TODO remove
+	//println("Number of splits:", len(splits))
 
 	//pick the top groups based on size if there are enough
 	if len(splits) > NUM_BAYS {
 		splits = splits[:NUM_BAYS+1]
 	} else {
-		splits = make([]Group, NUM_BAYS)
+		//TODO remove
+		//println("uniform...")
+
+		splits = make([]Group, NUM_BAYS+1)
 
 		step := float64(len(images)) / float64(NUM_BAYS)
-		current := step
+		current := 0.0
 
 		// do evenly-spaced splits
 		for i := 0; i < len(splits); i++ {
@@ -290,6 +315,11 @@ func findSplitPoints(images []Image) []int {
 		return splits[i].start < splits[j].start
 	})
 
+	//TODO remove
+	/*for _, split := range splits {
+		println("split", split.start, split.end)
+	}*/
+
 	//make the results, the midpoint of each group
 	for _, group := range splits {
 		results = append(results, (group.start+group.end)/2)
@@ -297,6 +327,11 @@ func findSplitPoints(images []Image) []int {
 
 	//make the last split the end of the images
 	results[len(results)-1] = len(images) - 1
+
+	//TODO remove
+	/*for _, point := range results {
+		println("split point:", point)
+	}*/
 
 	return results
 }
@@ -486,6 +521,9 @@ func main() {
 
 	// make an initial model
 	start := makeInitialGroups(images)
+
+	// mark the first and last images as having a post
+	markEnds(start)
 
 	// make an initial assignments
 	model := initialDPModel(images)

@@ -55,7 +55,21 @@ func NoPostImage() Image {
 		"13:024:00",
 		false,
 		1,
-		3,
+		1,
+		"East",
+	}
+
+	return img
+}
+
+func PostImage() Image {
+	img := Image{
+		"test/pic/foo4.jpg",
+		"2024-07-21",
+		"13:024:00",
+		true,
+		1,
+		1,
 		"East",
 	}
 
@@ -378,6 +392,157 @@ func TestRowAssignment_ReplaceBays(t *testing.T) {
 	}
 }
 
+func Test_MakeInitialGroups(t *testing.T) {
+
+	//the pattern for all the bays will be 2-2-2 posts, no posts, posts
+	images := make([]Image, 0)
+
+	for i := 0; i < NUM_BAYS; i++ {
+		images = append(images, PostImage())
+		images = append(images, PostImage())
+
+		images = append(images, NoPostImage())
+		images = append(images, NoPostImage())
+
+		images = append(images, PostImage())
+		images = append(images, PostImage())
+	}
+
+	assignments := makeInitialGroups(images)
+
+	//there should only be images/groups for camera 1, row 1
+	row := assignments[0][0]
+
+	for _, bay := range row.bays {
+
+		if bay.NumImages() != 6 {
+			t.Errorf("Bay %d did not have the correct number of images, expected 6, found %d\n", bay.bayNum, bay.NumImages())
+		}
+
+		start, end := bay.NumPosts()
+
+		if start != 2 || end != 2 {
+			t.Errorf("For bay %d, expected %d starting posts and %d ending posts, found %d and %d\n", bay.bayNum, 2, 2, start, end)
+		}
+	}
+}
+
+func Test_MakeInitialGroups_RealData(t *testing.T) {
+
+	//this is based on 2023-06-26, row 11 East, starting at bay 1
+	images := makeSequence([]int{
+		1, 1, 0, 0, 0, 0, 0, 1, //bay 1
+		1, 1, 0, 0, 0, 1, //bay 2
+		1, 0, 0, 0, 0, 1, //bay 3
+		1, 0, 0, 0, 0, 1, //bay 4
+		1, 0, 0, 0, 0, 0, 1, //5
+		1, 0, 0, 0, 0, 1, //6
+		1, 0, 0, 0, //7
+		1, 0, 0, 0, 1, //8
+		1, 0, 0, 0, 0, //9
+		1, 0, 0, 0, 1, //10
+		1, 0, 0, 0, //11
+		1, 0, 0, 0, 1, //12
+		1, 0, 0, 0, 0, 0, //13
+		1, 0, 0, 0, 0, //14
+		1, 0, 0, 0, 0, //15
+		1, 0, 0, 0, //16
+		1, 0, 0, 0, 0, //17
+		1, 0, 0, 0, 0, 1, //18
+		1, 1, 0, 0, 0, 1, //19
+		1, 1, 0, 0, 0, 0, //20
+		1}) //21
+
+	groups := makeInitialGroups(images)
+
+	//there should only be images/groups for camera 1, row 1
+	row := groups[0][0]
+
+	bays := row.bays
+
+	//TODO remove
+	println("images", len(images))
+
+	if len(bays) != NUM_BAYS {
+		t.Errorf("Expected 21 bays but found %d\n", len(row.bays))
+	}
+
+	if bays[0].NumImages() != 8 {
+		t.Errorf("In the first bay, 8 images were expected by %d was found\n", bays[0].NumImages())
+	}
+
+	if bays[len(bays)-1].NumImages() != 1 {
+		t.Errorf("In the last bay, 1 image was expected but %d was found\n", bays[len(bays)-1].NumImages())
+	}
+}
+
+func makeSequence(binarySeq []int) []Image {
+	results := make([]Image, 0)
+
+	for i := 0; i < len(binarySeq); i++ {
+		if binarySeq[i] == 1 {
+			results = append(results, PostImage())
+		} else {
+			results = append(results, NoPostImage())
+		}
+	}
+
+	return results
+}
+
+func Test_MakeInitialGroups_NoEnd(t *testing.T) {
+	//the pattern for all the bays will be 2-2-2 posts, no posts, posts
+	//except for the last bay
+	images := make([]Image, 0)
+
+	for i := 0; i < NUM_BAYS; i++ {
+		images = append(images, PostImage())
+		images = append(images, PostImage())
+
+		images = append(images, NoPostImage())
+		images = append(images, NoPostImage())
+
+		//skip the end posts for the last bay
+		if i < NUM_BAYS-1 {
+			images = append(images, PostImage())
+			images = append(images, PostImage())
+		}
+	}
+
+	assignments := makeInitialGroups(images)
+
+	//there should only be images/groups for camera 1, row 1
+	row := assignments[0][0]
+
+	//test all the but the last bay
+	for i := 0; i < NUM_BAYS-1; i++ {
+
+		bay := row.bays[i]
+
+		if !closeTo(bay.NumImages(), 6, 1) {
+			t.Errorf("Bay %d did not have the correct number of images, about 6, found %d\n", bay.bayNum, bay.NumImages())
+		}
+
+		start, end := bay.NumPosts()
+
+		if !closeTo(2, start, 1) || !closeTo(2, end, 1) {
+			t.Errorf("For bay %d, expected %d starting posts and %d ending posts, found %d and %d\n", bay.bayNum, 2, 2, start, end)
+		}
+	}
+
+	//check the last bay
+	last := row.bays[len(row.bays)-1]
+
+	if !closeTo(4, last.NumImages(), 1) {
+		t.Errorf("For the last bay, expected 4 images, found %d\n", last.NumImages())
+	}
+}
+
+func closeTo(target int, actual int, margin int) bool {
+	diff := math.Abs(float64(target - actual))
+	return diff <= float64(margin)
+}
+
 /*func TestMakeInitialGroups(t *testing.T) {
 	numImages := 21 * 3 * 3
 	perBayNum := 3
@@ -678,6 +843,61 @@ func TestModel_MaxSectionYetMoreNoise(t *testing.T) {
 		if part[i] != end {
 			t.Errorf("Expected partition %d to end at %d but ended at %d (%s)\n", i, end, part[i], fmt.Sprint(part))
 		}
+	}
+}
+
+func TestModel_MaxSectionDiffNoise(t *testing.T) {
+	model := NewDPModel(3.0, .9)
+	bay := Bay{1, make([]Image, 0)}
+
+	//add images to the bay
+	bay = bay.AppendImage(SecondImage()) //0
+	bay = bay.AppendImage(SecondImage()) //1
+	bay = bay.AppendImage(SecondImage()) //2
+
+	bay = bay.AppendImage(SimpleImage()) //3
+	bay = bay.AppendImage(SimpleImage()) //4
+	bay = bay.AppendImage(SimpleImage()) //5
+
+	bay = bay.AppendImage(SecondImage()) //6
+	bay = bay.AppendImage(SecondImage()) //7
+	bay = bay.AppendImage(SimpleImage()) //8
+
+	part := model.maxSectionAssignment(&bay)
+	answers := [3]int{0, 3, 6}
+
+	for i, end := range answers {
+		if part[i] != end {
+			t.Errorf("Expected partition %d to end at %d but ended at %d (%s)\n", i, end, part[i], fmt.Sprint(part))
+		}
+	}
+}
+func TestModel_backwardsPass(t *testing.T) {
+	const LAST = 0
+
+	model := NewDPModel(3.0, .9)
+	bay := Bay{1, make([]Image, 0)}
+
+	//add images to the bay
+	bay = bay.AppendImage(SecondImage()) //0
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+
+	bay = bay.AppendImage(SimpleImage()) //3
+	bay = bay.AppendImage(SimpleImage())
+	bay = bay.AppendImage(SimpleImage())
+
+	bay = bay.AppendImage(SecondImage()) //6
+	bay = bay.AppendImage(SecondImage())
+	bay = bay.AppendImage(SecondImage())
+	n := bay.NumImages()
+
+	ANSWER := model.sectionLogLike(&bay, 0, 0, 3) + model.sectionLogLike(&bay, 1, 3, 6) + model.sectionLogLike(&bay, 2, 6, n)
+
+	table := model.backwardsPass(&bay)
+
+	if table[LAST][0] != ANSWER {
+		t.Errorf("Probability of being in the starting state should be %f, but %f was found\n", ANSWER, table[LAST][0])
 	}
 }
 
