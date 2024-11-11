@@ -20,7 +20,9 @@ PATH_IDX = 0
 
 NUM_FIELD_START = 3
 
-PREFIX = "/srv/projects/vinetech/images/crawford-beck/block09"
+#PREFIX = "/srv/projects/vinetech/images/crawford-beck/block09"
+PREFIX = "/srv/projects/vinetech/images/domaine-willamette/block02"
+
 REPLACE = "remote"
 
 class ImageViewer:

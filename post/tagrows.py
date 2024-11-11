@@ -2,6 +2,8 @@
 """
 A Window/CLI program to tag the end of rows then convert those tags into
 row predictions
+
+Note: there is no need to tag the start of the first row!
 """
 
 import tkinter as tk
@@ -24,7 +26,8 @@ NUM_FIELD_START = 3
 WEST = "West"
 EAST = "East"
 
-PREFIX = "/srv/projects/vinetech/images/crawford-beck/block09"
+#PREFIX = "/srv/projects/vinetech/images/crawford-beck/block09"
+PREFIX = "/srv/projects/vinetech/images/domaine-willamette/block02"
 REPLACE = "remote"
 
 class ImageViewer:
@@ -55,7 +58,7 @@ class ImageViewer:
 				local = row[path_idx].replace(PREFIX, REPLACE)
 				path = row[path_idx]
 				camera = get_camera(path)
-				date = row[date_idx]
+				date = get_date(path)
 				time = get_time(path)
 
 				if self.date == date:
@@ -225,11 +228,13 @@ def row_iter(camera: int):
 	if camera in [1,2]:
 		row = 1
 		direction = EAST
-		end = 21
+		#end = 21
+		end = 31
 	else:
 		row = 0
 		direction = WEST
-		end = 22
+		#end = 22
+		end = 32
 	
 	while row <= end:
 		yield row, direction
@@ -247,8 +252,10 @@ def row_iter(camera: int):
 			row += 2
 
 def get_camera(path: str) -> int:
+	# map path segment to camera number
 	patterns = {"/%d/" % i : i for i in range(1,5) }
 
+	# match the first path segment found
 	for pat, ans in patterns.items():
 		if pat in path:
 			return ans
@@ -256,9 +263,18 @@ def get_camera(path: str) -> int:
 
 def get_time(path: str) -> (str, str):
 	time_idx = 1
+	return get_field(path, time_idx)
+
+def get_date(path: str):
+	# the date if the first field delimited by an underscore
+	date_idx = 0
+	return get_field(path, date_idx)
+
+def get_field(path: str, index: int):
+
 	_, file = split(path)
 	parts = file.split("_")
-	return parts[time_idx]
+	return parts[index]
 
 
 @dataclass
