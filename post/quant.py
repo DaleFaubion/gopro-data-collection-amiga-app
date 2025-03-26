@@ -6,6 +6,8 @@ import torch as t
 from sklearn.metrics import f1_score
 
 NAMES = ["No post", "Has post"]
+NO_POST = 0
+HAS_POST = 1
 
 def overall_f1(predictions, gold_data):
 	"""
@@ -13,13 +15,19 @@ def overall_f1(predictions, gold_data):
 	"""
 	return f1_score(predictions, [l for _, l in gold_data.flat_iter()], average="micro")
 
-
 def class_f1_scores(predictions, gold_data):
 	"""
 	Calculates and returns the F1 score per class (0/1)
 	"""
 	return f1_score(predictions, [l for _, l in gold_data.flat_iter()], average=None)
 
+def calc_class_weights(no_posts, posts):
+	"""
+	Uses the formula total / (n_classes * class_num)
+	"""
+	total = no_posts + posts
+	formula = lambda n: total / (2 * n)
+	return t.tensor([formula(no_posts), formula(posts)])
 
 def write_errors(error_file, predictions, gold_data):
 	"""
