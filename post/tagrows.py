@@ -229,12 +229,12 @@ def row_iter(camera: int):
 		row = 1
 		direction = EAST
 		#end = 21
-		end = 31
+		end = 39
 	else:
 		row = 0
 		direction = WEST
 		#end = 22
-		end = 32
+		end = 40
 	
 	while row <= end:
 		yield row, direction
