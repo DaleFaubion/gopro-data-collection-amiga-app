@@ -1,25 +1,18 @@
 {- a model for classifying images as containing post or not -}
 
+--this prototype describes the currently used model based on LeNet v5
+
 import Metatorch
 
-height = lit 300
-width  = lit 400
+height = lit 600
+width  = lit 800
 batch  = var "n"
---height = var "height"
---width  = var "width"
---hidden = var "hidden"
-hidden = lit 128
-one    = lit 1
-two    = lit 2
-three  = lit 3
+hidden = var "hidden"
+two    = lit 2  --two classes
+three  = lit 3  --for color channels
 
 --compute the length the flat vector
---flat = foldr multiply hidden [lit 9, lit 12]
-flat = foldr multiply hidden [lit 5, lit 6]
-
--- a model resembling LeNet v5
-
---NOTE This is actual MK5!!!!!!!!!
+flat = foldr multiply hidden [lit 7, lit 10]
 
 --a classifier (two classess) processing one image at a time
 post :: Flow
@@ -37,9 +30,14 @@ post = input [batch, three, height, width]
       >>= relu
       >>= avgPool2d 2 2 0 hidden
 
+      --third block
       >>= conv2d 5 2 2 hidden hidden
       >>= relu
       >>= avgPool2d 2 2 0 hidden
+
+      --fourth mini block
+      >>= conv2d 5 1 1 hidden hidden
+      >>= relu
 
       --make the "column" image into a single vector
       >>= reshape [batch, flat]
