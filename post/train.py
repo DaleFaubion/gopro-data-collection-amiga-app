@@ -4,18 +4,17 @@ from collections import namedtuple, Counter
 from random import seed, shuffle, uniform
 from csv import reader
 
-#import cv2
 from PIL import Image
 import torch as t
 import numpy as np
 from torchvision import transforms as tt
 from torchvision.transforms import functional as tf
 
-from postmodel import Mk5
-from quant import make_predictions, overall_f1, class_f1_scores, NAMES, ibatch, write_errors
+from postmodel import Mk5, VGG16, ResNet18
+from quant import make_predictions, overall_f1, class_f1_scores, NAMES, ibatch, write_errors, calc_class_weights, NO_POST, HAS_POST
 
 Options = namedtuple("Options", ["hidden", "batch_size", "epochs", "min_epochs", 
-	"learning_rate", "reg", "seed", "model_file"])
+	"learning_rate", "reg", "seed", "model_file", "use_vgg", "use_res18"])
 
 TRAIN_PROP = .70
 DEV_PROP = .1 / (1.0 - TRAIN_PROP)
@@ -39,7 +38,17 @@ def main(anno_file_path, options):
 	print("Dev", dev.counts(), sep="\n")
 	print("Testing", test.counts(), sep="\n")
 
-	model = Mk5(options.hidden)
+	class_weight = calc_class_weights(len(training) - training.num_posts(), training.num_posts())
+
+	if options.use_vgg:
+		print("Using VGG")
+		model = VGG16(options.hidden, class_weight)
+	elif options.use_res18:
+		print("Using ResNet-18")
+		model = ResNet18()
+	else:
+		print("Using LeNet")
+		model = Mk5(options.hidden)
 
 	print("Training Model")
 	print("Number of parameters", model.num_parameters())
@@ -97,7 +106,8 @@ class Dataset:
 								 #tt.RandomRotation(10),
 								 tt.RandomHorizontalFlip(),
 								 #tt.RandomPerspective(.1)  #causes warning
-								 #tt.ColorJitter(brightness=0.5)
+								 #tt.ColorJitter(brightness=0.5),
+                                 #tt.RandomAffine(0, scale=(.8, 1.2))
 								 #tt.GaussianBlur((5,5), (0.001, .5))
 								])
 
@@ -108,21 +118,6 @@ class Dataset:
 		img = Image.open(img_path)
 
 		return img.resize((800, 600))
-
-
-	def clahe_transform(self, img_mat):
-		"""
-		Transform the image with the CLAHE trans. to reduce glare
-		"""
-		lab = cv2.cvtColor(img_mat, cv2.COLOR_BGR2LAB)
-		lab_planes = cv2.split(lab)
-
-		clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(8,8))
-		new_lab_planes = (clahe.apply(lab_planes[0]), lab_planes[1], lab_planes[2])
-		lab = cv2.merge(new_lab_planes)
-		clahe_bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
-		
-		return clahe_bgr
 
 
 	def augment_data(self, img):
@@ -161,10 +156,12 @@ class Dataset:
 		Returns the image as a tensor
 		"""
 		# make into a tensor and put the channels in font to match
-		# pytorch's convension (resize and cnn)
+		# pytorch's convention (resize and cnn)
 		return t.tensor(np.array(pil_img), dtype=t.float).permute(2, 0, 1)
 
-	
+	def no_aug_iter(self):
+		return self.load_data(False)
+
 	def flat_iter(self):
 		return self.annos
 
@@ -187,6 +184,8 @@ class Dataset:
 
 		return "\n".join(names)
 
+	def num_posts(self):
+		return sum( int(l == HAS_POST) for _, l in self.annos )
 
 def split_data(data, prop):
 	"""
@@ -250,12 +249,15 @@ if __name__ == "__main__":
 	parser.add_argument("-seed", type=int, default=42, \
 		help="Random seed")
 
+	parser.add_argument("-vgg16", action="store_true", help="Use a VGG-16 model")
+
+	parser.add_argument("-res18", action="store_true", help="Use a ResNet-18 model")
 
 	parser.add_argument("-o", default="best_model", help="The name of the model file")
 
 	args = parser.parse_args()
 
 	opts = Options(args.hidden, args.batch_size, args.epochs, args.min_epochs, \
-		args.learning_rate, args.regularizer, args.seed, args.o + ".p")
+		args.learning_rate, args.regularizer, args.seed, args.o + ".p", args.vgg16, args.res18)
 
 	main(args.annotation_file, opts)
