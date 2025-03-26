@@ -4,7 +4,7 @@ from collections import namedtuple, Counter
 from random import seed, shuffle, uniform
 from csv import reader
 
-import cv2
+#import cv2
 from PIL import Image
 import torch as t
 import numpy as np
@@ -72,7 +72,7 @@ def load_datasets(filename, batch_size):
 			data.append( (image_file, int(has_post)) )
 
 	# shuffle the data
-	shuffle(data)
+	#shuffle(data)
 
 	# split the data into train-dev-test split
 	training, rest = split_data(data, TRAIN_PROP)

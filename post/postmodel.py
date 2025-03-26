@@ -32,7 +32,7 @@ class Model(nn.Module):
 			start_time = time()
 			total_loss = 0.0
 			
-			train_data.shuffle()
+			#train_data.shuffle()
 			
 			# for each training batch, make a prediction, measure the loss, and update
 			for inst, target in train_data.aug_iter():
@@ -63,7 +63,7 @@ class Model(nn.Module):
 		self.eval()
 
 		print("Loading model from epoch %d" % best_epoch)
-		best = t.load(model_path)
+		best = t.load(model_path, weights_only=False)
 
 		return best
 
@@ -84,7 +84,6 @@ class Mk5(Model):
 		self.hidden = hidden
 
 		self.sequential = nn.Sequential(
-			#nn.InstanceNorm2d(3),
 			nn.BatchNorm2d(3),
 			nn.Conv2d(3, hidden, 5, 2, 2),
 			nn.ReLU(),
@@ -97,12 +96,13 @@ class Mk5(Model):
 			nn.AvgPool2d(2, 2, 0),
 			nn.Conv2d(hidden, hidden, 5, 1, 1),
 			nn.ReLU())
-		self.mlp= nn.Sequential(nn.Linear(70 * hidden, hidden),
+		self.lstm = nn.LSTM(70*hidden, hidden, bidirectional=True)
+		self.mlp = nn.Sequential(nn.Linear(2*hidden, hidden),
 			nn.ReLU(),
 			nn.Linear(hidden, hidden),
 			nn.ReLU(),
 			nn.Linear(hidden, 2))
-		self.loss_function = nn.CrossEntropyLoss(class_weights)
+		self.loss_function = nn.CrossEntropyLoss()
 
 	def forward(self, tensor):
 		"""
@@ -110,8 +110,8 @@ class Mk5(Model):
 		"""
 		batch_size, _, _, _ = tensor.size()
 		tensor = self.sequential(tensor)
-		tensor = t.reshape(tensor, (batch_size, 70 * self.hidden))
+		tensor = t.reshape(tensor, (batch_size, 70*self.hidden))
+		tensor, _ = self.lstm(tensor)
 		tensor = self.mlp(tensor)
 
 		return tensor
-
