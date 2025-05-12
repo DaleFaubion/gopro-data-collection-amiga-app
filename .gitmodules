@@ -1,3 +1,0 @@
-[submodule "database"]
-	path = database
-	url = git@gitlab.com:georgefox/engr/senior-design/vinetech-data-processing/database.git
