@@ -1,3 +1,3 @@
-module main
+module bay
 
 go 1.18
