@@ -9,7 +9,6 @@ const NUM_CAMERAS = 4
 type PostModel struct {
 	postProb       float64 //the probability of a post being observed in a post state
 	groupMean      float64 //the expected size of a group (mean of Gaussian)
-	groupStDev     float64 //the std. dev. of the group
 	countThreshold int     //out of the 4 cameras, the number of posts required to count as a start/end of bay
 	numGroups      int     //22 for Crawford-beck: 21 bays + 1 extra bookend
 }
@@ -48,30 +47,89 @@ func (state *State) numImages() int {
 	return state.end - state.start + 1
 }
 
+// TODO check if I need to flip the bay number/position for even rows
+// TODO need an option to NOT toggle direction and just increment row e.g. 1, 2, 3 instead of 1E, 1W, 3E etc
+// dpAssignment
 func (model *PostModel) dpAssignment(rows []Row) []CameraAssignment {
+
 	//make an assignment per row
+	results := make([]CameraAssignment, NUM_CAMERAS)
+
+	for i := 0; i < NUM_CAMERAS; i++ {
+		results[i] = make(CameraAssignment, 0)
+	}
 
 	//re-arrange the assignments to make the Camera assignment format
-	//TODO
-	return nil
+	for _, row := range rows {
+
+		camRows := model.dpRowAssignment(row)
+
+		for i, camRow := range camRows {
+			results[i] = append(results[i], camRow)
+		}
+	}
+
+	return results
 }
 
 // dp_row_assignment produces an assignment of images to bays on a per-camera basis
 func (model *PostModel) dpRowAssignment(row Row) []RowAssignment {
 
-	//do the forward pass state calculation
+	results := make([]RowAssignment, 0)
 
-	//do the backwards pass
+	//use viterbi to find the most likely sequence of states
+	indexes := bayIndexes(model.viterbi(row))
 
-	//combine both into
+	//TODO remove
+	//fmt.Println("num indexes: ", len(indexes))
 
-	//TODO finish
-	return nil
+	//for each camera build a row assignment
+	for c := 0; c < NUM_CAMERAS; c++ {
+
+		//make a sequence of bays for the current camera
+		bays := make([]Bay, 0)
+
+		for i := 0; i < len(indexes)-1; i++ {
+			bays = append(bays, makeBay(i+1, indexes[i]+1, indexes[i+1], c, row.images))
+		}
+
+		//TODO need to flip the bay number based on the row/camera
+		results = append(results, RowAssignment{rowNum: row.rowNum, bays: bays})
+	}
+
+	return results
 }
 
-func buildAssignment(states []State) RowAssignment {
-	//TODO finish
-	return RowAssignment{}
+func makeBay(bayNum int, start int, end int, camera int, images [][]Image) Bay {
+
+	camImages := images[camera]
+
+	if end < len(camImages) {
+		return Bay{bayNum: bayNum, images: camImages[start : end+1]}
+	} else {
+		return Bay{bayNum: bayNum, images: make([]Image, 0)}
+	}
+}
+
+// bayIndexes creates a sequence of indices that mark the beginning and end of each bay
+func bayIndexes(states []State) []int {
+
+	results := make([]int, 0)
+
+	//for the first bay use negative one as the starting index
+	results = append(results, -1)
+
+	//for each state after the first, use the middle of each post group as the boundary of the bays
+	for i := 1; i < len(states)-1; i++ {
+		if states[i].isPostGroup() {
+			results = append(results, (states[i].start+states[i].end)/2)
+		}
+	}
+
+	//put the max index on the end
+	results = append(results, states[len(states)-1].end)
+
+	return results
 }
 
 // viterbi predicts a state sequence for the given row starting at the beginning of the row
@@ -227,7 +285,7 @@ func (model *PostModel) observationProb(images [][]Image, start int, end int, is
 	//for each camera, count how many posts there are
 	for i := 0; i < NUM_CAMERAS; i++ {
 		countIndex := 0
-		for c := start; c <= end; c++ {
+		for c := start; c <= end && c < len(images[i]); c++ {
 			if images[i][c].hasPost {
 				counts[countIndex]++
 			}
@@ -289,4 +347,50 @@ func LogSumExp(logX, logY float64) float64 {
 
 	// Calculate log(exp(logX) + exp(logY)) using the log-sum-exp trick
 	return maxLog + math.Log(math.Exp(logX-maxLog)+math.Exp(logY-maxLog))
+}
+
+// PoissonLogProb computes the log probability of a count under a Poisson distribution
+func PoissonLogProb(lambda float64, count int) float64 {
+	if count <= 0 {
+		// use a very small probability instead of zero
+		return EPS
+	} else {
+		// the numerator is lambda^k e^-lambda i.e. in log space: k ln lambda - lambda
+		num := (float64(count) * math.Log(lambda)) - lambda
+		denom := 0.0
+
+		// the denominator is the sum of 1 to k i.e. the log of the factorial of the count
+		for i := 1; i <= count; i++ {
+			denom += math.Log(float64(i))
+		}
+
+		// in log space, the numerator over the denominator is simply subtraction
+		return num - denom
+	}
+}
+
+// BinomialLogProb computes the log probability of a sequence of pictures according to a binomial distribution
+// pics is the total i.e. n
+// noPosts is the number of "successes"
+// prob is "p" according to a standard binomial distribution
+func BinomialLogProb(pics int, noPosts int, prob float64) float64 {
+	if pics <= 0 {
+		return EPS
+	} else {
+		return logNChooseK(pics, noPosts) + (float64(noPosts) * math.Log(prob)) + (float64(pics-noPosts) * math.Log(1.0-prob))
+	}
+}
+
+// logNChooseK computes the binomial coefficient in log space
+func logNChooseK(n int, k int) float64 {
+	return logFactorial(n) - logFactorial(k) - logFactorial(n-k)
+}
+
+// logFactorial computes the factorial but in log space
+func logFactorial(n int) float64 {
+	denom := 0.0
+	for i := 1; i <= n; i++ {
+		denom += math.Log(float64(i))
+	}
+	return denom
 }

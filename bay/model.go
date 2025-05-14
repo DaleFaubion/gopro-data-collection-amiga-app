@@ -94,7 +94,7 @@ func (model *DPModel) RowLogLikelihood(row *RowAssignment) float64 {
 	return like
 }
 
-//bayLogLikelihood computes the log likelihood of the bay, give then partition of the images
+// bayLogLikelihood computes the log likelihood of the bay, give then partition of the images
 func (model *DPModel) bayLogLikelihood(bay *Bay, partition []int) float64 {
 	like := 0.0
 
@@ -192,8 +192,8 @@ func (model *DPModel) maxSectionAssignment(bay *Bay) []int {
 	return results
 }
 
-//backwardsPass does an HMM-like backwards pass to compute the log-probability of being in a given section (state)
-//after seeing some images
+// backwardsPass does an HMM-like backwards pass to compute the log-probability of being in a given section (state)
+// after seeing some images
 func (model *DPModel) backwardsPass(bay *Bay) [][]float64 {
 
 	const LAST = 2
@@ -507,7 +507,7 @@ func initialPoissonModel(images []Image) PoissonModel {
 	return PoissonModel{postLambda, emptyLambda, postLambda, NO_POST_INIT}
 }
 
-//Show prints off the model's parameters
+// Show prints off the model's parameters
 func (model *DPModel) Show() {
 	fmt.Println("DP Bay Model")
 
@@ -516,7 +516,7 @@ func (model *DPModel) Show() {
 	}
 }
 
-//Show prints off the model's parameters
+// Show prints off the model's parameters
 func (model *PoissonModel) Show() {
 	fmt.Printf("Poisson Bay Model\n")
 	fmt.Printf("Params: %.4f, Middle: %.4f, Prob: %.4f, End: %.4f\n", model.startLambda, model.imageLambda, model.noPostProb, model.endLambda)
@@ -526,50 +526,4 @@ func (model *PoissonModel) Show() {
 // each section
 func sectionLogLikelihood(mean float64, noPostProb float64, noPostCount int, total int) float64 {
 	return PoissonLogProb(mean, total) + BinomialLogProb(total, noPostCount, noPostProb)
-}
-
-// PoissonLogProb computes the log probability of a count under a Poisson distribution
-func PoissonLogProb(lambda float64, count int) float64 {
-	if count <= 0 {
-		// use a very small probability instead of zero
-		return EPS
-	} else {
-		// the numerator is lambda^k e^-lambda i.e. in log space: k ln lambda - lambda
-		num := (float64(count) * math.Log(lambda)) - lambda
-		denom := 0.0
-
-		// the denominator is the sum of 1 to k i.e. the log of the factorial of the count
-		for i := 1; i <= count; i++ {
-			denom += math.Log(float64(i))
-		}
-
-		// in log space, the numerator over the denominator is simply subtraction
-		return num - denom
-	}
-}
-
-// BinomialLogProb computes the log probability of a sequence of pictures according to a binomial distribution
-// pics is the total i.e. n
-// noPosts is the number of "successes"
-// prob is "p" according to a standard binomial distribution
-func BinomialLogProb(pics int, noPosts int, prob float64) float64 {
-	if pics <= 0 {
-		return EPS
-	} else {
-		return logNChooseK(pics, noPosts) + (float64(noPosts) * math.Log(prob)) + (float64(pics-noPosts) * math.Log(1.0-prob))
-	}
-}
-
-// logNChooseK computes the binomial coefficient in log space
-func logNChooseK(n int, k int) float64 {
-	return logFactorial(n) - logFactorial(k) - logFactorial(n-k)
-}
-
-//logFactorial computes the factorial but in log space
-func logFactorial(n int) float64 {
-	denom := 0.0
-	for i := 1; i <= n; i++ {
-		denom += math.Log(float64(i))
-	}
-	return denom
 }

@@ -4,9 +4,7 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
-	"math"
 	"os"
-	"sort"
 	"strconv"
 )
 
@@ -15,7 +13,6 @@ import (
 const NUM_ROWS = 21
 const NUM_BAYS = 21
 const CAMERAS = 4
-const CAMERA_SPLIT = 2
 const WEST = "West"
 const EAST = "East"
 
@@ -49,21 +46,11 @@ func NewCameraAssignment() CameraAssignment {
 	return results
 }
 
-// NewVineyardAssignment creates a empty ent for all the rows and bays
-func NewVineyardAssignment() []CameraAssignment {
-	results := make([]CameraAssignment, CAMERAS)
-
-	for i := 0; i < CAMERAS; i++ {
-		results[i] = NewCameraAssignment()
-	}
-
-	return results
-}
-
 // loadPostData loads the post predictions from a given CSV file
 func loadPostData(path string) map[string]bool {
 	const pathIdx = 0
 	const postIdx = 3
+	const oldPostIdx = 1
 	const hasPost = "1"
 
 	data, fileErr := os.Open(path)
@@ -90,17 +77,19 @@ func loadPostData(path string) map[string]bool {
 
 	// build a map from path name to bool (has post or not)
 	for _, record := range records {
+
+		idx := postIdx
+
+		//use the old post index for older post files
+		if len(record) < idx {
+			idx = oldPostIdx
+		}
+
 		imgPath := record[pathIdx]
-		results[imgPath] = record[postIdx] == hasPost
+		results[imgPath] = record[idx] == hasPost
 	}
 
 	return results
-}
-
-// validRows returns true if the row number is within the bounds of the block i.e. a couple row 0 and 22 are actually
-// of other blocks
-func validRows(rowIdx int) bool {
-	return rowIdx > 0 && rowIdx <= NUM_ROWS
 }
 
 // loadRowData reads the CSV file and constructs an array of images
@@ -111,6 +100,9 @@ func loadRowData(posts map[string]bool, path string) []Image {
 	const rowIdx = 3
 	const cameraIdx = 4
 	const dirIdx = 5
+
+	const defaultDir = "1"
+	const defaultCam = 1
 
 	data, fileErr := os.Open(path)
 
@@ -135,208 +127,68 @@ func loadRowData(posts map[string]bool, path string) []Image {
 		row, _ := strconv.Atoi(record[rowIdx])
 
 		imgPath := record[pathIdx]
-		camera, _ := strconv.Atoi(record[cameraIdx])
-		newImage := Image{imgPath, record[dateIdx], record[timeIdx], posts[imgPath], row, camera, record[dirIdx]}
+
+		var camera int
+		var direction string
+
+		//check if the row file is "new" and has all the fields
+		if cameraIdx >= len(record) {
+			camera = defaultCam
+			direction = defaultDir
+		} else {
+			camera, _ = strconv.Atoi(record[cameraIdx])
+			direction = record[dirIdx]
+		}
+
+		newImage := Image{imgPath, record[dateIdx], record[timeIdx], posts[imgPath], row, camera, direction}
 		results = append(results, newImage)
 	}
 
 	return results
 }
 
-func isLeftCamera(cameraIdx int) bool {
-	return cameraIdx == 1 || cameraIdx == 2
-}
+// buildRows organizes images into rows/camera groups
+func buildRows(images []Image) []Row {
 
-// MakeInitialGroups creates an ent for each row based on the data and the row/bay constraints
-func makeInitialGroups(images []Image) []CameraAssignment {
-
-	const MAX_BAY = NUM_BAYS - 1
-
-	// make a data structure of camera, row, and then bay
-	rows := make([][][]Image, CAMERAS)
-
-	for i := range rows {
-		rows[i] = make([][]Image, NUM_ROWS)
+	//find the max row in the data
+	maxRow := 0
+	for _, image := range images {
+		if image.row > maxRow {
+			maxRow = image.row
+		}
 	}
 
-	// put all the images into their row array
+	results := make([]Row, maxRow)
+
+	//initialize the rows
+	for i := 0; i < len(results); i++ {
+		images := make([][]Image, NUM_CAMERAS)
+		results[i] = Row{i + 1, images}
+	}
+
+	//put all the images into the correct rows
 	for _, image := range images {
 		rowIdx := image.row - 1
-		camera := image.cameraNum - 1
+		camIdx := image.cameraNum - 1
 
-		// unpack images into their own rows based on orientation
-		if image.direction == WEST {
-			//the left cameras are only on odd rows, move this image to the otherwise empty next even row
-			if isLeftCamera(image.cameraNum) {
-				rowIdx++
-			} else {
-				rowIdx--
-			}
-		}
-
-		if 0 <= rowIdx && rowIdx < NUM_ROWS {
-			rows[camera][rowIdx] = append(rows[camera][rowIdx], image)
-		}
+		results[rowIdx].images[camIdx] = append(results[rowIdx].images[camIdx], image)
 	}
 
-	results := NewVineyardAssignment()
+	//TODO remove
+	for r, _ := range results {
+		fmt.Printf("Row %2d: ", r)
 
-	//for each camera and row, group up the images based on whether they have a post
-	//make the initial groups based on the clusters of posts
-	for c := 0; c < CAMERAS; c++ {
-
-		for i := 0; i < len(results[c]); i++ {
-
-			rowImages := rows[c][i]
-			newRow := results[c][i]
-
-			//find all the best split points
-			splitPoints := findSplitPoints(rowImages)
-
-			//skip the first split point, it should be the start of the first bay
-			splitIdx := 1
-			bay := 0
-
-			//assign the images to each bay
-			for j := 0; j < len(rowImages); j++ {
-				//advance to the next split point if the current images is past it
-				if j > splitPoints[splitIdx] {
-					splitIdx++
-					bay++
-				}
-
-				newRow.bays[bay] = newRow.bays[bay].AppendImage(rowImages[j])
-			}
+		for i, imageGroup := range results[r].images {
+			fmt.Printf("Camera %d: %d ", i, len(imageGroup))
 		}
+
+		fmt.Println()
 	}
 
 	return results
 }
 
-// markEnds guarantees that the first and last image in each row is marked as having a post to help the
-// algorithm to fix the row and bay assignments
-func markEnds(assignments []CameraAssignment) {
-
-	// for each camera and row, make sure the first and last images are marked as having a post
-	for _, assignment := range assignments {
-		for _, row := range assignment {
-			firstBay := row.bays[0]
-			lastBay := row.bays[len(row.bays)-1]
-
-			//mark the very first and last bays as having a post
-			if len(firstBay.images) > 0 {
-				firstBay.images[0].hasPost = true
-			}
-
-			if len(lastBay.images) > 0 {
-				lastBay.images[len(lastBay.images)-1].hasPost = true
-			}
-		}
-	}
-}
-
-//TODO the split points are not correct, there is an edge case with the first and last bay - the last bay should have a single post
-//findSplitPoints finds the indexes	to use to break up the row into initial bays
-func findSplitPoints(images []Image) []int {
-
-	type Group struct {
-		start int
-		end   int
-	}
-
-	var splits []Group
-	var results []int
-	start := 0
-	i := 0
-
-	//return an empty array if no images were given
-	if len(images) == 0 {
-		return results
-	}
-
-	//find the first image with a post
-	for i < len(images) && !images[i].hasPost {
-		i++
-	}
-
-	//go through all the images and find the groups of images with posts
-	for i < len(images) {
-
-		//mark the start of the group
-		start = i
-
-		//find the end of the group
-		for i < len(images) && images[i].hasPost {
-			i++
-		}
-
-		//add the group
-		splits = append(splits, Group{start, i - 1})
-
-		//skip past all the non-post images
-		for i < len(images) && !images[i].hasPost {
-			i++
-		}
-	}
-
-	//sort the groups by size descending
-	sort.Slice(splits, func(i, j int) bool {
-		left := splits[i].end - splits[i].start
-		right := splits[j].end - splits[j].start
-		return left > right
-	})
-
-	//TODO remove
-	//println("Number of splits:", len(splits))
-
-	//pick the top groups based on size if there are enough
-	if len(splits) > NUM_BAYS {
-		splits = splits[:NUM_BAYS+1]
-	} else {
-		//TODO remove
-		//println("uniform...")
-
-		splits = make([]Group, NUM_BAYS+1)
-
-		step := float64(len(images)) / float64(NUM_BAYS)
-		current := 0.0
-
-		// do evenly-spaced splits
-		for i := 0; i < len(splits); i++ {
-			index := int(math.Floor(current))
-			splits[i].start = index
-			splits[i].end = index
-			current += step
-		}
-	}
-
-	//sort the remaining groups based on starting index
-	sort.Slice(splits, func(i, j int) bool {
-		return splits[i].start < splits[j].start
-	})
-
-	//TODO remove
-	/*for _, split := range splits {
-		println("split", split.start, split.end)
-	}*/
-
-	//make the results, the midpoint of each group
-	for _, group := range splits {
-		results = append(results, (group.start+group.end)/2)
-	}
-
-	//make the last split the end of the images
-	results[len(results)-1] = len(images) - 1
-
-	//TODO remove
-	/*for _, point := range results {
-		println("split point:", point)
-	}*/
-
-	return results
-}
-
-// ShowRows prints off the row ents
+// ShowRows prints off the row
 func showRows(rows []CameraAssignment) {
 
 	for c := 0; c < CAMERAS; c++ {
@@ -489,7 +341,10 @@ func writeBays(path string, bays []CameraAssignment) {
 func main() {
 
 	// Set up the optional flags
-	rounds := flag.Int("rounds", 500, "The number of rounds to apply EM")
+	postProb := flag.Float64("post", 0.95, "The conditional probability of an image containing a post in a post group")
+	groupMean := flag.Float64("mean", 4.0, "The average number of pictures per post/no post grouping")
+	numGroups := flag.Int("numGroups", 43, "The number of post/no post groups per row i.e. # bays x 2")
+	thres := flag.Int("thres", 3, "The threshold of simultaneous post images counting as a true post")
 	outFile := flag.String("out", "", "The path to the CSV file to write with the bay predictions")
 
 	flag.Parse()
@@ -519,28 +374,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	// make an initial model
-	start := makeInitialGroups(images)
+	fmt.Printf("Number of images: %d\n", len(images))
 
-	// mark the first and last images as having a post
-	markEnds(start)
+	model := PostModel{*postProb, *groupMean, *thres, *numGroups}
 
-	// make an initial assignments
-	model := initialDPModel(images)
-	//model := initialPoissonModel(images)
+	fmt.Printf("Post model %v\n", model)
 
-	model.ExpectedModel(start)
+	rows := buildRows(images)
 
-	fmt.Println("Starting Groups")
-	showRows(start)
-	model.Show()
-	fmt.Println()
+	fmt.Printf("Number of rows: %d\n", len(rows))
 
-	// use EM to correct the assignments
-	result := em(&model, start, *rounds)
+	result := model.dpAssignment(rows)
 
 	fmt.Println("Results")
-	model.Show()
 
 	// show the row assignments
 	showRows(result)
