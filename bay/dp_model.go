@@ -6,6 +6,8 @@ import (
 
 const NUM_CAMERAS = 4
 
+var EPS = math.Log(0.00000000001)
+
 type PostModel struct {
 	postProb       float64 //the probability of a post being observed in a post state
 	groupMean      float64 //the expected size of a group (mean of Gaussian)
