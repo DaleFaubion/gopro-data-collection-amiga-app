@@ -82,9 +82,6 @@ func (model *PostModel) dpRowAssignment(row Row) []RowAssignment {
 	//use viterbi to find the most likely sequence of states
 	indexes := bayIndexes(model.viterbi(row))
 
-	//TODO remove
-	//fmt.Println("num indexes: ", len(indexes))
-
 	//for each camera build a row assignment
 	for c := 0; c < NUM_CAMERAS; c++ {
 
@@ -92,10 +89,17 @@ func (model *PostModel) dpRowAssignment(row Row) []RowAssignment {
 		bays := make([]Bay, 0)
 
 		for i := 0; i < len(indexes)-1; i++ {
-			bays = append(bays, makeBay(i+1, indexes[i]+1, indexes[i+1], c, row.images))
+
+			bayNum := i + 1
+
+			//reverse the bay number for even rows
+			if row.rowNum%2 == 0 {
+				bayNum = len(indexes) - i - 1
+			}
+
+			bays = append(bays, makeBay(bayNum, indexes[i]+1, indexes[i+1], c, row.images))
 		}
 
-		//TODO need to flip the bay number based on the row/camera
 		results = append(results, RowAssignment{rowNum: row.rowNum, bays: bays})
 	}
 

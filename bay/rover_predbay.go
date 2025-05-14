@@ -232,6 +232,30 @@ func showRows(rows []CameraAssignment) {
 	}
 }
 
+func showSingleCamResults(rows []CameraAssignment) {
+	var results []RowAssignment = rows[0]
+
+	//print off the header
+	fmt.Printf("    |")
+
+	for i := 1; i <= NUM_BAYS; i++ {
+		fmt.Printf("%5d    |", i)
+	}
+	fmt.Println()
+
+	//display each row
+	for i, row := range results {
+
+		fmt.Printf("%2d  |", i+1)
+
+		for _, bay := range row.bays {
+			fmt.Printf("%5d    |", bay.NumImages())
+		}
+
+		fmt.Println()
+	}
+}
+
 // calcRow determines the actual row based on the camera and assigned row
 // row - is the row index i.e. starts at zero
 func calcRow(camera int, row int) int {
@@ -345,6 +369,7 @@ func main() {
 	groupMean := flag.Float64("mean", 4.0, "The average number of pictures per post/no post grouping")
 	numGroups := flag.Int("numGroups", 43, "The number of post/no post groups per row i.e. # bays x 2")
 	thres := flag.Int("thres", 3, "The threshold of simultaneous post images counting as a true post")
+	singleCam := flag.Bool("single", false, "Whether the data has only a single camera or not i.e. for the years 2019-2021")
 	outFile := flag.String("out", "", "The path to the CSV file to write with the bay predictions")
 
 	flag.Parse()
@@ -389,7 +414,11 @@ func main() {
 	fmt.Println("Results")
 
 	// show the row assignments
-	showRows(result)
+	if *singleCam {
+		showSingleCamResults(result)
+	} else {
+		showRows(result)
+	}
 
 	// if an output file is given, write to it
 	if *outFile != "" {
