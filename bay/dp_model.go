@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"math"
 )
 
-//const NUM_GROUPS = 22 //21 bays plus one extra bookend
-const NUM_GROUPS = 7
 const NUM_CAMERAS = 4
 
 type PostModel struct {
@@ -22,7 +19,7 @@ type Row struct {
 	images [][]Image //sequences of images per camera, i.e. indexed by camera, then image
 }
 
-//numImages return the number of images per camera
+// numImages return the number of images per camera
 func (row *Row) numImages() int {
 	return len(row.images[0])
 }
@@ -34,19 +31,19 @@ type State struct {
 	end   int     //the timestep of the last image in the state, inclusive
 }
 
-//newState creates a new state
+// newState creates a new state
 func newState(stateNum int) State {
 	state := State{state: stateNum, score: math.Inf(-1)}
 	return state
 }
 
-//isPostGroup returns true if the group should only contain posts
+// isPostGroup returns true if the group should only contain posts
 func (state *State) isPostGroup() bool {
 	//odd groups are post groups
 	return state.state%2 == 0
 }
 
-//numImages returns the number of images per camera
+// numImages returns the number of images per camera
 func (state *State) numImages() int {
 	return state.end - state.start + 1
 }
@@ -59,7 +56,7 @@ func (model *PostModel) dpAssignment(rows []Row) []CameraAssignment {
 	return nil
 }
 
-//dp_row_assignment produces an assignment of images to bays on a per-camera basis
+// dp_row_assignment produces an assignment of images to bays on a per-camera basis
 func (model *PostModel) dpRowAssignment(row Row) []RowAssignment {
 
 	//do the forward pass state calculation
@@ -77,7 +74,7 @@ func buildAssignment(states []State) RowAssignment {
 	return RowAssignment{}
 }
 
-//viterbi predicts a state sequence for the given row starting at the beginning of the row
+// viterbi predicts a state sequence for the given row starting at the beginning of the row
 func (model *PostModel) viterbi(row Row) []State {
 
 	//the DP table, the probability of being in each state at each timestep, i.e. time index, state index
@@ -105,7 +102,7 @@ func (model *PostModel) viterbi(row Row) []State {
 
 	//build the DP table
 	//for each timestep in the row, compute the probability of being in each state
-	for t := 1; t < row.numImages(); t++ {
+	for t := 0; t < row.numImages(); t++ {
 
 		states := make([]State, model.numGroups)
 
@@ -125,7 +122,7 @@ func (model *PostModel) viterbi(row Row) []State {
 			for j := s; j < t; j++ {
 
 				//TODO remove
-				//fmt.Printf("Looking back to %d at time %d in state %d\n", j, t, s)
+				//fmt.Printf("Looking back to %d at time %d in state %d ", j, t, s)
 
 				var prev float64
 
@@ -149,7 +146,7 @@ func (model *PostModel) viterbi(row Row) []State {
 			}
 
 			//TODO remove
-			fmt.Printf("Best for %d (s) at %d (t) is %d (j) %.4f\n", s, t, bestSplit, prevBestScore)
+			//fmt.Printf("Best for %d (s) at %d (t) is %d (j) %.4f\n", s, t, bestSplit, prevBestScore)
 
 			//set the score and the starting index for the state
 			nextState.start = bestSplit
@@ -177,14 +174,14 @@ func (model *PostModel) viterbi(row Row) []State {
 	}*/
 
 	//TODO remove
-	fmt.Println("optimal", optimal)
+	//fmt.Println("optimal", optimal)
 
 	results := make([]State, 0)
 	current := optimal
 	results = append(results, current)
 
 	//TODO remove
-	fmt.Println("start ", current)
+	//fmt.Println("start ", current)
 
 	//add in all the prior states
 	for current.state != 0 {
@@ -192,10 +189,10 @@ func (model *PostModel) viterbi(row Row) []State {
 		next := current
 
 		//jump back in time based on the number of images in the state
-		for _, state := range lattice[current.start-1] {
+		for _, state := range lattice[current.start] {
 
 			//TODO remove
-			fmt.Println("candidate", state)
+			//fmt.Println("candidate", state.start-1, state)
 
 			if state.state == current.state-1 && current.start-1 == state.end {
 				next = state
@@ -204,7 +201,7 @@ func (model *PostModel) viterbi(row Row) []State {
 		}
 
 		//TODO REMOVE
-		fmt.Println("next", next)
+		//fmt.Println("next", next)
 
 		current = next
 		results = append(results, current)
@@ -221,7 +218,7 @@ func (model *PostModel) viterbi(row Row) []State {
 	return results
 }
 
-//observationProb return the log probability of observing a post or no post in the given state
+// observationProb return the log probability of observing a post or no post in the given state
 func (model *PostModel) observationProb(images [][]Image, start int, end int, isPostGroup bool) float64 {
 
 	//make a slice of post counts for the window given
@@ -266,12 +263,13 @@ func (model *PostModel) observationProb(images [][]Image, start int, end int, is
 	return BinomialLogProb(posts+noPosts, noPosts, noPostProb)
 }
 
-//transitionProb return the log probability of transitioning from the old state to the new one
+// transitionProb return the log probability of transitioning from the old state to the new one
 func (model *PostModel) transitionProb(numImages int) float64 {
-	return math.Log(NormalCDF(float64(numImages), model.groupMean, model.groupStDev))
+	//return math.Log(NormalCDF(float64(numImages), model.groupMean, model.groupStDev))
+	return PoissonLogProb(model.groupMean, numImages)
 }
 
-//NormalCDF the cumulative density function of a Gaussian distribution
+// NormalCDF the cumulative density function of a Gaussian distribution
 func NormalCDF(x, mean, stdDev float64) float64 {
 	return 0.5 * (1 + math.Erf((x-mean)/(stdDev*math.Sqrt2)))
 }

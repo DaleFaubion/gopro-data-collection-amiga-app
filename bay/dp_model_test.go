@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"testing"
 )
 
@@ -65,7 +64,7 @@ var shortCleanData = [][]Image{
 func Test_Viterbi_short(t *testing.T) {
 	const EXP_STATES = 4
 	const EXP_SIZE = 4
-	model := PostModel{.95, EXP_SIZE, 1, 4, EXP_STATES}
+	model := PostModel{.95, EXP_SIZE, .5, 4, EXP_STATES}
 
 	testRow := Row{3, shortCleanData}
 
@@ -114,8 +113,9 @@ func Test_Viterbi(t *testing.T) {
 }
 
 func Test_TransitionProb(t *testing.T) {
-	model := PostModel{.95, 4, 1, 4, 7}
-	target := math.Log(NormalCDF(4, model.groupMean, model.groupStDev))
+	model := PostModel{.95, 4, .5, 4, 7}
+	//target := math.Log(NormalCDF(4, model.groupMean, model.groupStDev))
+	target := PoissonLogProb(4, 4)
 	prob := model.transitionProb(4)
 
 	if target != prob {
@@ -169,4 +169,11 @@ func Test_ObservationProb_Clean_SecondNoPostGroup(t *testing.T) {
 	if prob != targetProb {
 		t.Errorf("Expected a probabiltiy of %.4f but got %.4f", targetProb, prob)
 	}
+}
+
+func Test_NormalCDF(t *testing.T) {
+	//prob := math.Exp(PoissonLogProb(4, 4))
+	prob := NormalCDF(1.0, 4.0, .5)
+
+	fmt.Println("CDF", prob)
 }
