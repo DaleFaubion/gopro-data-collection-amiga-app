@@ -29,23 +29,6 @@ type Image struct {
 	direction string
 }
 
-// NewCameraAssignment creates an empty assignment for all the rows, for a single camera
-func NewCameraAssignment() CameraAssignment {
-	results := make([]RowAssignment, NUM_ROWS)
-
-	for i := 0; i < NUM_ROWS; i++ {
-
-		row := i + 1
-
-		// since the goes south on odd rows and north on even rows, flip the bay ordering on even rows
-		reverseBays := row%2 == 0
-
-		results[i] = NewRowAssignment(i+1, reverseBays)
-	}
-
-	return results
-}
-
 // loadPostData loads the post predictions from a given CSV file
 func loadPostData(path string) map[string]bool {
 	const pathIdx = 0
@@ -140,7 +123,9 @@ func loadRowData(posts map[string]bool, path string) []Image {
 			direction = record[dirIdx]
 		}
 
-		newImage := Image{imgPath, record[dateIdx], record[timeIdx], posts[imgPath], row, camera, direction}
+		hasPost, _ := posts[imgPath]
+
+		newImage := Image{imgPath, record[dateIdx], record[timeIdx], hasPost, row, camera, direction}
 		results = append(results, newImage)
 	}
 
@@ -172,17 +157,6 @@ func buildRows(images []Image) []Row {
 		camIdx := image.cameraNum - 1
 
 		results[rowIdx].images[camIdx] = append(results[rowIdx].images[camIdx], image)
-	}
-
-	//TODO remove
-	for r, _ := range results {
-		fmt.Printf("Row %2d: ", r)
-
-		for i, imageGroup := range results[r].images {
-			fmt.Printf("Camera %d: %d ", i, len(imageGroup))
-		}
-
-		fmt.Println()
 	}
 
 	return results
