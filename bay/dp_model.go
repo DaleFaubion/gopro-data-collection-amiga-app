@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"sync"
 )
 
 const NUM_CAMERAS = 4
@@ -60,16 +61,24 @@ func (model *PostModel) dpAssignment(rows []Row) []CameraAssignment {
 	for i := 0; i < NUM_CAMERAS; i++ {
 		results[i] = make(CameraAssignment, 0)
 	}
+	var waitGroup sync.WaitGroup
 
 	//re-arrange the assignments to make the Camera assignment format
 	for _, row := range rows {
 
-		camRows := model.dpRowAssignment(row)
+		waitGroup.Add(1)
 
-		for i, camRow := range camRows {
-			results[i] = append(results[i], camRow)
-		}
+		go func(pRow Row) {
+			defer waitGroup.Done()
+			camRows := model.dpRowAssignment(pRow)
+
+			for i, camRow := range camRows {
+				results[i] = append(results[i], camRow)
+			}
+		}(row)
 	}
+
+	waitGroup.Wait()
 
 	return results
 }
