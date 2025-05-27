@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
-
-//TODO change search algorithm to move boundaries between post groups (sequences of images with posts)
 
 const NUM_ROWS = 21
 const NUM_BAYS = 21
@@ -116,8 +115,9 @@ func loadRowData(posts map[string]bool, path string) []Image {
 
 		//check if the row file is "new" and has all the fields
 		if cameraIdx >= len(record) {
-			camera = defaultCam
-			direction = defaultDir
+			camera = getCamera(imgPath)
+			//calcDirection is expecting the camera index i.e. 0,1,2,3
+			direction = calcDirection(camera-1, row)
 		} else {
 			camera, _ = strconv.Atoi(record[cameraIdx])
 			direction = record[dirIdx]
@@ -130,6 +130,18 @@ func loadRowData(posts map[string]bool, path string) []Image {
 	}
 
 	return results
+}
+
+// getCamera parses the path and retrieves the camera id
+func getCamera(path string) int {
+	parts := strings.Split(path, "/")
+
+	//get the second from the last part of the path i.e. the last directory which is the camera
+	idx := len(parts) - 2
+
+	camera, _ := strconv.Atoi(parts[idx])
+
+	return camera
 }
 
 // buildRows organizes images into rows/camera groups
@@ -155,8 +167,9 @@ func buildRows(images []Image) []Row {
 	for _, image := range images {
 		rowIdx := image.row - 1
 		camIdx := image.cameraNum - 1
+		row := results[rowIdx]
 
-		results[rowIdx].images[camIdx] = append(results[rowIdx].images[camIdx], image)
+		row.images[camIdx] = append(row.images[camIdx], image)
 	}
 
 	return results
