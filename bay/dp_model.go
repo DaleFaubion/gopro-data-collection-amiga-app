@@ -59,23 +59,23 @@ func (model *PostModel) dpAssignment(rows []Row) []CameraAssignment {
 	results := make([]CameraAssignment, NUM_CAMERAS)
 
 	for i := 0; i < NUM_CAMERAS; i++ {
-		results[i] = make(CameraAssignment, 0)
+		results[i] = make(CameraAssignment, len(rows))
 	}
 	var waitGroup sync.WaitGroup
 
 	//re-arrange the assignments to make the Camera assignment format
-	for _, row := range rows {
+	for r, row := range rows {
 
 		waitGroup.Add(1)
 
-		go func(pRow Row) {
+		func(rowIdx int, pRow Row) {
 			defer waitGroup.Done()
 			camRows := model.dpRowAssignment(pRow)
 
 			for i, camRow := range camRows {
-				results[i] = append(results[i], camRow)
+				results[i][rowIdx] = camRow
 			}
-		}(row)
+		}(r, row)
 	}
 
 	waitGroup.Wait()

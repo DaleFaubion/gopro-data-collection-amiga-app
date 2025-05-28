@@ -211,7 +211,7 @@ func showRows(rows []CameraAssignment) {
 			realRow := calcRow(c, i)
 
 			dir := "E"
-			if calcDirection(c, i+1) == WEST {
+			if calcDirection(c, i) == WEST {
 				dir = "W"
 			}
 
