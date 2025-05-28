@@ -202,7 +202,7 @@ func showRows(rows []CameraAssignment) {
 		fmt.Printf("    |")
 
 		for i := 1; i <= NUM_BAYS; i++ {
-			fmt.Printf("%5d    |", i)
+			fmt.Printf("%3d  |", i)
 		}
 		fmt.Println()
 
@@ -211,7 +211,7 @@ func showRows(rows []CameraAssignment) {
 			realRow := calcRow(c, i)
 
 			dir := "E"
-			if calcDirection(c, i) == WEST {
+			if calcDirection(c, i+1) == WEST {
 				dir = "W"
 			}
 
@@ -225,8 +225,9 @@ func showRows(rows []CameraAssignment) {
 					index = len(row.bays) - 1 - i
 				}
 				bay := row.bays[index]
-				start, end := bay.NumPosts()
-				fmt.Printf("%2d+%2d+%2d |", start, bay.NumEmpty(), end)
+				//start, end := bay.NumPosts()
+				//fmt.Printf("%2d+%2d+%2d |", start, bay.NumEmpty(), end)
+				fmt.Printf("%3d  |", bay.NumImages())
 			}
 			fmt.Println()
 		}
