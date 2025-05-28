@@ -15,6 +15,9 @@ const CAMERAS = 4
 const WEST = "West"
 const EAST = "East"
 
+const EAST_IDX = "0"
+const WEST_IDX = "1"
+
 type CameraAssignment = []RowAssignment
 
 // Image a single image
@@ -118,10 +121,20 @@ func loadRowData(posts map[string]bool, path string) []Image {
 			camera = getCamera(imgPath)
 			//calcDirection is expecting the camera index i.e. 0,1,2,3
 			direction = calcDirection(camera-1, row)
+
 		} else {
 			camera, _ = strconv.Atoi(record[cameraIdx])
 			direction = record[dirIdx]
+
+			if direction == EAST_IDX {
+				direction = EAST
+			} else if direction == WEST_IDX {
+				direction = WEST
+			}
 		}
+
+		//TODO remove
+		//fmt.Printf("path: %s, camera: %d, direction: %s\n", path, camera, direction)
 
 		hasPost, _ := posts[imgPath]
 
@@ -165,11 +178,14 @@ func buildRows(images []Image) []Row {
 
 	//put all the images into the correct rows
 	for _, image := range images {
-		rowIdx := image.row - 1
 		camIdx := image.cameraNum - 1
-		row := results[rowIdx]
+		rowIdx := calcRowIndex(camIdx, image.row, image.direction)
 
-		row.images[camIdx] = append(row.images[camIdx], image)
+		//drop images that face away from the block i.e. row 1 camera 3, facing West
+		if rowIdx < maxRow && rowIdx >= 0 {
+			row := results[rowIdx]
+			row.images[camIdx] = append(row.images[camIdx], image)
+		}
 	}
 
 	return results
@@ -262,6 +278,25 @@ func calcRow(camera int, row int) int {
 			return row + 1
 		}
 	}
+}
+
+// calcRowIndex determines the index of the row based on the actual row number and the camera
+// this is the inverse of the function calcRow
+func calcRowIndex(cameraIdx int, row int, direction string) int {
+
+	rowIdx := row - 1
+
+	// unpack images into their own rows based on orientation
+	if direction == WEST {
+		//the left cameras are only on odd rows, move this image to the otherwise empty next even row
+		if startsEast(cameraIdx) {
+			rowIdx++
+		} else {
+			rowIdx--
+		}
+	}
+
+	return rowIdx
 }
 
 // startsEast returns true if the camera (0,1,2,3) initially has an eastward orientation
