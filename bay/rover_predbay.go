@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -109,9 +110,15 @@ func loadRowData(posts map[string]bool, path string) []Image {
 	var results []Image
 
 	for _, record := range records {
-		row, _ := strconv.Atoi(record[rowIdx])
 
 		imgPath := record[pathIdx]
+
+		//skip first row if it is a header
+		if imgPath == "path" {
+			continue
+		}
+
+		row, _ := strconv.Atoi(record[rowIdx])
 
 		var camera int
 		var direction string
@@ -185,6 +192,15 @@ func buildRows(images []Image) []Row {
 		if rowIdx < maxRow && rowIdx >= 0 {
 			row := results[rowIdx]
 			row.images[camIdx] = append(row.images[camIdx], image)
+		}
+	}
+
+	//ensure that the images for each row and camera are in sorted order according to time
+	for _, row := range results {
+		for _, camRow := range row.images {
+			sort.Slice(camRow, func(i, j int) bool {
+				return camRow[i].time < camRow[j].time
+			})
 		}
 	}
 
@@ -287,17 +303,35 @@ func calcRowIndex(cameraIdx int, row int, direction string) int {
 
 	rowIdx := row - 1
 
-	// unpack images into their own rows based on orientation
-	if direction == WEST {
-		//the left cameras are only on odd rows, move this image to the otherwise empty next even row
-		if startsEast(cameraIdx) {
-			rowIdx++
-		} else {
-			rowIdx--
-		}
+	if travelingSouth(cameraIdx, direction) && startsEast(cameraIdx) {
+		//cameras 1 & 2, oriented south, keep the current row
+		return rowIdx
+	} else if travelingSouth(cameraIdx, direction) && !startsEast(cameraIdx) {
+		//cameras 3 & 4, oriented south, move to the next row
+		return rowIdx + 1
+	} else if !travelingSouth(cameraIdx, direction) && startsEast(cameraIdx) {
+		//cameras 1 & 2, oriented north, move the next row
+		return rowIdx + 1
+	} else {
+		//cameras 3 & 4, oriented north, keep the current row
+		return rowIdx
 	}
+}
 
-	return rowIdx
+// travelingSouth determines if the rover was moving south when the picture was taken
+func travelingSouth(cameraIdx int, direction string) bool {
+
+	/*        ^                 ^
+	          S                 N
+		<-- E  W -->      <--W     E-->
+		|	      |       |          |
+		|  1   3  |       |  1    3  |
+		|         |       |          |
+		|  2   4  |       |  2    4  |
+		|         |       |          |
+	*/
+
+	return (direction == EAST && startsEast(cameraIdx)) || (direction == WEST && !startsEast(cameraIdx))
 }
 
 // startsEast returns true if the camera (0,1,2,3) initially has an eastward orientation

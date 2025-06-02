@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"sync"
 )
@@ -68,7 +69,7 @@ func (model *PostModel) dpAssignment(rows []Row) []CameraAssignment {
 
 		waitGroup.Add(1)
 
-		func(rowIdx int, pRow Row) {
+		go func(rowIdx int, pRow Row) {
 			defer waitGroup.Done()
 			camRows := model.dpRowAssignment(pRow)
 
@@ -86,6 +87,23 @@ func (model *PostModel) dpAssignment(rows []Row) []CameraAssignment {
 // dp_row_assignment produces an assignment of images to bays on a per-camera basis
 func (model *PostModel) dpRowAssignment(row Row) []RowAssignment {
 
+	//TODO remove
+	for camIdx, camImgs := range row.images {
+
+		ex := ""
+		dir := ""
+		cam := 0
+		rowNum := row.rowNum
+
+		if len(camImgs) > 0 {
+			ex = camImgs[0].path
+			dir = camImgs[0].direction
+			cam = camImgs[0].cameraNum
+			rowNum = camImgs[0].row
+		}
+		fmt.Printf("Row %d (%d) Camera %d num images %d e.g. %s dir %s camera %d\n", row.rowNum, rowNum, camIdx, len(camImgs), ex, dir, cam)
+	}
+
 	results := make([]RowAssignment, 0)
 
 	//use viterbi to find the most likely sequence of states
@@ -101,7 +119,9 @@ func (model *PostModel) dpRowAssignment(row Row) []RowAssignment {
 
 			bayNum := i + 1
 
+			//TODO this should be done somewhere else...
 			//reverse the bay number for even rows
+			//if (row.rowNum%2 == 0 && startsEast(c)) || (row.rowNum%2 == 1 && !startsEast(c)) {
 			if row.rowNum%2 == 0 {
 				bayNum = len(indexes) - i - 1
 			}
