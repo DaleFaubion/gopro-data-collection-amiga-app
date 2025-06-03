@@ -121,7 +121,6 @@ func (model *PostModel) dpRowAssignment(row Row) []RowAssignment {
 
 			//TODO this should be done somewhere else...
 			//reverse the bay number for even rows
-			//if (row.rowNum%2 == 0 && startsEast(c)) || (row.rowNum%2 == 1 && !startsEast(c)) {
 			if row.rowNum%2 == 0 {
 				bayNum = len(indexes) - i - 1
 			}

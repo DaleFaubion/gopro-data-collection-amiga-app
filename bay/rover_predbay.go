@@ -12,7 +12,10 @@ import (
 
 const NUM_ROWS = 21
 const NUM_BAYS = 21
+
 const CAMERAS = 4
+
+// const CAMERAS = 1
 const WEST = "West"
 const EAST = "East"
 
@@ -140,9 +143,6 @@ func loadRowData(posts map[string]bool, path string) []Image {
 			}
 		}
 
-		//TODO remove
-		//fmt.Printf("path: %s, camera: %d, direction: %s\n", path, camera, direction)
-
 		hasPost, _ := posts[imgPath]
 
 		newImage := Image{imgPath, record[dateIdx], record[timeIdx], hasPost, row, camera, direction}
@@ -165,7 +165,7 @@ func getCamera(path string) int {
 }
 
 // buildRows organizes images into rows/camera groups
-func buildRows(images []Image) []Row {
+func buildRows(images []Image, singleCam bool) []Row {
 
 	//find the max row in the data
 	maxRow := 0
@@ -186,7 +186,20 @@ func buildRows(images []Image) []Row {
 	//put all the images into the correct rows
 	for _, image := range images {
 		camIdx := image.cameraNum - 1
+
+		//for the single camera setup, make sure the index does not become -1
+		if camIdx == -1 || singleCam {
+			camIdx = 0
+
+			//make sure the camera number is 1
+			image.cameraNum = 1
+		}
+
 		rowIdx := calcRowIndex(camIdx, image.row, image.direction)
+
+		if singleCam {
+			rowIdx = image.row - 1
+		}
 
 		//drop images that face away from the block i.e. row 1 camera 3, facing West
 		if rowIdx < maxRow && rowIdx >= 0 {
@@ -356,7 +369,7 @@ func calcDirection(camera int, row int) string {
 }
 
 // WriteBays write out the pay predictions to the given file path
-func writeBays(path string, bays []CameraAssignment) {
+func writeBays(path string, bays []CameraAssignment, singleCam bool) {
 	const WEST = "West"
 
 	// open the file
@@ -395,6 +408,10 @@ func writeBays(path string, bays []CameraAssignment) {
 					dir := "0"
 					if img.direction == WEST {
 						dir = "1"
+					}
+
+					if singleCam {
+						dir = "0"
 					}
 
 					// include the post information
@@ -462,7 +479,7 @@ func main() {
 
 	fmt.Printf("Post model %v\n", model)
 
-	rows := buildRows(images)
+	rows := buildRows(images, *singleCam)
 
 	fmt.Printf("Number of rows: %d\n", len(rows))
 
@@ -479,6 +496,6 @@ func main() {
 
 	// if an output file is given, write to it
 	if *outFile != "" {
-		writeBays(*outFile, result)
+		writeBays(*outFile, result, *singleCam)
 	}
 }
