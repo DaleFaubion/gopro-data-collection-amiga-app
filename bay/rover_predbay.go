@@ -441,7 +441,8 @@ func main() {
 	// Set up the optional flags
 	postProb := flag.Float64("post", 0.95, "The conditional probability of an image containing a post in a post group")
 	groupMean := flag.Float64("mean", 4.0, "The average number of pictures per post/no post grouping")
-	numGroups := flag.Int("numGroups", 43, "The number of post/no post groups per row i.e. # bays x 2")
+	// TODO make numGroups calculated based on # bays constant
+	numGroups := flag.Int("numGroups", 43, "The number of post/no post groups per row i.e. # bays x 2 + 1")
 	thres := flag.Int("thres", 3, "The threshold of simultaneous post images counting as a true post")
 	singleCam := flag.Bool("single", false, "Whether the data has only a single camera or not i.e. for the years 2019-2021")
 	outFile := flag.String("out", "", "The path to the CSV file to write with the bay predictions")
