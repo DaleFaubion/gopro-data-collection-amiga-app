@@ -4,6 +4,7 @@ A Window/CLI program to tag the end of rows then convert those tags into
 row predictions
 
 Note: there is no need to tag the start of the first row!
+NOTE: ends.csv is a list of paths to the images you'd like to use.
 """
 
 import tkinter as tk
@@ -26,9 +27,14 @@ NUM_FIELD_START = 3
 WEST = "West"
 EAST = "East"
 
+## PREFIX is what ends.csv is prefixed with before the filename
+## REPLACE is what you want to replace that with when running this.
+
 #PREFIX = "/srv/projects/vinetech/images/crawford-beck/block09"
-PREFIX = "/srv/projects/vinetech/images/domaine-willamette/block02"
-REPLACE = "remote"
+#PREFIX = "/srv/projects/vinetech/images/domaine-willamette/block02"
+#REPLACE = "remote"
+PREFIX = "C:/Users/daleb/OneDrive/Desktop/GoProData/2026-07-10"
+REPLACE = "C:/Users/daleb/OneDrive/Desktop/GoProData/2026-07-10"
 
 class ImageViewer:
 	def __init__(self, root, date, csv_file):
@@ -165,6 +171,10 @@ class ImageViewer:
 	
 
 	def show_image(self):
+
+		if not self.selection:
+			print("No images found for this camera/date (Check image name date)")
+			return
 	
 		image_data = self.selection[self.current_image_index]
 		image = Image.open(image_data.local_path)

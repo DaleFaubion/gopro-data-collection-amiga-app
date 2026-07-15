@@ -25,8 +25,8 @@ NUM_FIELD_START = 3
 SHORT_FIELDS = 7
 
 EXT = "-updated"
-PREFIX = "/srv/projects/vinetech/images/crawford-beck/block09"
-REPLACE = "remote"
+PREFIX = "/srv/projects/vinetech/images/domaine-willamette/block02"
+REPLACE = "/home/dalebyte/remote"
 
 class ImageViewer:
 	def __init__(self, root, csv_file):
