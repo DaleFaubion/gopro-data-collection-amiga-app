@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const NUM_ROWS = 37
+const NUM_ROWS = 30
 const NUM_BAYS = 14 // May be 14/15
 // TODO check if we need to make it less (since the first bay has one vine)
 
