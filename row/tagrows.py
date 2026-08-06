@@ -32,9 +32,9 @@ EAST = "East"
 
 #PREFIX = "/srv/projects/vinetech/images/crawford-beck/block09"
 #PREFIX = "/srv/projects/vinetech/images/domaine-willamette/block02"
-#REPLACE = "remote"
-PREFIX = "C:/Users/daleb/OneDrive/Desktop/GoProData/2026-07-24"
-REPLACE = "C:/Users/daleb/OneDrive/Desktop/GoProData/2026-07-24"
+REPLACE = "/VineTech/remote"
+PREFIX = "C:/Users/daleb/OneDrive/Desktop/GoProData/2026-07-30"
+#REPLACE = "C:/Users/daleb/OneDrive/Desktop/GoProData/2026-07-24"
 
 class ImageViewer:
 	def __init__(self, root, date, csv_file):
