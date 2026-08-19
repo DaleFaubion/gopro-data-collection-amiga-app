@@ -11,6 +11,7 @@
 
 import os
 import shutil
+import time
 from PIL import Image
 from PIL.ExifTags import TAGS
 from datetime import datetime
@@ -56,7 +57,7 @@ def process_image(image_path, base_output_dir, cam_num, date):
         the date and camera on which it was captured, putting it in
         the correct Date/CamNum/img.JPEG structure for VineTech.
     """
-    print(f"Processing: {image_path}")
+    #print(f"Processing: {image_path}")
 
     # Extract datetime from EXIF data
     dt = get_exif_datetime(image_path)
@@ -82,16 +83,19 @@ def process_image(image_path, base_output_dir, cam_num, date):
         counter += 1
     # Move and rename the file
     shutil.move(image_path, new_path)
-    print(f"Moved -> {new_path}")
+    #print(f"Moved -> {new_path}")
 
 #TODO: Change these to run
 input_root = "D:\\DCIM"
 output_root = "C:\\Users\\daleb\\OneDrive\\Desktop\\GoProData"
-cam_num = "2"
-date = "2026-08-06"
+cam_num = "4"
+date = "2026-08-19"
 
 count = 0
-time = datetime.now()
+chunked_progress = 0
+start_time = time.time()
+
+print(f"Starting to move from {input_root} to {output_root}")
 
 # Walk through all subfolders
 for root, dirs, files in os.walk(input_root):
@@ -101,7 +105,25 @@ for root, dirs, files in os.walk(input_root):
             full_path = os.path.join(root, file)
             process_image(full_path, output_root, cam_num, date)
 
-time_passed = datetime.now() - time
+            ## Every 10%, update user with how much time is left
+            elapsed_time = time.time() - start_time
+            #TODO: Could change to actually check how many there are, but usually around 3100 - 3200
+            percent_done = (count / 3200) * 100
+            speed = 0
+            if (elapsed_time > 0):
+                speed = elapsed_time / count
+
+            #TODO: change 321 to the actual number, but its close enough for now.
+            progress = int(count / 321) * 10
+            if (progress > chunked_progress):
+                seconds = ((3200 - count) * speed)
+                minutes = int(seconds / 60)
+                seconds_left = seconds - (minutes * 60)
+                print(f"{(progress):.0f}% Complete Estimated time left: {minutes}:{seconds_left:.2f} minutes ({speed:.2f} per file)")
+                chunked_progress = progress
+
+
+time_passed = time.time() - start_time
 print(f"Time passed: {time_passed}, images moved: {count}")
 if count > 0:
     time_per_image = time_passed / count
