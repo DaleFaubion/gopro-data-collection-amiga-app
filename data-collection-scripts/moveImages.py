@@ -7,6 +7,9 @@
     
     NOTE: Change Constants below for input/output folders, cam_num, date images
     were recorded.
+    You'll have to delete the 100GOPRO folders from the DCIM folder of each SD card
+    at the moment, that would be easy to fix though. It doesn't break anything that
+    I could find, but it keeps it cleaner.
 """
 
 import os
@@ -88,8 +91,8 @@ def process_image(image_path, base_output_dir, cam_num, date):
 #TODO: Change these to run
 input_root = "D:\\DCIM"
 output_root = "C:\\Users\\daleb\\OneDrive\\Desktop\\GoProData"
-cam_num = "4"
-date = "2026-08-19"
+cam_num = "2"
+date = "2026-08-26"
 
 count = 0
 chunked_progress = 0
@@ -119,7 +122,7 @@ for root, dirs, files in os.walk(input_root):
                 seconds = ((3200 - count) * speed)
                 minutes = int(seconds / 60)
                 seconds_left = seconds - (minutes * 60)
-                print(f"{(progress):.0f}% Complete Estimated time left: {minutes}:{seconds_left:.2f} minutes ({speed:.2f} per file)")
+                print(f"{(progress):.0f}% Complete Estimated time left: {minutes}:{seconds_left:.0f} minutes ({speed:.2f} per file)")
                 chunked_progress = progress
 
 
