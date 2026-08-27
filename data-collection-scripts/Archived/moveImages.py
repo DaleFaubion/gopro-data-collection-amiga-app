@@ -91,7 +91,7 @@ def process_image(image_path, base_output_dir, cam_num, date):
 #TODO: Change these to run
 input_root = "D:\\DCIM"
 output_root = "C:\\Users\\daleb\\OneDrive\\Desktop\\GoProData"
-cam_num = "2"
+cam_num = "1"
 date = "2026-08-26"
 
 count = 0
